@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>スコア上位銘柄</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        #chart-container {
+            width: 100%;
+            max-width: none;
+        }
+        .chart-box {
+            margin-bottom: 40px;
+        }
+        .chart-img {
+            display: block;
+            width: auto;
+            height: 500px;  /* ✅ 縦を固定 */
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>スコア上位銘柄 - 5分足チャート</h2>
+    <div id="chart-container">
+        {% for ticker, ticker_name, chart_path in charts_5min %}
+        <div class="chart-box" data-ticker="{{ ticker }}">
+            <h3>{{ ticker_name }}（{{ ticker }}）</h3>
+            <img src="{{ chart_path }}" alt="{{ ticker_name }}" class="chart-img">
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        async function fetchAndUpdateCharts() {
+            try {
+                const response = await fetch("/charts");
+                const charts = await response.json();
+
+                charts.forEach(chart => {
+                    const box = document.querySelector(`.chart-box[data-ticker="${chart.ticker}"]`);
+                    if (box) {
+                        const img = box.querySelector("img.chart-img");
+                        if (img) {
+                            img.src = chart.img_url + "?t=" + new Date().getTime();  // ✅ キャッシュ回避
+                        }
+
+                        const h3 = box.querySelector("h3");
+                        if (h3 && chart.ticker_name) {
+                            h3.textContent = `${chart.ticker_name}（${chart.ticker}）`;
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("チャート取得エラー:", error);
+            }
+        }
+
+        // 初回表示と1分ごとの自動更新
+        fetchAndUpdateCharts();
+        setInterval(fetchAndUpdateCharts, 60 * 1000);
+    </script>
+</body>
+</html>

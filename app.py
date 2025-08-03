@@ -100,7 +100,7 @@ def initialize_once():
             subprocess.Popen([EXCEL_EXE, EXCEL_PATH_R])
         except Exception as e:
             print("Excel 起動エラー:", e)
-    time.sleep(5)
+    time.sleep(10)
     step_mode = 1
 
 
@@ -129,16 +129,22 @@ def charts():
         name_map = {**name_l, **name_r}
 
         for ticker, daily_data in combined.items():
-            df = next(iter(daily_data.values()))
-            chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-            if chart_path:
-                chart_data.append(
-                    {
-                        "ticker": ticker,
-                        "ticker_name": name_map.get(ticker, ticker),
-                        "img_url": f"/{chart_path}",
-                    }
-                )
+            try:
+                # 最新日付のデータを取得
+                latest_date = list(daily_data.keys())[0]
+                df = daily_data[latest_date]
+                chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
+                if chart_path:
+                    chart_data.append(
+                        {
+                            "ticker": ticker,
+                            "ticker_name": name_map.get(ticker, ticker),
+                            "img_url": f"/{chart_path}",
+                        }
+                    )
+            except Exception as e:
+                print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
+                continue
 
         return jsonify(chart_data)
 
@@ -172,10 +178,18 @@ def index():
         name_map = {**name_l, **name_r}
 
         for ticker, daily_data in combined.items():
-            df = next(iter(daily_data.values()))
-            chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-            if chart_path:
-                charts_5min.append((ticker, name_map.get(ticker, ticker), chart_path))
+            try:
+                # 最新日付のデータを取得
+                latest_date = list(daily_data.keys())[0]
+                df = daily_data[latest_date]
+                chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
+                if chart_path:
+                    charts_5min.append(
+                        (ticker, name_map.get(ticker, ticker), chart_path)
+                    )
+            except Exception as e:
+                print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
+                continue
 
         return render_template("index.html", charts_5min=charts_5min)
 

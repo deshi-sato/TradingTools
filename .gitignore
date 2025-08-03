@@ -1,11 +1,4 @@
-# 除外したいフォルダ
 __pycache__/
-static/
-72E51000/
-
-# Excelファイルは除外
-*.xlsm
-
-# 一時ファイルやキャッシュも除外
+.mypy_cache/
 *.pyc
 *.log

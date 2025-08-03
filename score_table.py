@@ -82,14 +82,49 @@ def get_japan_market_today():
         return now.strftime("%Y-%m-%d")
 
 
+def get_latest_date_from_data(file_path):
+    """Excelファイルから最新の日付を取得する"""
+    wb = openpyxl.load_workbook(file_path, data_only=True)
+    sheetnames = wb.sheetnames
+    latest_date = None
+
+    for sheet_name in sheetnames[:5]:  # 最初の5シートで確認
+        ws = wb[sheet_name]
+
+        for row in ws.iter_rows(min_row=3, values_only=True):
+            # データ終端のチェック
+            if isinstance(row[1], str) and "----" in str(row[1]):
+                break
+
+            if (
+                row[1] is None
+                or row[2] is None
+                or row[3] is None
+                or row[4] is None
+                or row[5] is None
+                or row[7] == 0
+            ):
+                continue
+
+            try:
+                dt = parse_date_time(row[1], row[2])
+                date_key = dt.strftime("%Y-%m-%d")
+
+                if latest_date is None or date_key > latest_date:
+                    latest_date = date_key
+
+            except Exception as e:
+                continue
+
+    wb.close()
+    return latest_date
+
+
 def load_summary_data(file_path):
     wb = openpyxl.load_workbook(file_path, data_only=True)
     sheetnames = wb.sheetnames
     data_dict = {}
     code_to_name = {}  # ← 銘柄コード→名称の対応辞書を追加
-
-    # 日本市場の今日の基準日を取得（9:00前なら前日扱い）
-    today = get_japan_market_today()
 
     # ✅ A1の値を確認し、RSS通信が未確立なら中断
     first_sheet = wb[sheetnames[0]]
@@ -97,6 +132,14 @@ def load_summary_data(file_path):
     if "#NAME?" in a1_value or a1_value.strip() == "":
         print(f"⚠️ 通信未確立（A1セル = {a1_value}）のため読み込み中断: {file_path}")
         return {}, {}
+
+    # 最新の日付を取得
+    latest_date = get_latest_date_from_data(file_path)
+    if latest_date is None:
+        print(f"⚠️ データから最新日付を取得できませんでした: {file_path}")
+        return {}, {}
+
+    print(f"📅 最新日付: {latest_date}")
 
     for sheet_name in tqdm(sheetnames, desc="Excel読み込み中"):
         ws = wb[sheet_name]
@@ -114,6 +157,10 @@ def load_summary_data(file_path):
         records = []
 
         for row in ws.iter_rows(min_row=3, values_only=True):
+            # データ終端のチェック
+            if isinstance(row[1], str) and "----" in str(row[1]):
+                break
+
             if (
                 row[1] is None
                 or row[2] is None
@@ -123,14 +170,12 @@ def load_summary_data(file_path):
                 or row[7] == 0
             ):
                 continue
-            if isinstance(row[1], str) and "----" in str(row[1]):
-                break
 
             try:
                 dt = parse_date_time(row[1], row[2])
                 date_key = dt.strftime("%Y-%m-%d")
-                if date_key != today:
-                    continue  # 当日以外は除外
+                if date_key != latest_date:
+                    continue  # 最新日付以外は除外
 
                 record = {
                     "time": dt,
@@ -147,9 +192,11 @@ def load_summary_data(file_path):
 
         if records:
             df = pd.DataFrame(records)
-            data_dict[code] = {today: df}
+            data_dict[code] = {latest_date: df}
             code_to_name[code] = sheet_name
-            print(f"✅ コード {code} ← シート「{sheet_name}」当日 {len(records)}本")
+            print(
+                f"✅ コード {code} ← シート「{sheet_name}」最新日 {latest_date} {len(records)}本"
+            )
 
     return data_dict, code_to_name  # ← 2つ返す
 
@@ -159,25 +206,11 @@ def save_chart_5min(ticker, df, global_data_dict):
     import mplfinance as mpf
     from datetime import timedelta
 
-    print(f"\n🧩 save_chart_5min() 呼び出し: ticker = '{ticker}'")
-
-    # デバッグ：GLOBAL_DATA_DICT のキー確認
-    print(
-        f"📘 GLOBAL_DATA_DICT.keys(): {list(global_data_dict.keys())[:5]} ... 全{len(global_data_dict)}件"
-    )
-    print(
-        f"🔍 GLOBAL_DATA_DICT に '{ticker}' が存在するか？ ➜ {ticker in global_data_dict}"
-    )
+    prev_open = prev_high = prev_low = prev_close = None
 
     if ticker not in global_data_dict:
-        print(f"❌ '{ticker}' は GLOBAL_DATA_DICT に存在しません")
-        # 類似キー候補をリストアップ
-        from difflib import get_close_matches
-
-        candidates = get_close_matches(ticker, global_data_dict.keys())
-        print(f"🔍 類似キー候補: {candidates}")
-    else:
-        print(f"✅ '{ticker}' は GLOBAL_DATA_DICT に存在します")
+        print("global_data_dictが不正または空です。チャート作成スキップ。")
+        return None
 
     # 5分足に変換
     df_resampled = (
@@ -223,6 +256,7 @@ def save_chart_5min(ticker, df, global_data_dict):
             "volume": "Volume",
         }
     )
+    line_len = len(df_plot)
 
     # 最終チェック
     if (
@@ -245,86 +279,133 @@ def save_chart_5min(ticker, df, global_data_dict):
     yesterday = today - timedelta(days=1)
 
     # グローバルから該当データ取得
-    prev_df = GLOBAL_DATA_DICT.get(ticker, {}).get(str(yesterday))
+    prev_df = global_data_dict.get(ticker, {}).get(str(yesterday))
 
     # 🔽 当日（df_plot）の範囲を取得
     today_high = df_plot["High"].max()
     today_low = df_plot["Low"].min()
 
     # 🔽 前日データを取得
-    # デバッグ: 現在の ticker と GLOBAL_DATA_DICT のキー一覧
-    print(f"\n📌 save_chart_5min() 呼び出し: ticker = '{ticker}'")
-    print("📋 GLOBAL_DATA_DICT.keys():")
-    for k in list(GLOBAL_DATA_DICT.keys())[:5]:  # 最初の5件だけ表示（多いときは制限）
-        print(f"    - {k}")
-    print(
-        f"🔎 GLOBAL_DATA_DICT に '{ticker}' が存在するか？→ {ticker in GLOBAL_DATA_DICT}"
-    )
-
-    if ticker not in GLOBAL_DATA_DICT:
+    if ticker not in global_data_dict:
         print(f"❌ '{ticker}' は GLOBAL_DATA_DICT に存在しません")
-        matched_keys = [
-            k for k in GLOBAL_DATA_DICT.keys() if k in ticker or ticker in k
-        ]
-        print(f"🔎 類似キー候補: {matched_keys}")
+        return None
     else:
-        daily_dict = GLOBAL_DATA_DICT[ticker]
+        daily_dict = global_data_dict[ticker]
         if not isinstance(daily_dict, dict):
             print(f"⚠️ {ticker} に対応する値が dict ではありません: {type(daily_dict)}")
+            return None
         elif str(yesterday) not in daily_dict:
             print(f"⚠️ {ticker} は存在するが {yesterday} のデータがありません")
-            print(f"📅 利用可能日付: {list(daily_dict.keys())}")
+            return None
         else:
             prev_df = daily_dict[str(yesterday)]
-            print(f"✅ {ticker} 前日データ取得成功（行数: {len(prev_df)}）")
-            print(prev_df[["time", "open", "high", "low", "close", "volume"]].head())
 
-        # 🔽 チャート範囲に含まれるOHLCのみライン追加
-        if today_low <= prev_open <= today_high:
-            add_plots.append(
-                mpf.make_addplot(
-                    [prev_open] * line_len,
-                    panel=0,
-                    color="gray",
-                    linestyle="--",
-                    width=0.8,
-                )
-            )
-        if today_low <= prev_close <= today_high:
-            add_plots.append(
-                mpf.make_addplot(
-                    [prev_close] * line_len,
-                    panel=0,
-                    color="black",
-                    linestyle="--",
-                    width=0.8,
-                )
-            )
-        if today_low <= prev_high <= today_high:
-            add_plots.append(
-                mpf.make_addplot(
-                    [prev_high] * line_len,
-                    panel=0,
-                    color="red",
-                    linestyle=":",
-                    width=0.8,
-                )
-            )
-        if today_low <= prev_low <= today_high:
-            add_plots.append(
-                mpf.make_addplot(
-                    [prev_low] * line_len,
-                    panel=0,
-                    color="blue",
-                    linestyle=":",
-                    width=0.8,
-                )
-            )
+            # 前日データが存在する場合のみ前日四本値を取得
+            if not prev_df.empty:
+                try:
+                    prev_open = prev_df["open"].iloc[0]
+                    prev_high = prev_df["high"].max()
+                    prev_low = prev_df["low"].min()
+                    prev_close = prev_df["close"].iloc[-1]
+
+                    # 値がNoneまたはNaNでないことを確認
+                    if (
+                        pd.isna(prev_open)
+                        or pd.isna(prev_high)
+                        or pd.isna(prev_low)
+                        or pd.isna(prev_close)
+                    ):
+                        prev_open = prev_high = prev_low = prev_close = None
+                except Exception as e:
+                    prev_open = prev_high = prev_low = prev_close = None
+
+                # 🔽 チャート範囲に含まれるOHLCのみライン追加
+                if (
+                    prev_open is not None
+                    and isinstance(prev_open, (int, float))
+                    and not pd.isna(prev_open)
+                    and today_low <= prev_open <= today_high
+                ):
+                    try:
+                        add_plots.append(
+                            mpf.make_addplot(
+                                [float(prev_open)] * line_len,
+                                panel=0,
+                                color="gray",
+                                linestyle="--",
+                                width=0.8,
+                            )
+                        )
+                    except (ValueError, TypeError) as e:
+                        pass
+
+                if (
+                    prev_close is not None
+                    and isinstance(prev_close, (int, float))
+                    and not pd.isna(prev_close)
+                    and today_low <= prev_close <= today_high
+                ):
+                    try:
+                        add_plots.append(
+                            mpf.make_addplot(
+                                [float(prev_close)] * line_len,
+                                panel=0,
+                                color="black",
+                                linestyle="--",
+                                width=0.8,
+                            )
+                        )
+                    except (ValueError, TypeError) as e:
+                        pass
+
+                if (
+                    prev_high is not None
+                    and isinstance(prev_high, (int, float))
+                    and not pd.isna(prev_high)
+                    and today_low <= prev_high <= today_high
+                ):
+                    try:
+                        add_plots.append(
+                            mpf.make_addplot(
+                                [float(prev_high)] * line_len,
+                                panel=0,
+                                color="red",
+                                linestyle=":",
+                                width=0.8,
+                            )
+                        )
+                    except (ValueError, TypeError) as e:
+                        pass
+
+                if (
+                    prev_low is not None
+                    and isinstance(prev_low, (int, float))
+                    and not pd.isna(prev_low)
+                    and today_low <= prev_low <= today_high
+                ):
+                    try:
+                        add_plots.append(
+                            mpf.make_addplot(
+                                [float(prev_low)] * line_len,
+                                panel=0,
+                                color="blue",
+                                linestyle=":",
+                                width=0.8,
+                            )
+                        )
+                    except (ValueError, TypeError) as e:
+                        pass
 
     if is_valid_series(df_plot["VWAP"]):
-        add_plots.append(
-            mpf.make_addplot(df_plot["VWAP"], color="orange", linestyle="-.")
-        )
+        try:
+            # VWAPデータが数値型であることを確認
+            vwap_data = df_plot["VWAP"].dropna()
+            if not vwap_data.empty and vwap_data.dtype in ["float64", "int64"]:
+                add_plots.append(
+                    mpf.make_addplot(df_plot["VWAP"], color="orange", linestyle="-.")
+                )
+        except Exception as e:
+            pass
 
     path = f"static/chart_{ticker}_5min.png"
 
@@ -353,19 +434,38 @@ def save_chart_5min(ticker, df, global_data_dict):
         )
 
         # 🔽 前日四本値を注釈として下に表示
-        if prev_df is not None and not prev_df.empty:
-            text_str = (
-                f"前日 始: {prev_open:.2f}  高: {prev_high:.2f}  "
-                f"安: {prev_low:.2f}  終: {prev_close:.2f}"
-            )
-            axes[0].text(
-                0.01,
-                -0.18,  # 左下の少し下
-                text_str,
-                transform=axes[0].transAxes,
-                fontsize=10,
-                verticalalignment="top",
-            )
+        if (
+            prev_df is not None
+            and not prev_df.empty
+            and "prev_open" in locals()
+            and prev_open is not None
+            and prev_high is not None
+            and prev_low is not None
+            and prev_close is not None
+            and isinstance(prev_open, (int, float))
+            and isinstance(prev_high, (int, float))
+            and isinstance(prev_low, (int, float))
+            and isinstance(prev_close, (int, float))
+            and not pd.isna(prev_open)
+            and not pd.isna(prev_high)
+            and not pd.isna(prev_low)
+            and not pd.isna(prev_close)
+        ):
+            try:
+                text_str = (
+                    f"前日 始: {float(prev_open):.2f}  高: {float(prev_high):.2f}  "
+                    f"安: {float(prev_low):.2f}  終: {float(prev_close):.2f}"
+                )
+                axes[0].text(
+                    0.01,
+                    -0.18,  # 左下の少し下
+                    text_str,
+                    transform=axes[0].transAxes,
+                    fontsize=10,
+                    verticalalignment="top",
+                )
+            except (ValueError, TypeError) as e:
+                pass
 
         fig.savefig(path, dpi=200, bbox_inches="tight")
         plt.close(fig)
@@ -398,6 +498,10 @@ def load_data(file_path):
         daily_rows = {}
 
         for row in ws.iter_rows(min_row=3, values_only=True):
+            # データ終端のチェック
+            if isinstance(row[1], str) and "----" in str(row[1]):
+                break
+
             if (
                 row[1] is None
                 or row[2] is None
@@ -407,8 +511,6 @@ def load_data(file_path):
                 or row[7] == 0
             ):
                 continue
-            if isinstance(row[1], str) and "----" in str(row[1]):
-                break
 
             try:
                 dt = parse_date_time(row[1], row[2])
@@ -437,9 +539,9 @@ def load_data(file_path):
         if len(daily_frames) >= 3:
             data_dict[code] = daily_frames
             code_to_name[code] = sheet_name  # ← 対応を登録
-            print(
-                f"✅ コード {code} ← シート「{sheet_name}」として登録（{len(daily_frames)}日分）"
-            )
+    #            print(
+    #                f"✅ コード {code} ← シート「{sheet_name}」として登録（{len(daily_frames)}日分）"
+    #            )
 
     return data_dict, code_to_name  # ← 2つ返す
 

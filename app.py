@@ -157,7 +157,7 @@ def charts():
                 latest_date = list(daily_data.keys())[0]
                 df = daily_data[latest_date]
                 chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-                if chart_path:
+                if chart_path and os.path.exists(chart_path):
                     chart_data.append(
                         {
                             "ticker": ticker,
@@ -165,6 +165,8 @@ def charts():
                             "img_url": f"/{chart_path}",
                         }
                     )
+                else:
+                    print(f"⚠️ {ticker} チャートファイルが存在しません: {chart_path}")
             except Exception as e:
                 print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
                 continue
@@ -184,51 +186,41 @@ def index():
     try:
         if not step_mode or not GLOBAL_DATA_DICT:
             return "<h2>初期化中</h2>"
-        if not is_excel_open_recently(EXCEL_PATH_L) or not is_excel_open_recently(
-            EXCEL_PATH_R
-        ):
-            print("⏳ Excelファイルは更新直後のため index をスキップします")
-            return "<h2>読み込み中</h2>"
 
-        print("🏠 index ルート開始: データ読み込み中...")
+        # 初期表示時にチャートデータを取得
+        print("🏠 index ルート: 初期表示")
 
-        charts_5min = []
-        combined_l, name_l = load_summary_data(EXCEL_PATH_L)
-        combined_r, name_r = load_summary_data(EXCEL_PATH_R)
+        # チャートデータを取得
+        chart_data = []
+        try:
+            combined_l, name_l = load_summary_data(EXCEL_PATH_L)
+            combined_r, name_r = load_summary_data(EXCEL_PATH_R)
 
-        # ✅ 通信未確立などで空の場合はスキップ
-        if not combined_l and not combined_r:
-            print("⚠️ load_summary_data によりデータ取得できず index スキップ")
-            return "<h2>データ取得待ち（通信未確立）</h2>"
+            if combined_l or combined_r:
+                combined = {**combined_l, **combined_r}
+                name_map = {**name_l, **name_r}
 
-        print(
-            f"📈 データ取得成功: 買い銘柄 {len(combined_l)}件, 売り銘柄 {len(combined_r)}件"
-        )
+                for ticker, daily_data in combined.items():
+                    try:
+                        latest_date = list(daily_data.keys())[0]
+                        df = daily_data[latest_date]
+                        chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
+                        if chart_path and os.path.exists(chart_path):
+                            chart_data.append(
+                                (ticker, name_map.get(ticker, ticker), f"/{chart_path}")
+                            )
+                    except Exception as e:
+                        print(f"⚠️ {ticker} の初期チャート作成でエラー: {e}")
+                        continue
+        except Exception as e:
+            print(f"⚠️ 初期チャートデータ取得でエラー: {e}")
 
-        combined = {**combined_l, **combined_r}
-        name_map = {**name_l, **name_r}
-
-        for ticker, daily_data in combined.items():
-            try:
-                # 最新日付のデータを取得
-                latest_date = list(daily_data.keys())[0]
-                df = daily_data[latest_date]
-                chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-                if chart_path:
-                    charts_5min.append(
-                        (ticker, name_map.get(ticker, ticker), chart_path)
-                    )
-            except Exception as e:
-                print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
-                continue
-
-        print(f"🎯 チャート作成完了: {len(charts_5min)}件")
-        session["last_index_update"] = datetime.now().isoformat()
-        return render_template("index.html", charts_5min=charts_5min)
+        print(f"🏠 初期表示: {len(chart_data)}件のチャート")
+        return render_template("index.html", charts_5min=chart_data)
 
     except Exception as e:
         print(f"❌ index() ルート処理中に例外発生: {e}")
-        return "<h2>チャート描画中にエラーが発生しました</h2>"
+        return "<h2>初期表示中にエラーが発生しました</h2>"
 
 
 if __name__ == "__main__":

@@ -25,12 +25,16 @@
 <body>
     <h2>スコア上位銘柄 - 5分足チャート</h2>
     <div id="chart-container">
-        {% for ticker, ticker_name, chart_path in charts_5min %}
-        <div class="chart-box" data-ticker="{{ ticker }}">
-            <h3>{{ ticker_name }}（{{ ticker }}）</h3>
-            <img src="{{ chart_path }}" alt="{{ ticker_name }}" class="chart-img">
-        </div>
-        {% endfor %}
+        {% if charts_5min %}
+            {% for ticker, ticker_name, chart_path in charts_5min %}
+            <div class="chart-box" data-ticker="{{ ticker }}">
+                <h3>{{ ticker_name }}（{{ ticker }}）</h3>
+                <img src="{{ chart_path }}" alt="{{ ticker_name }}" class="chart-img">
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>チャートを読み込み中...</p>
+        {% endif %}
     </div>
 
     <script>
@@ -39,6 +43,7 @@
                 const response = await fetch("/charts");
                 const charts = await response.json();
 
+                // 既存のチャートボックスを更新
                 charts.forEach(chart => {
                     const box = document.querySelector(`.chart-box[data-ticker="${chart.ticker}"]`);
                     if (box) {
@@ -58,12 +63,19 @@
             }
         }
 
-        // 初回表示はスキップ（サーバー側で既に処理済み）
-        // 30秒後に初回更新、その後1分ごとの自動更新
-        setTimeout(() => {
-            fetchAndUpdateCharts();  // 初回更新
-            setInterval(fetchAndUpdateCharts, 60 * 1000);  // 1分ごとの更新
-        }, 30 * 1000);  // 30秒後に開始
+        // 初期表示時にチャートが既に表示されている場合は更新のみ
+        const existingCharts = document.querySelectorAll('.chart-box');
+        if (existingCharts.length > 0) {
+            console.log("初期チャートが表示されています。更新を開始します。");
+            // 1分ごとの自動更新
+            setInterval(fetchAndUpdateCharts, 60 * 1000);
+        } else {
+            console.log("初期チャートがありません。初回取得を実行します。");
+            // 初回表示直後にチャートを取得
+            fetchAndUpdateCharts();
+            // 1分ごとの自動更新
+            setInterval(fetchAndUpdateCharts, 60 * 1000);
+        }
     </script>
 </body>
 </html>

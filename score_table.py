@@ -233,6 +233,8 @@ def save_chart_5min(ticker, df, global_data_dict):
         or df_resampled[["open", "high", "low", "close"]].dropna().empty
     ):
         print(f"⚠️ {ticker} の5分足データが不正または空です。チャート作成スキップ。")
+        print(f"   df_resampled.shape: {df_resampled.shape}")
+        print(f"   df_resampled.columns: {df_resampled.columns.tolist()}")
         return None
 
     df_resampled.index.name = "Date"
@@ -265,6 +267,11 @@ def save_chart_5min(ticker, df, global_data_dict):
         or df_plot[["Open", "High", "Low", "Close"]].dropna().shape[0] < 3
     ):
         print(f"⚠️ {ticker} の描画データが不正（空 or NaN or 3本未満）。スキップ。")
+        print(f"   df_plot.shape: {df_plot.shape}")
+        print(f"   df_plot.columns: {df_plot.columns.tolist()}")
+        print(
+            f"   df_plot[['Open', 'High', 'Low', 'Close']].dropna().shape: {df_plot[['Open', 'High', 'Low', 'Close']].dropna().shape}"
+        )
         return None
 
     # インジケーターがNaNだけでないかチェック関数
@@ -276,142 +283,129 @@ def save_chart_5min(ticker, df, global_data_dict):
 
     # 当日の日付（df は当日分だけ）
     today = df["time"].dt.date.iloc[0]
+    yesterday_str = str(today - timedelta(days=1))
 
     # global_data_dictから最新日付の前日を取得
-    if ticker in global_data_dict:
-        daily_dict = global_data_dict[ticker]
-        if isinstance(daily_dict, dict) and daily_dict:
-            # 日付を降順でソートして最新日付を取得
-            sorted_dates = sorted(daily_dict.keys(), reverse=True)
-            if sorted_dates:
-                latest_date_str = sorted_dates[0]
-                # 最新日付の前日を計算
-                latest_date = datetime.strptime(latest_date_str, "%Y-%m-%d").date()
-                yesterday = latest_date - timedelta(days=1)
-            else:
-                yesterday = today - timedelta(days=1)
-        else:
-            yesterday = today - timedelta(days=1)
-    else:
-        yesterday = today - timedelta(days=1)
+    daily_dict = global_data_dict[ticker]
+    if isinstance(daily_dict, dict) and daily_dict:
+        # 日付を降順でソートして最新日付を取得
+        sorted_dates = sorted(daily_dict.keys(), reverse=True)
+        if sorted_dates:
+            yesterday_str = sorted_dates[1]
 
     # グローバルから該当データ取得
-    prev_df = global_data_dict.get(ticker, {}).get(str(yesterday))
+    prev_df = global_data_dict.get(ticker, {}).get(yesterday_str)
 
     # 🔽 当日（df_plot）の範囲を取得
     today_high = df_plot["High"].max()
     today_low = df_plot["Low"].min()
 
     # 🔽 前日データを取得
-    if ticker not in global_data_dict:
-        print(f"❌ '{ticker}' は GLOBAL_DATA_DICT に存在しません")
+    daily_dict = global_data_dict[ticker]
+    if not isinstance(daily_dict, dict):
+        print(f"⚠️ {ticker} に対応する値が dict ではありません: {type(daily_dict)}")
+        return None
+    elif yesterday_str not in daily_dict:
+        print(f"⚠️ {ticker} は存在するが {yesterday_str} のデータがありません")
         return None
     else:
-        daily_dict = global_data_dict[ticker]
-        if not isinstance(daily_dict, dict):
-            print(f"⚠️ {ticker} に対応する値が dict ではありません: {type(daily_dict)}")
-            return None
-        elif str(yesterday) not in daily_dict:
-            print(f"⚠️ {ticker} は存在するが {yesterday} のデータがありません")
-            return None
-        else:
-            prev_df = daily_dict[str(yesterday)]
+        prev_df = daily_dict[yesterday_str]
 
-            # 前日データが存在する場合のみ前日四本値を取得
-            if not prev_df.empty:
-                try:
-                    prev_open = prev_df["open"].iloc[0]
-                    prev_high = prev_df["high"].max()
-                    prev_low = prev_df["low"].min()
-                    prev_close = prev_df["close"].iloc[-1]
+        # 前日データが存在する場合のみ前日四本値を取得
+        if not prev_df.empty:
+            try:
+                prev_open = prev_df["open"].iloc[0]
+                prev_high = prev_df["high"].max()
+                prev_low = prev_df["low"].min()
+                prev_close = prev_df["close"].iloc[-1]
 
-                    # 値がNoneまたはNaNでないことを確認
-                    if (
-                        pd.isna(prev_open)
-                        or pd.isna(prev_high)
-                        or pd.isna(prev_low)
-                        or pd.isna(prev_close)
-                    ):
-                        prev_open = prev_high = prev_low = prev_close = None
-                except Exception as e:
+                # 値がNoneまたはNaNでないことを確認
+                if (
+                    pd.isna(prev_open)
+                    or pd.isna(prev_high)
+                    or pd.isna(prev_low)
+                    or pd.isna(prev_close)
+                ):
                     prev_open = prev_high = prev_low = prev_close = None
+            except Exception as e:
+                prev_open = prev_high = prev_low = prev_close = None
 
-                # 🔽 チャート範囲に含まれるOHLCのみライン追加
-                if (
-                    prev_open is not None
-                    and isinstance(prev_open, (int, float))
-                    and not pd.isna(prev_open)
-                    and today_low <= prev_open <= today_high
-                ):
-                    try:
-                        add_plots.append(
-                            mpf.make_addplot(
-                                [float(prev_open)] * line_len,
-                                panel=0,
-                                color="gray",
-                                linestyle="--",
-                                width=0.8,
-                            )
+            # 🔽 チャート範囲に含まれるOHLCのみライン追加
+            if (
+                prev_open is not None
+                and isinstance(prev_open, (int, float))
+                and not pd.isna(prev_open)
+                and today_low <= prev_open <= today_high
+            ):
+                try:
+                    add_plots.append(
+                        mpf.make_addplot(
+                            [float(prev_open)] * line_len,
+                            panel=0,
+                            color="gray",
+                            linestyle="--",
+                            width=0.8,
                         )
-                    except (ValueError, TypeError) as e:
-                        pass
+                    )
+                except (ValueError, TypeError) as e:
+                    pass
 
-                if (
-                    prev_close is not None
-                    and isinstance(prev_close, (int, float))
-                    and not pd.isna(prev_close)
-                    and today_low <= prev_close <= today_high
-                ):
-                    try:
-                        add_plots.append(
-                            mpf.make_addplot(
-                                [float(prev_close)] * line_len,
-                                panel=0,
-                                color="black",
-                                linestyle="--",
-                                width=0.8,
-                            )
+            if (
+                prev_close is not None
+                and isinstance(prev_close, (int, float))
+                and not pd.isna(prev_close)
+                and today_low <= prev_close <= today_high
+            ):
+                try:
+                    add_plots.append(
+                        mpf.make_addplot(
+                            [float(prev_close)] * line_len,
+                            panel=0,
+                            color="black",
+                            linestyle="--",
+                            width=0.8,
                         )
-                    except (ValueError, TypeError) as e:
-                        pass
+                    )
+                except (ValueError, TypeError) as e:
+                    pass
 
-                if (
-                    prev_high is not None
-                    and isinstance(prev_high, (int, float))
-                    and not pd.isna(prev_high)
-                    and today_low <= prev_high <= today_high
-                ):
-                    try:
-                        add_plots.append(
-                            mpf.make_addplot(
-                                [float(prev_high)] * line_len,
-                                panel=0,
-                                color="red",
-                                linestyle=":",
-                                width=0.8,
-                            )
+            if (
+                prev_high is not None
+                and isinstance(prev_high, (int, float))
+                and not pd.isna(prev_high)
+                and today_low <= prev_high <= today_high
+            ):
+                try:
+                    add_plots.append(
+                        mpf.make_addplot(
+                            [float(prev_high)] * line_len,
+                            panel=0,
+                            color="red",
+                            linestyle=":",
+                            width=0.8,
                         )
-                    except (ValueError, TypeError) as e:
-                        pass
+                    )
+                except (ValueError, TypeError) as e:
+                    pass
 
-                if (
-                    prev_low is not None
-                    and isinstance(prev_low, (int, float))
-                    and not pd.isna(prev_low)
-                    and today_low <= prev_low <= today_high
-                ):
-                    try:
-                        add_plots.append(
-                            mpf.make_addplot(
-                                [float(prev_low)] * line_len,
-                                panel=0,
-                                color="blue",
-                                linestyle=":",
-                                width=0.8,
-                            )
+            if (
+                prev_low is not None
+                and isinstance(prev_low, (int, float))
+                and not pd.isna(prev_low)
+                and today_low <= prev_low <= today_high
+            ):
+                try:
+                    add_plots.append(
+                        mpf.make_addplot(
+                            [float(prev_low)] * line_len,
+                            panel=0,
+                            color="blue",
+                            linestyle=":",
+                            width=0.8,
                         )
-                    except (ValueError, TypeError) as e:
-                        pass
+                    )
+                except (ValueError, TypeError) as e:
+                    pass
 
     if is_valid_series(df_plot["VWAP"]):
         try:
@@ -484,8 +478,19 @@ def save_chart_5min(ticker, df, global_data_dict):
             except (ValueError, TypeError) as e:
                 pass
 
+        # staticディレクトリが存在しない場合は作成
+        import os
+
+        os.makedirs("static", exist_ok=True)
+
         fig.savefig(path, dpi=200, bbox_inches="tight")
         plt.close(fig)
+
+        # ファイルが実際に保存されたかチェック
+        if not os.path.exists(path):
+            print(f"❌ {ticker} チャートファイルが保存されませんでした: {path}")
+            return None
+
     except Exception as e:
         print(f"❌ {ticker} チャート描画失敗: {e}")
         return None
@@ -800,10 +805,9 @@ def export_sheets(src_path, top_long, top_short, code_to_name):
         # コードからシート名（銘柄名）に変換
         sheet_name_list = [code_to_name.get(code, "") for code in code_list]
 
-        for sheet in wb.sheets:
+        for sheet in tqdm(wb.sheets, desc="シート削除中"):
             if sheet.name not in sheet_name_list:
                 try:
-                    print(f"🗑️ シート「{sheet.name}」を削除")
                     sheet.delete()
                 except Exception as e:
                     print(f"⚠️ シート {sheet.name} の削除に失敗: {e}")

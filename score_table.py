@@ -276,7 +276,24 @@ def save_chart_5min(ticker, df, global_data_dict):
 
     # 当日の日付（df は当日分だけ）
     today = df["time"].dt.date.iloc[0]
-    yesterday = today - timedelta(days=1)
+
+    # global_data_dictから最新日付の前日を取得
+    if ticker in global_data_dict:
+        daily_dict = global_data_dict[ticker]
+        if isinstance(daily_dict, dict) and daily_dict:
+            # 日付を降順でソートして最新日付を取得
+            sorted_dates = sorted(daily_dict.keys(), reverse=True)
+            if sorted_dates:
+                latest_date_str = sorted_dates[0]
+                # 最新日付の前日を計算
+                latest_date = datetime.strptime(latest_date_str, "%Y-%m-%d").date()
+                yesterday = latest_date - timedelta(days=1)
+            else:
+                yesterday = today - timedelta(days=1)
+        else:
+            yesterday = today - timedelta(days=1)
+    else:
+        yesterday = today - timedelta(days=1)
 
     # グローバルから該当データ取得
     prev_df = global_data_dict.get(ticker, {}).get(str(yesterday))

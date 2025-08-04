@@ -2,7 +2,7 @@
 # Flask サーバー
 # 2025.07.31
 #
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from score_table import (
     load_data,
     create_score_table_long,
@@ -24,6 +24,7 @@ import subprocess
 EXCEL_EXE = r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE"
 
 app = Flask(__name__)
+app.secret_key = "your-secret-key-here"  # セッション用の秘密鍵
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH = os.path.join(BASE_DIR, "デイトレ株価データ.xlsm")
@@ -50,7 +51,7 @@ def is_marketspeed_running_cmd():
         return False
 
 
-def is_excel_open_recently(file_path, threshold_minutes=2):
+def is_excel_open_recently(file_path, threshold_minutes=5):
     try:
         mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
         now = datetime.now()
@@ -100,7 +101,7 @@ def initialize_once():
             subprocess.Popen([EXCEL_EXE, EXCEL_PATH_R])
         except Exception as e:
             print("Excel 起動エラー:", e)
-    time.sleep(10)
+    time.sleep(5)  # 5秒に短縮
     step_mode = 1
 
 
@@ -116,6 +117,24 @@ def charts():
             print("⏳ Excelファイルは更新直後のため /charts をスキップします")
             return jsonify([])
 
+        # 初回表示直後（index()完了から30秒以内）はスキップ
+        last_index_update = session.get("last_index_update")
+        if last_index_update:
+            last_update_time = datetime.fromisoformat(last_index_update)
+            if (datetime.now() - last_update_time).total_seconds() < 30:
+                print("🔄 初回表示直後のため /charts をスキップ")
+                return jsonify([])
+
+        # 前回のcharts更新から1分以内の場合はスキップ
+        last_charts_update = session.get("last_charts_update")
+        if last_charts_update:
+            last_update_time = datetime.fromisoformat(last_charts_update)
+            if (datetime.now() - last_update_time).total_seconds() < 60:
+                print("🔄 前回charts更新から1分以内のため /charts をスキップ")
+                return jsonify([])
+
+        print("📊 /charts ルート開始: データ読み込み中...")
+
         chart_data = []
         combined_l, name_l = load_summary_data(EXCEL_PATH_L)
         combined_r, name_r = load_summary_data(EXCEL_PATH_R)
@@ -124,6 +143,10 @@ def charts():
         if not combined_l and not combined_r:
             print("⚠️ load_summary_data によりデータ取得できず /charts スキップ")
             return jsonify([])
+
+        print(
+            f"📈 データ取得成功: 買い銘柄 {len(combined_l)}件, 売り銘柄 {len(combined_r)}件"
+        )
 
         combined = {**combined_l, **combined_r}
         name_map = {**name_l, **name_r}
@@ -146,6 +169,8 @@ def charts():
                 print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
                 continue
 
+        print(f"🎯 チャート作成完了: {len(chart_data)}件")
+        session["last_charts_update"] = datetime.now().isoformat()
         return jsonify(chart_data)
 
     except Exception as e:
@@ -165,6 +190,8 @@ def index():
             print("⏳ Excelファイルは更新直後のため index をスキップします")
             return "<h2>読み込み中</h2>"
 
+        print("🏠 index ルート開始: データ読み込み中...")
+
         charts_5min = []
         combined_l, name_l = load_summary_data(EXCEL_PATH_L)
         combined_r, name_r = load_summary_data(EXCEL_PATH_R)
@@ -173,6 +200,10 @@ def index():
         if not combined_l and not combined_r:
             print("⚠️ load_summary_data によりデータ取得できず index スキップ")
             return "<h2>データ取得待ち（通信未確立）</h2>"
+
+        print(
+            f"📈 データ取得成功: 買い銘柄 {len(combined_l)}件, 売り銘柄 {len(combined_r)}件"
+        )
 
         combined = {**combined_l, **combined_r}
         name_map = {**name_l, **name_r}
@@ -191,6 +222,8 @@ def index():
                 print(f"⚠️ {ticker} のチャート作成でエラー: {e}")
                 continue
 
+        print(f"🎯 チャート作成完了: {len(charts_5min)}件")
+        session["last_index_update"] = datetime.now().isoformat()
         return render_template("index.html", charts_5min=charts_5min)
 
     except Exception as e:

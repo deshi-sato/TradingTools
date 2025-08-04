@@ -58,9 +58,12 @@
             }
         }
 
-        // 初回表示と1分ごとの自動更新
-        fetchAndUpdateCharts();
-        setInterval(fetchAndUpdateCharts, 60 * 1000);
+        // 初回表示はスキップ（サーバー側で既に処理済み）
+        // 30秒後に初回更新、その後1分ごとの自動更新
+        setTimeout(() => {
+            fetchAndUpdateCharts();  // 初回更新
+            setInterval(fetchAndUpdateCharts, 60 * 1000);  // 1分ごとの更新
+        }, 30 * 1000);  // 30秒後に開始
     </script>
 </body>
 </html>

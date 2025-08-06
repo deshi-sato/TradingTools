@@ -5,3 +5,5 @@ __pycache__/
 *.xlsm
 # すべてのPNG画像を無視
 *.png
+*.dll
+*.db

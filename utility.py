@@ -1,0 +1,15 @@
+from datetime import datetime, timedelta
+import pandas as pd
+
+# 日付列（例: 2025-08-08）と時刻列（例: 09:15:00）結合して
+# 「2025-08-08 09:15:00」という1つの時系列キーを作成する関数
+def parse_date_time(row_date, row_time):
+    if isinstance(row_date, str):
+        row_date = pd.to_datetime(row_date).date()
+    elif isinstance(row_date, datetime):
+        row_date = row_date.date()
+    if isinstance(row_time, str):
+        row_time = pd.to_datetime(row_time).time()
+    elif isinstance(row_time, datetime):
+        row_time = row_time.time()
+    return datetime.combine(row_date, row_time)

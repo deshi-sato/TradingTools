@@ -2,23 +2,20 @@
 # Flask サーバー
 # 2025.07.31
 #
-from flask import Flask, render_template, request, jsonify, session
-from score_table import (
-    load_data,
-    create_score_table_long,
-    create_score_table_short,
-    load_summary_data,
-    export_sheets,
-    save_chart_5min,
-)
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import os
 import subprocess
 from datetime import datetime, timedelta
-import subprocess
+from flask import Flask, render_template, request, jsonify, session
+from score_table import (
+    create_score_table_long,
+    create_score_table_short,
+    save_chart_5min,
+)
+from excel_loader import load_summary_data, export_sheets, load_data
+import matplotlib
+
+matplotlib.use("Agg")
 
 
 EXCEL_EXE = r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE"
@@ -39,9 +36,6 @@ step_mode = 0
 
 def is_marketspeed_running_cmd():
     result = subprocess.run(["tasklist"], capture_output=True, text=True)
-
-    #    print("🧪 tasklist 出力の一部を表示:")
-    #    print(result.stdout[:1000])  # 上位1000文字だけ表示（長すぎる場合に備えて）
 
     if "marketspeed2.exe" in result.stdout.lower():
         print("✅ MarketSpeed2.exe が検出されました")
@@ -73,10 +67,14 @@ def filter_top(df, min_count=5):
     return df[df["合計スコア"] >= threshold]
 
 
+app_initialized = False
+
+
 @app.before_request
 def initialize_once():
     import time
 
+    global app_initialized
     global long_top, short_top, GLOBAL_DATA_DICT, CODE_TO_NAME, step_mode
     if request.endpoint != "index":
         return
@@ -157,7 +155,8 @@ def charts():
                 latest_date = list(daily_data.keys())[0]
                 df = daily_data[latest_date]
                 chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-                if chart_path and os.path.exists(chart_path):
+                if chart_path:
+                    # チャートが保存された場合のみ追加
                     chart_data.append(
                         {
                             "ticker": ticker,
@@ -205,7 +204,8 @@ def index():
                         latest_date = list(daily_data.keys())[0]
                         df = daily_data[latest_date]
                         chart_path = save_chart_5min(ticker, df, GLOBAL_DATA_DICT)
-                        if chart_path and os.path.exists(chart_path):
+                        if chart_path:
+                            # チャートが保存された場合のみ追加
                             chart_data.append(
                                 (ticker, name_map.get(ticker, ticker), f"/{chart_path}")
                             )

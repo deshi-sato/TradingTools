@@ -1,23 +1,11 @@
-#
-# 　デイトレ用　推奨銘柄スコア表作成
-# 　Ver 1.25.7.25
-#
-# 　入力：同一フォルダにあるデイトレ株価データ.xlsm
-# 　出力：score_table_long.csv（買い目線スコア表）
-# 　　　：score_table_short.csv（売り目線スコア表）
-# 　　　：推薦銘柄寄り後情報.xlsx（買い・売り最終候補を寄り15分後のチェック用）
-#
 import pandas as pd
-import openpyxl
 from datetime import datetime, timedelta
-from tqdm import tqdm
 import xlwings as xw
 import os
 import configparser
-import shutil
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from flask import Flask, render_template
+from flask import Flask
 import mplfinance as mpf
 
 app = Flask(__name__)
@@ -26,14 +14,7 @@ app = Flask(__name__)
 plt.rcParams["font.family"] = "Yu Gothic"
 
 EXCEL_PATH = "C:/Users/Owner/Documents/desshi_signal_viewer/デイトレ株価データ.xlsm"
-EXCEL_PATH_L = "C:/Users/Owner/Documents/desshi_signal_viewer/買い銘柄寄り後情報.xlsm"
-EXCEL_PATH_S = "C:/Users/Owner/Documents/desshi_signal_viewer/売り銘柄寄り後情報.xlsm"
 TEMP_PATH = "C:/Users/Owner/Documents/desshi_signal_viewer/temp_デイトレ株価データ.xlsm"
-
-SCORE_THRESHOLD_L = 7
-SCORE_THRESHOLD_S = 4
-RSS_PARAM_TO_REPLACE = "1660"
-RSS_PARAM_NEW = "332"
 
 # === .ini 管理設定 ===
 INI_PATH = "desshi_signal_viewer.ini"
@@ -58,19 +39,6 @@ def save_latest_row_index(index):
     with open(INI_PATH, "w") as f:
         config.write(f)
 
-
-def parse_date_time(row_date, row_time):
-    if isinstance(row_date, str):
-        row_date = pd.to_datetime(row_date).date()
-    elif isinstance(row_date, datetime):
-        row_date = row_date.date()
-    if isinstance(row_time, str):
-        row_time = pd.to_datetime(row_time).time()
-    elif isinstance(row_time, datetime):
-        row_time = row_time.time()
-    return datetime.combine(row_date, row_time)
-
-
 def get_japan_market_today():
     now = datetime.now()
     market_start = now.replace(hour=9, minute=0, second=0, microsecond=0)
@@ -82,129 +50,7 @@ def get_japan_market_today():
         return now.strftime("%Y-%m-%d")
 
 
-def get_latest_date_from_data(file_path):
-    """Excelファイルから最新の日付を取得する"""
-    wb = openpyxl.load_workbook(file_path, data_only=True)
-    sheetnames = wb.sheetnames
-    latest_date = None
-
-    for sheet_name in sheetnames[:5]:  # 最初の5シートで確認
-        ws = wb[sheet_name]
-
-        for row in ws.iter_rows(min_row=3, values_only=True):
-            # データ終端のチェック
-            if isinstance(row[1], str) and "----" in str(row[1]):
-                break
-
-            if (
-                row[1] is None
-                or row[2] is None
-                or row[3] is None
-                or row[4] is None
-                or row[5] is None
-                or row[7] == 0
-            ):
-                continue
-
-            try:
-                dt = parse_date_time(row[1], row[2])
-                date_key = dt.strftime("%Y-%m-%d")
-
-                if latest_date is None or date_key > latest_date:
-                    latest_date = date_key
-
-            except Exception as e:
-                continue
-
-    wb.close()
-    return latest_date
-
-
-def load_summary_data(file_path):
-    wb = openpyxl.load_workbook(file_path, data_only=True)
-    sheetnames = wb.sheetnames
-    data_dict = {}
-    code_to_name = {}  # ← 銘柄コード→名称の対応辞書を追加
-
-    # ✅ A1の値を確認し、RSS通信が未確立なら中断
-    first_sheet = wb[sheetnames[0]]
-    a1_value = str(first_sheet["A1"].value)
-    if "#NAME?" in a1_value or a1_value.strip() == "":
-        print(f"⚠️ 通信未確立（A1セル = {a1_value}）のため読み込み中断: {file_path}")
-        return {}, {}
-
-    # 最新の日付を取得
-    latest_date = get_latest_date_from_data(file_path)
-    if latest_date is None:
-        print(f"⚠️ データから最新日付を取得できませんでした: {file_path}")
-        return {}, {}
-
-    print(f"📅 最新日付: {latest_date}")
-
-    for sheet_name in tqdm(sheetnames, desc="Excel読み込み中"):
-        ws = wb[sheet_name]
-
-        # ✅ A1から銘柄コード抽出（例: "5803.T" → "5803"）
-        try:
-            formula = str(ws["A1"].value)
-            code = formula.split(",")[1].strip().strip('"').split(".")[0]
-        except Exception as e:
-            print(
-                f"❌ シート「{sheet_name}」のA1({formula})から銘柄コード抽出失敗: {e}"
-            )
-            continue
-
-        records = []
-
-        for row in ws.iter_rows(min_row=3, values_only=True):
-            # データ終端のチェック
-            if isinstance(row[1], str) and "----" in str(row[1]):
-                break
-
-            if (
-                row[1] is None
-                or row[2] is None
-                or row[3] is None
-                or row[4] is None
-                or row[5] is None
-                or row[7] == 0
-            ):
-                continue
-
-            try:
-                dt = parse_date_time(row[1], row[2])
-                date_key = dt.strftime("%Y-%m-%d")
-                if date_key != latest_date:
-                    continue  # 最新日付以外は除外
-
-                record = {
-                    "time": dt,
-                    "open": row[3],
-                    "high": row[4],
-                    "low": row[5],
-                    "close": row[6],
-                    "volume": row[7],
-                }
-                records.append(record)
-            except Exception as e:
-                print(f"{sheet_name} の行でエラー: {e}")
-                continue
-
-        if records:
-            df = pd.DataFrame(records)
-            data_dict[code] = {latest_date: df}
-            code_to_name[code] = sheet_name
-            print(
-                f"✅ コード {code} ← シート「{sheet_name}」最新日 {latest_date} {len(records)}本"
-            )
-
-    return data_dict, code_to_name  # ← 2つ返す
-
-
 def save_chart_5min(ticker, df, global_data_dict):
-    import matplotlib.pyplot as plt
-    import mplfinance as mpf
-    from datetime import timedelta
 
     prev_open = prev_high = prev_low = prev_close = None
 
@@ -418,11 +264,11 @@ def save_chart_5min(ticker, df, global_data_dict):
         except Exception as e:
             pass
 
-    path = f"static/chart_{ticker}_5min.png"
-
-    #    print(f"✅ チャート描画直前: {ticker}")
-    #    print(df_plot.tail())
-    #    print(df_plot[["Open", "High", "Low", "Close"]].info())
+    filename = f"{ticker}_{datetime.now().strftime('%Y%m%d')}.png"
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    os.makedirs(static_dir, exist_ok=True)
+    abs_path = os.path.join(static_dir, filename)
+    web_path = f"static/{filename}"
 
     try:
         s = mpf.make_mpf_style(
@@ -440,7 +286,7 @@ def save_chart_5min(ticker, df, global_data_dict):
             ylabel="株価",
             ylabel_lower="出来高",
             volume=True,
-            figsize=(20, 6),
+            figsize=(16, 6),
             returnfig=True,  # ← fig, axes を取得する
         )
 
@@ -478,94 +324,19 @@ def save_chart_5min(ticker, df, global_data_dict):
             except (ValueError, TypeError) as e:
                 pass
 
-        # staticディレクトリが存在しない場合は作成
-        import os
-
-        os.makedirs("static", exist_ok=True)
-
-        fig.savefig(path, dpi=200, bbox_inches="tight")
+        fig.savefig(abs_path, dpi=200, bbox_inches="tight")
         plt.close(fig)
 
         # ファイルが実際に保存されたかチェック
-        if not os.path.exists(path):
-            print(f"❌ {ticker} チャートファイルが保存されませんでした: {path}")
+        if os.path.exists(abs_path):
+            return web_path
+        else:
+            print(f"❌ {ticker} チャートファイルが保存されませんでした: {abs_path}")
             return None
 
     except Exception as e:
         print(f"❌ {ticker} チャート描画失敗: {e}")
         return None
-
-    return path
-
-
-def load_data(file_path):
-    wb = openpyxl.load_workbook(file_path, data_only=True)
-    sheetnames = wb.sheetnames
-    data_dict = {}
-    code_to_name = {}  # ← 銘柄コード→名称の対応辞書を追加
-
-    for sheet_name in tqdm(sheetnames, desc="Excel読み込み中"):
-        ws = wb[sheet_name]
-
-        # ✅ A1のRSS関数から銘柄コードを抽出
-        try:
-            formula = str(ws["A1"].value)
-            code = (
-                formula.split(",")[1].strip().strip('"').split(".")[0]
-            )  # "5803.T" → "5803"
-        except Exception as e:
-            print(f"❌ シート「{sheet_name}」のA1から銘柄コード抽出失敗: {e}")
-            continue
-
-        daily_rows = {}
-
-        for row in ws.iter_rows(min_row=3, values_only=True):
-            # データ終端のチェック
-            if isinstance(row[1], str) and "----" in str(row[1]):
-                break
-
-            if (
-                row[1] is None
-                or row[2] is None
-                or row[3] is None
-                or row[4] is None
-                or row[5] is None
-                or row[7] == 0
-            ):
-                continue
-
-            try:
-                dt = parse_date_time(row[1], row[2])
-                record = {
-                    "time": dt,
-                    "open": row[3],
-                    "high": row[4],
-                    "low": row[5],
-                    "close": row[6],
-                    "volume": row[7],
-                }
-                date_key = dt.strftime("%Y-%m-%d")
-                if date_key not in daily_rows:
-                    daily_rows[date_key] = []
-                daily_rows[date_key].append(record)
-            except Exception as e:
-                print(f"{sheet_name} の行でエラー: {e}")
-                continue
-
-        daily_frames = {
-            day: pd.DataFrame(records)
-            for day, records in daily_rows.items()
-            if len(records) >= 300
-        }
-
-        if len(daily_frames) >= 3:
-            data_dict[code] = daily_frames
-            code_to_name[code] = sheet_name  # ← 対応を登録
-    #            print(
-    #                f"✅ コード {code} ← シート「{sheet_name}」として登録（{len(daily_frames)}日分）"
-    #            )
-
-    return data_dict, code_to_name  # ← 2つ返す
 
 
 def evaluate_stock_long(day_frames):
@@ -788,131 +559,3 @@ def create_score_table_short(data_dict):
         drop=True
     )
     return df_score
-
-
-def export_sheets(src_path, top_long, top_short, code_to_name):
-    global EXCEL_PATH_L, EXCEL_PATH_S
-
-    def process_copy(dst_path, code_list):
-        import shutil
-        import xlwings as xw
-
-        shutil.copy(src_path, dst_path)
-        app = xw.App(visible=False)
-        app.display_alerts = False
-        wb = app.books.open(dst_path)
-
-        # コードからシート名（銘柄名）に変換
-        sheet_name_list = [code_to_name.get(code, "") for code in code_list]
-
-        for sheet in tqdm(wb.sheets, desc="シート削除中"):
-            if sheet.name not in sheet_name_list:
-                try:
-                    sheet.delete()
-                except Exception as e:
-                    print(f"⚠️ シート {sheet.name} の削除に失敗: {e}")
-            else:
-                formula = sheet.range("A1").formula
-                if (
-                    isinstance(formula, str)
-                    and formula.startswith("=RssChart")
-                    and f", {RSS_PARAM_TO_REPLACE}" in formula
-                ):
-                    sheet.range("A1").formula = formula.replace(
-                        f", {RSS_PARAM_TO_REPLACE}", f", {RSS_PARAM_NEW}"
-                    )
-
-        wb.save()
-        wb.close()
-        app.quit()
-
-    if top_long is not None and not top_long.empty:
-        print(f"📊 買いスコア上位:\n{top_long}")
-        process_copy(EXCEL_PATH_L, top_long["ticker"].tolist())
-
-    if top_short is not None and not top_short.empty:
-        print(f"📉 売りスコア上位:\n{top_short}")
-        process_copy(EXCEL_PATH_S, top_short["ticker"].tolist())
-
-
-def export_top_sheets():
-    src_path = "デイトレ株価データ.xlsx"
-
-    # スコア表読み込み
-    long_df = pd.read_csv("score_table_long.csv", encoding="shift_jis")
-    short_df = pd.read_csv("score_table_short.csv", encoding="shift_jis")
-
-    # スコア7点以上のみ抽出
-    top_long = long_df[long_df["合計スコア"] >= SCORE_THRESHOLD_L]["ticker"].tolist()
-    top_short = short_df[short_df["合計スコア"] >= SCORE_THRESHOLD_S]["ticker"].tolist()
-
-    # Excel起動
-    app = xw.App(visible=False)
-    wb_src = app.books.open(src_path)
-
-    # ✅ 買い銘柄ファイルの作成
-    if top_long:
-        wb_long = app.books.add()
-        for sheet_name in top_long:
-            if sheet_name in [s.name for s in wb_src.sheets]:
-                wb_src.sheets[sheet_name].copy(after=wb_long.sheets[-1])
-            else:
-                print(f"⚠️ 買いシート {sheet_name} が見つかりません")
-        if len(wb_long.sheets) > 1 and wb_long.sheets[0].name == "Sheet1":
-            wb_long.sheets[0].delete()
-        for sheet in wb_long.sheets:
-            formula = sheet.range("A1").formula
-            if (
-                isinstance(formula, str)
-                and formula.startswith("=RssChart")
-                and f", {RSS_PARAM_TO_REPLACE}" in formula
-            ):
-                sheet.range("A1").formula = formula.replace(
-                    f", {RSS_PARAM_TO_REPLACE}", f", {RSS_PARAM_NEW}"
-                )
-        wb_long.save("買い銘柄寄り後情報.xlsx")
-        wb_long.close()
-
-    # ✅ 売り銘柄ファイルの作成
-    if top_short:
-        wb_short = app.books.add()
-        for sheet_name in top_short:
-            if sheet_name in [s.name for s in wb_src.sheets]:
-                wb_src.sheets[sheet_name].copy(after=wb_short.sheets[-1])
-            else:
-                print(f"⚠️ 売りシート {sheet_name} が見つかりません")
-        if len(wb_short.sheets) > 1 and wb_short.sheets[0].name == "Sheet1":
-            wb_short.sheets[0].delete()
-        for sheet in wb_short.sheets:
-            formula = sheet.range("A1").formula
-            if (
-                isinstance(formula, str)
-                and formula.startswith("=RssChart")
-                and f", {RSS_PARAM_TO_REPLACE}" in formula
-            ):
-                sheet.range("A1").formula = formula.replace(
-                    f", {RSS_PARAM_TO_REPLACE}", f", {RSS_PARAM_NEW}"
-                )
-        wb_short.save("売り銘柄寄り後情報.xlsx")
-        wb_short.close()
-
-    wb_src.close()
-    app.quit()
-
-
-# 実行
-if __name__ == "__main__":
-    print("デイトレ株価データからスコア表を作成します")
-    excel_path = "デイトレ株価データ.xlsx"
-    data_dict = load_data(excel_path)
-
-    # 買い候補（ロング）
-    result_long = create_score_table_long(data_dict)
-    result_long.to_csv("score_table_long.csv", index=False, encoding="shift_jis")
-
-    # 売り候補（ショート）
-    result_short = create_score_table_short(data_dict)
-    result_short.to_csv("score_table_short.csv", index=False, encoding="shift_jis")
-
-    export_top_sheets()
-    print("スコア表作成完了")

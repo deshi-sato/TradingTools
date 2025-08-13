@@ -8,3 +8,4 @@ __pycache__/
 *.dll
 *.db
 *.bak
+templates/index.html.txt

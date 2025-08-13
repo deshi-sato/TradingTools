@@ -13,3 +13,15 @@ def parse_date_time(row_date, row_time):
     elif isinstance(row_time, datetime):
         row_time = row_time.time()
     return datetime.combine(row_date, row_time)
+
+def filter_top(df, min_count=5):
+    grouped = df.groupby("合計スコア").size().sort_index(ascending=False)
+    total = 0
+    threshold = 0
+    for score, count in grouped.items():
+        total += count
+        threshold = score
+        if total >= min_count:
+            break
+    return df[df["合計スコア"] >= threshold]
+

@@ -1,81 +1,146 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>スコア上位銘柄</title>
-    <style>
-        body {
-            font-family: sans-serif;
-        }
-        #chart-container {
-            width: 100%;
-            max-width: none;
-        }
-        .chart-box {
-            margin-bottom: 40px;
-        }
-        .chart-img {
-            display: block;
-            width: auto;
-            height: 500px;  /* ✅ 縦を固定 */
-            margin-top: 8px;
-        }
-    </style>
+<meta charset="UTF-8" />
+<title>スナップショット（quote_latest）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; margin: 20px; }
+  h2 { margin: 0 0 12px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  input[type="search"] { padding: 8px; min-width: 220px; }
+  select { padding: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right; }
+  th { text-align: left; background: #fafafa; position: sticky; top: 0; z-index: 1; }
+  td.left { text-align: left; }
+  .pos { color: #d00; font-weight: 600; }  /* 上昇：赤 */
+  .neg { color: #06c; font-weight: 600; }  /* 下落：青 */
+  .muted { color: #666; }
+  .badge { font-size: 12px; padding: 2px 6px; border-radius: 999px; background: #f2f2f2; }
+  .mono { font-variant-numeric: tabular-nums; }
+  .footer { margin-top: 8px; font-size: 12px; color: #666; }
+</style>
 </head>
 <body>
-    <h2>スコア上位銘柄 - 5分足チャート</h2>
-    <div id="chart-container">
-        {% if charts_5min %}
-            {% for ticker, ticker_name, chart_path in charts_5min %}
-            <div class="chart-box" data-ticker="{{ ticker }}">
-                <h3>{{ ticker_name }}（{{ ticker }}）</h3>
-                <img src="{{ chart_path }}" alt="{{ ticker_name }}" class="chart-img">
-            </div>
-            {% endfor %}
-        {% else %}
-            <p>チャートを読み込み中...</p>
-        {% endif %}
-    </div>
+  <h2>スナップショット（quote_latest）</h2>
 
-    <script>
-        async function fetchAndUpdateCharts() {
-            try {
-                const response = await fetch("/charts");
-                const charts = await response.json();
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="銘柄名 / コードで絞り込み…" />
+    <select id="sort">
+      <option value="updated_at:desc">更新が新しい順</option>
+      <option value="diff_pct:desc">前日比(%) 大きい順</option>
+      <option value="diff_pct:asc">前日比(%) 小さい順</option>
+      <option value="diff:desc">前日差(円) 大きい順</option>
+      <option value="diff:asc">前日差(円) 小さい順</option>
+      <option value="last:desc">現在値 高い順</option>
+      <option value="last:asc">現在値 低い順</option>
+      <option value="volume:desc">出来高 多い順</option>
+      <option value="turnover:desc">売買代金 多い順</option>
+      <option value="ticker:asc">コード 昇順</option>
+      <option value="sheet_name:asc">銘柄名 昇順</option>
+    </select>
+    <select id="limit">
+      <option value="200">200件</option>
+      <option value="500" selected>500件</option>
+      <option value="1000">1000件</option>
+    </select>
+    <span class="badge" id="status">—</span>
+  </div>
 
-                // 既存のチャートボックスを更新
-                charts.forEach(chart => {
-                    const box = document.querySelector(`.chart-box[data-ticker="${chart.ticker}"]`);
-                    if (box) {
-                        const img = box.querySelector("img.chart-img");
-                        if (img) {
-                            img.src = chart.img_url + "?t=" + new Date().getTime();  // ✅ キャッシュ回避
-                        }
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th class="left">銘柄名</th>
+        <th>コード</th>
+        <th>現在値</th>
+        <th>前日比</th>
+        <th>前日比(%)</th>
+        <th>始値</th>
+        <th>高値</th>
+        <th>安値</th>
+        <th>前日終値</th>
+        <th>出来高</th>
+        <th>売買代金</th>
+        <th class="left">更新</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-                        const h3 = box.querySelector("h3");
-                        if (h3 && chart.ticker_name) {
-                            h3.textContent = `${chart.ticker_name}（${chart.ticker}）`;
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("チャート取得エラー:", error);
-            }
-        }
+  <div class="footer">
+    表示ソース: rss_data.db &raquo; quote_latest（30秒ごとに自動更新）
+  </div>
 
-        // 初期表示時にチャートが既に表示されている場合は更新のみ
-        const existingCharts = document.querySelectorAll('.chart-box');
-        if (existingCharts.length > 0) {
-            console.log("初期チャートが表示されています。更新を開始します。");
-            // 1分ごとの自動更新
-            setInterval(fetchAndUpdateCharts, 60 * 1000);
-        } else {
-            console.log("初期チャートがありません。初回取得を実行します。");
-            // 初回表示直後にチャートを取得
-            fetchAndUpdateCharts();
-            // 1分ごとの自動更新
-            setInterval(fetchAndUpdateCharts, 60 * 1000);
-        }
-    </script>
+<script>
+  const $ = (q)=>document.querySelector(q);
+  const tbody = $("#tbl tbody");
+  const q = $("#q");
+  const sortSel = $("#sort");
+  const limitSel = $("#limit");
+  const status = $("#status");
+
+  function fmt(n, digits=0) {
+    if (n === null || n === undefined || isNaN(n)) return "";
+    return Number(n).toLocaleString("ja-JP", { maximumFractionDigits: digits });
+  }
+  function signed(n, digits=0) {
+    if (n === null || n === undefined || isNaN(n)) return "";
+    const sign = n > 0 ? "+" : (n < 0 ? "−" : "");
+    return sign + Math.abs(Number(n)).toLocaleString("ja-JP", { maximumFractionDigits: digits });
+  }
+  function pct(n) {
+    if (n === null || n === undefined || isNaN(n)) return "";
+    const s = Number(n).toFixed(2);
+    const sign = n > 0 ? "+" : (n < 0 ? "−" : "");
+    return sign + Math.abs(Number(s)) + "%";
+  }
+
+  async function load() {
+    const [k, dir] = sortSel.value.split(":");
+    const params = new URLSearchParams({
+      sort: k, order: dir, q: q.value, limit: limitSel.value
+    });
+    const t0 = performance.now();
+    const res = await fetch("/api/snapshots?" + params.toString(), { cache: "no-store" });
+    const data = await res.json();
+    const t1 = performance.now();
+
+    tbody.innerHTML = "";
+    for (const r of data) {
+      const cls = (Number(r.diff_pct) || 0) > 0 ? "pos" : ((Number(r.diff_pct) || 0) < 0 ? "neg" : "");
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="left">${r.sheet_name ?? ""}</td>
+        <td class="mono">${r.ticker ?? ""}</td>
+        <td class="mono ${cls}">${fmt(r.last, 2)}</td>
+        <td class="mono ${cls}">${signed(r.diff, 2)}</td>
+        <td class="mono ${cls}">${pct(r.diff_pct)}</td>
+        <td class="mono">${fmt(r.open, 2)}</td>
+        <td class="mono">${fmt(r.high, 2)}</td>
+        <td class="mono">${fmt(r.low, 2)}</td>
+        <td class="mono">${fmt(r.prev_close, 2)}</td>
+        <td class="mono">${fmt(r.volume)}</td>
+        <td class="mono">${fmt(r.turnover)}</td>
+        <td class="left muted">${r.updated_at ?? ""}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+    status.textContent = `${data.length}件 / ${(t1 - t0).toFixed(0)}ms`;
+  }
+
+  // 入力イベントで即時再読込（タイピングは300msデバウンス）
+  let timer = null;
+  q.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(load, 300);
+  });
+  sortSel.addEventListener("change", load);
+  limitSel.addEventListener("change", load);
+
+  // 初回 & 30秒ごと自動更新
+  load();
+  setInterval(load, 30_000);
+</script>
 </body>
 </html>

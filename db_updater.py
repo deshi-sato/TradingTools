@@ -377,7 +377,9 @@ def main_loop():
 
                     if not df_new.empty:
                         save_minute_data(conn, ticker, sheet_name, df_new)
-                        print(f"[INFO] {sheet_name}({ticker}) 追加 {len(df_new)} 行")
+                        # 最初の行の時刻を取得して表示
+                        first_dt = df_new.iloc[0]["datetime"] if "datetime" in df_new.columns else "不明"
+                        print(f"[INFO]:{first_dt}  {sheet_name}({ticker}) 追加 {len(df_new)} 行")
 
                 # --- スナップショット：SNAPSHOT_MAP で抽出 & 保存 ---
                 if sheet_name in wb.sheetnames:
@@ -390,19 +392,16 @@ def main_loop():
         except Exception as e:
             print(f"[ERROR] {e}")
 
-        # 次の「分ちょうど」まで待機（処理時間控除）
-        next_minute = (loop_start + timedelta(minutes=1)).replace(
-            second=0, microsecond=0
-        )
-        sleep_time = max(0.0, (next_minute - datetime.now()).total_seconds())
+        # 次の「15秒後」まで待機（処理時間控除）
+        next_interval = loop_start + timedelta(seconds=15)
+        sleep_time = max(0.0, (next_interval - datetime.now()).total_seconds())
         time.sleep(sleep_time)
-
 
 if __name__ == "__main__":
     # デイトレ株価データ.xlsmが無ければ即終了
     if not EXCEL_PATH.exists():
         print(f"[INFO] Excelファイルが見つかりません。終了します: {EXCEL_PATH}")
-        exit(-1)
+        exit(1)
 
     # MARKET SPEED2起動確認
     if not is_marketspeed_running_cmd():
@@ -410,7 +409,7 @@ if __name__ == "__main__":
         user_input = input("このまま起動しますか？(Yes/No): ").strip().lower()
         if user_input not in ["yes", "y"]:
             print("プログラムを終了します。")
-            exit(-2)
+            exit(2)
 
     # DB初期化
     conn = init_db(DB_PATH)

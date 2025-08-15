@@ -1,0 +1,418 @@
+0001: # db_updater.py 〔仕様固定版 + SNAPSHOT_MAP 対応〕
+0002: from __future__ import annotations
+0003: import re
+0004: import sqlite3
+0005: import time
+0006: from datetime import datetime, timedelta, time as dtime
+0007: from pathlib import Path
+0008: from typing import Dict, Tuple
+0009: import subprocess
+0010: import pandas as pd
+0011: from openpyxl import load_workbook
+0012: from openpyxl.worksheet.worksheet import Worksheet
+0013: from typing import Dict, Tuple, Callable, Any
+0014: 
+0015: # ========= 設定 =========
+0016: SCRIPT_DIR = Path(__file__).resolve().parent
+0017: EXCEL_PATH = SCRIPT_DIR / "デイトレ株価データ.xlsm"
+0018: DB_PATH = SCRIPT_DIR / "data" / "rss_data.db"
+0019: 
+0020: # ========= DB =========
+0021: DDL = """
+0022: -- 1分足
+0023: CREATE TABLE IF NOT EXISTS minute_data (
+0024:     ticker      TEXT    NOT NULL,   -- 銘柄コード(16進4桁・大文字)
+0025:     sheet_name  TEXT    NOT NULL,   -- 銘柄名称（シート名）
+0026:     datetime    TEXT    NOT NULL,   -- 'YYYY-MM-DD HH:MM:SS' (JST)
+0027:     open        REAL,
+0028:     high        REAL,
+0029:     low         REAL,
+0030:     close       REAL,
+0031:     volume      INTEGER,
+0032:     PRIMARY KEY (ticker, datetime)
+0033: );
+0034: CREATE INDEX IF NOT EXISTS idx_minute_data_ticker_datetime
+0035:   ON minute_data (ticker, datetime);
+0036: 
+0037: -- 最新スナップショット（銘柄ごとに1行）
+0038: CREATE TABLE IF NOT EXISTS quote_latest (
+0039:   ticker       TEXT    NOT NULL,      -- 16進4桁（大文字）
+0040:   sheet_name   TEXT    NOT NULL,      -- シート名（銘柄名）
+0041:   last         REAL,                  -- 現在値
+0042:   prev_close   REAL,                  -- 前日終値
+0043:   open         REAL,
+0044:   high         REAL,
+0045:   low          REAL,
+0046:   volume       INTEGER,               -- 出来高（累計）
+0047:   turnover     INTEGER,               -- 売買代金（累計）
+0048:   diff         REAL,                  -- 前日比
+0049:   diff_pct     REAL,                  -- 前日比率[%]
+0050:   updated_at   TEXT    NOT NULL,      -- 'YYYY-MM-DD HH:MM:SS' (JST)
+0051:   PRIMARY KEY (ticker)
+0052: );
+0053: CREATE INDEX IF NOT EXISTS idx_quote_latest_updated_at
+0054:   ON quote_latest (updated_at);
+0055: """
+0056: 
+0057: 
+0058: # ========= 共通ユーティリティ =========
+0059: def _to_float(x):
+0060:     """数値/数値文字列→float（それ以外は None）"""
+0061:     if x is None:
+0062:         return None
+0063:     if isinstance(x, (int, float)):
+0064:         return float(x)
+0065:     s = str(x).strip().replace(",", "")
+0066:     return float(s) if re.fullmatch(r"-?\d+(\.\d+)?", s) else None
+0067: 
+0068: 
+0069: def _to_int(x):
+0070:     """数値/数値文字列→int（それ以外は None）"""
+0071:     f = _to_float(x)
+0072:     return None if f is None else int(f)
+0073: 
+0074: 
+0075: def _timestamp_from_time_cell(tval, base_dt: datetime) -> str:
+0076:     """
+0077:     R2（時刻セル）から 'YYYY-MM-DD HH:MM:SS' を作る。無ければ base_dt を使う。
+0078:     """
+0079:     if tval is None:
+0080:         dt = base_dt
+0081:     elif isinstance(tval, datetime):
+0082:         dt = tval
+0083:     elif isinstance(tval, dtime):
+0084:         dt = datetime.combine(base_dt.date(), tval)
+0085:     else:
+0086:         # "HH:MM" or "HH:MM:SS"
+0087:         s = str(tval).strip()
+0088:         if re.fullmatch(r"\d{1,2}:\d{2}(:\d{2})?", s):
+0089:             if s.count(":") == 1:
+0090:                 s += ":00"
+0091:             hh, mm, ss = map(int, s.split(":"))
+0092:             dt = datetime(base_dt.year, base_dt.month, base_dt.day, hh, mm, ss)
+0093:         else:
+0094:             dt = base_dt
+0095:     return dt.strftime("%Y-%m-%d %H:%M:%S")
+0096: 
+0097: 
+0098: # ========= スナップショット：セル定義（変えたければここだけ） =========
+0099: # 形式: "フィールド名": ("セル番地", 変換関数)
+0100: # 変換関数は下の _to_float/_to_int などを利用
+0101: SNAPSHOT_MAP: dict[str, tuple[str, Callable[[Any], Any]]] = {
+0102:     "last": ("Q2", _to_float),
+0103:     "time_cell": ("R2", lambda v: v),
+0104:     "diff": ("Q3", _to_float),
+0105:     "diff_pct": ("R3", _to_float),
+0106:     "high": ("Q4", _to_float),
+0107:     "low": ("Q5", _to_float),
+0108:     "open": ("Q6", _to_float),
+0109:     "prev_close": ("Q7", _to_float),
+0110:     "volume": ("U2", _to_int),
+0111:     "turnover": ("U3", _to_int),
+0112: }
+0113: 
+0114: 
+0115: def extract_hex_ticker_from_a1(a1: str) -> str:
+0116:     """
+0117:     =RssChart(..., "285A.T", ...) から 16進4桁コードを抽出。返り値は大文字。
+0118:     """
+0119:     m = re.search(r'"([0-9A-Fa-f]{4})\.[Tt]"', a1)
+0120:     return m.group(1).upper() if m else ""
+0121: 
+0122: 
+0123: def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
+0124:     conn = sqlite3.connect(str(db_path))
+0125:     for stmt in DDL.strip().split(";"):
+0126:         s = stmt.strip()
+0127:         if s:
+0128:             conn.execute(s)
+0129:     conn.commit()
+0130:     return conn
+0131: 
+0132: 
+0133: # ========= 1分足（既存） =========
+0134: def get_last_datetime(conn: sqlite3.Connection, ticker: str) -> str | None:
+0135:     cur = conn.execute(
+0136:         "SELECT MAX(datetime) FROM minute_data WHERE ticker=?", (ticker,)
+0137:     )
+0138:     row = cur.fetchone()
+0139:     return row[0] if row and row[0] else None
+0140: 
+0141: 
+0142: def save_minute_data(
+0143:     conn: sqlite3.Connection, ticker: str, sheet_name: str, df: pd.DataFrame
+0144: ) -> None:
+0145:     """DataFrame → minute_data へ差し込み（Pythonの型に正規化）"""
+0146:     use = df.copy()
+0147:     use["datetime"] = pd.to_datetime(use["datetime"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+0148: 
+0149:     rows = []
+0150:     for dt, o, h, l, c, v in use[
+0151:         ["datetime", "open", "high", "low", "close", "volume"]
+0152:     ].itertuples(index=False, name=None):
+0153:         rows.append(
+0154:             (dt, _to_float(o), _to_float(h), _to_float(l), _to_float(c), _to_int(v))
+0155:         )
+0156: 
+0157:     if not rows:
+0158:         return
+0159: 
+0160:     conn.executemany(
+0161:         """
+0162:         INSERT OR REPLACE INTO minute_data
+0163:           (ticker, sheet_name, datetime, open, high, low, close, volume)
+0164:         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+0165:         """,
+0166:         [(ticker, sheet_name, *r) for r in rows],
+0167:     )
+0168:     conn.commit()
+0169: 
+0170:     # 直近7営業日だけ残す（ticker単位）
+0171:     cur = conn.execute(
+0172:         """
+0173:         SELECT DISTINCT date(datetime) AS d
+0174:         FROM minute_data
+0175:         WHERE ticker=?
+0176:         ORDER BY d DESC
+0177:         LIMIT 7
+0178:         """,
+0179:         (ticker,),
+0180:     )
+0181:     keep_days = [r[0] for r in cur.fetchall()]
+0182:     if keep_days:
+0183:         placeholders = ",".join(["?"] * len(keep_days))
+0184:         conn.execute(
+0185:             f"DELETE FROM minute_data WHERE ticker=? AND date(datetime) NOT IN ({placeholders})",
+0186:             [ticker, *keep_days],
+0187:         )
+0188:         conn.commit()
+0189: 
+0190: 
+0191: def read_excel_fixed(path: Path) -> Dict[Tuple[str, str], pd.DataFrame]:
+0192:     """
+0193:     固定仕様：
+0194:       - 各シート＝1銘柄、シート名＝銘柄名称
+0195:       - A1: =RssChart(...,"7453.T",...) から 4桁コードを抽出（ticker）
+0196:       - 2行目がヘッダ、3行目以降がデータ
+0197:       - 列: A:銘柄名称 B:日付 C:時刻 D:始値 E:高値 F:安値 G:終値 H:出来高
+0198:       - B列に '--------' が来たら打ち切り
+0199:       - 日付 YYYY/MM/DD、時刻 HH:MM（JST）
+0200:       - 無取引行（OHLC全欠損）や volume=0 で OHLC欠損の行は除外
+0201:     戻り値: {(ticker, sheet_name): DataFrame(datetime, open, high, low, close, volume)}
+0202:     """
+0203:     wb = load_workbook(path, data_only=False, read_only=True)
+0204:     out: Dict[Tuple[str, str], pd.DataFrame] = {}
+0205: 
+0206:     for ws in wb.worksheets:
+0207:         sheet_name = ws.title.strip()
+0208: 
+0209:         a1 = str(ws["A1"].value or "")
+0210:         ticker = extract_hex_ticker_from_a1(a1)
+0211:         if not ticker:
+0212:             continue
+0213: 
+0214:         # 3行目以降（A〜H）
+0215:         data_rows = list(
+0216:             ws.iter_rows(min_row=3, min_col=1, max_col=8, values_only=True)
+0217:         )
+0218:         if not data_rows:
+0219:             out[(ticker, sheet_name)] = pd.DataFrame(
+0220:                 columns=["datetime", "open", "high", "low", "close", "volume"]
+0221:             )
+0222:             continue
+0223: 
+0224:         # '--------' で打ち切り（B列=日付）
+0225:         cut = None
+0226:         for i, r in enumerate(data_rows):
+0227:             b = str(r[1]).strip() if r[1] is not None else ""
+0228:             if b == "--------":
+0229:                 cut = i
+0230:                 break
+0231:         if cut is not None:
+0232:             data_rows = data_rows[:cut]
+0233:             if not data_rows:
+0234:                 out[(ticker, sheet_name)] = pd.DataFrame(
+0235:                     columns=["datetime", "open", "high", "low", "close", "volume"]
+0236:                 )
+0237:                 continue
+0238: 
+0239:         df = pd.DataFrame(
+0240:             data_rows,
+0241:             columns=["name", "date", "time", "open", "high", "low", "close", "volume"],
+0242:         )
+0243:         dt = pd.to_datetime(
+0244:             df["date"].astype(str).str.strip()
+0245:             + " "
+0246:             + df["time"].astype(str).str.strip(),
+0247:             format="%Y/%m/%d %H:%M",
+0248:             errors="coerce",
+0249:         )
+0250:         w = pd.DataFrame(
+0251:             {
+0252:                 "datetime": dt,
+0253:                 "open": pd.to_numeric(df["open"], errors="coerce"),
+0254:                 "high": pd.to_numeric(df["high"], errors="coerce"),
+0255:                 "low": pd.to_numeric(df["low"], errors="coerce"),
+0256:                 "close": pd.to_numeric(df["close"], errors="coerce"),
+0257:                 "volume": pd.to_numeric(df["volume"], errors="coerce")
+0258:                 .fillna(0)
+0259:                 .astype("Int64"),
+0260:             }
+0261:         )
+0262: 
+0263:         mask_no_ohlc = w[["open", "high", "low", "close"]].isna().all(axis=1)
+0264:         mask_zero_and_noohlc = (w["volume"].fillna(0) == 0) & mask_no_ohlc
+0265:         w = w[~(mask_no_ohlc | mask_zero_and_noohlc)].dropna(subset=["datetime"])
+0266:         w = w.sort_values("datetime").reset_index(drop=True)
+0267:         out[(ticker, sheet_name)] = w
+0268: 
+0269:     return out
+0270: 
+0271: 
+0272: # ========= スナップショット（SNAPSHOT_MAPで抽出） =========
+0273: def read_snapshot_with_map(ws: Worksheet) -> dict:
+0274:     """SNAPSHOT_MAP に基づきセルを読み、必要な補完を行って dict を返す。"""
+0275:     now = datetime.now()
+0276:     raw: dict[str, Any] = {}
+0277: 
+0278:     for key, (cell, conv) in SNAPSHOT_MAP.items():
+0279:         try:
+0280:             val = ws[cell].value
+0281:             raw[key] = None if val is None else conv(val)
+0282:         except Exception:
+0283:             raw[key] = None
+0284: 
+0285:     updated_at = _timestamp_from_time_cell(raw.get("time_cell"), now)
+0286: 
+0287:     snap = {
+0288:         "last": raw.get("last"),
+0289:         "prev_close": raw.get("prev_close"),
+0290:         "open": raw.get("open"),
+0291:         "high": raw.get("high"),
+0292:         "low": raw.get("low"),
+0293:         "volume": raw.get("volume"),
+0294:         "turnover": raw.get("turnover"),
+0295:         "diff": raw.get("diff"),
+0296:         "diff_pct": raw.get("diff_pct"),
+0297:         "updated_at": updated_at,
+0298:     }
+0299: 
+0300:     return snap
+0301: 
+0302: 
+0303: def upsert_quote_latest(
+0304:     conn: sqlite3.Connection, ticker: str, sheet_name: str, snap: dict
+0305: ) -> None:
+0306:     """quote_latest を UPSERT（ticker ごとに最新1行保持）"""
+0307:     conn.execute(
+0308:         """
+0309:         INSERT INTO quote_latest
+0310:           (ticker, sheet_name, last, prev_close, open, high, low, volume, turnover, diff, diff_pct, updated_at)
+0311:         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+0312:         ON CONFLICT(ticker) DO UPDATE SET
+0313:           sheet_name=excluded.sheet_name,
+0314:           last=excluded.last,
+0315:           prev_close=excluded.prev_close,
+0316:           open=excluded.open,
+0317:           high=excluded.high,
+0318:           low=excluded.low,
+0319:           volume=excluded.volume,
+0320:           turnover=excluded.turnover,
+0321:           diff=excluded.diff,
+0322:           diff_pct=excluded.diff_pct,
+0323:           updated_at=excluded.updated_at
+0324:         """,
+0325:         (
+0326:             ticker,
+0327:             sheet_name,
+0328:             _to_float(snap.get("last")),
+0329:             _to_float(snap.get("prev_close")),
+0330:             _to_float(snap.get("open")),
+0331:             _to_float(snap.get("high")),
+0332:             _to_float(snap.get("low")),
+0333:             _to_int(snap.get("volume")),
+0334:             _to_int(snap.get("turnover")),
+0335:             _to_float(snap.get("diff")),
+0336:             _to_float(snap.get("diff_pct")),
+0337:             snap.get("updated_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+0338:         ),
+0339:     )
+0340:     conn.commit()
+0341: 
+0342: 
+0343: def is_marketspeed_running_cmd():
+0344:     result = subprocess.run(["tasklist"], capture_output=True, text=True)
+0345: 
+0346:     if "marketspeed2.exe" in result.stdout.lower():
+0347:         return True
+0348:     else:
+0349:         return False
+0350: 
+0351: 
+0352: # ========= メインループ =========
+0353: def main_loop():
+0354: 
+0355:     while True:
+0356:         loop_start = datetime.now()
+0357:         try:
+0358:             # 1分足を取得
+0359:             data = read_excel_fixed(EXCEL_PATH)
+0360: 
+0361:             # スナップショットは data_only=True で1回だけ開く
+0362:             wb = load_workbook(EXCEL_PATH, data_only=True, read_only=True)
+0363: 
+0364:             for (ticker, sheet_name), df in data.items():
+0365:                 # --- 1分足：差分投入 ---
+0366:                 if not df.empty:
+0367:                     last_db_dt = get_last_datetime(conn, ticker)
+0368:                     if last_db_dt:
+0369:                         df["_dt_str"] = pd.to_datetime(df["datetime"]).dt.strftime(
+0370:                             "%Y-%m-%d %H:%M:%S"
+0371:                         )
+0372:                         hit = df.index[df["_dt_str"] == last_db_dt].tolist()
+0373:                         start = (hit[0] + 1) if hit else 0
+0374:                         df_new = df.iloc[start:].drop(columns=["_dt_str"])
+0375:                     else:
+0376:                         df_new = df
+0377: 
+0378:                     if not df_new.empty:
+0379:                         save_minute_data(conn, ticker, sheet_name, df_new)
+0380:                         # 最初の行の時刻を取得して表示
+0381:                         first_dt = df_new.iloc[0]["datetime"] if "datetime" in df_new.columns else "不明"
+0382:                         print(f"[INFO]:{first_dt}  {sheet_name}({ticker}) 追加 {len(df_new)} 行")
+0383: 
+0384:                 # --- スナップショット：SNAPSHOT_MAP で抽出 & 保存 ---
+0385:                 if sheet_name in wb.sheetnames:
+0386:                     ws = wb[sheet_name]
+0387:                     snap = read_snapshot_with_map(ws)
+0388:                     upsert_quote_latest(conn, ticker, sheet_name, snap)
+0389: 
+0390:             wb.close()
+0391: 
+0392:         except Exception as e:
+0393:             print(f"[ERROR] {e}")
+0394: 
+0395:         # 次の「15秒後」まで待機（処理時間控除）
+0396:         next_interval = loop_start + timedelta(seconds=15)
+0397:         sleep_time = max(0.0, (next_interval - datetime.now()).total_seconds())
+0398:         time.sleep(sleep_time)
+0399: 
+0400: if __name__ == "__main__":
+0401:     # デイトレ株価データ.xlsmが無ければ即終了
+0402:     if not EXCEL_PATH.exists():
+0403:         print(f"[INFO] Excelファイルが見つかりません。終了します: {EXCEL_PATH}")
+0404:         exit(1)
+0405: 
+0406:     # MARKET SPEED2起動確認
+0407:     if not is_marketspeed_running_cmd():
+0408:         print("⚠️ MARKET SPEED2 が起動していません")
+0409:         user_input = input("このまま起動しますか？(Yes/No): ").strip().lower()
+0410:         if user_input not in ["yes", "y"]:
+0411:             print("プログラムを終了します。")
+0412:             exit(2)
+0413: 
+0414:     # DB初期化
+0415:     conn = init_db(DB_PATH)
+0416: 
+0417:     # メインループ開始
+0418:     main_loop()

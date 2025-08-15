@@ -37,6 +37,8 @@
       <option value="last:asc">現在値 低い順</option>
       <option value="volume:desc">出来高 多い順</option>
       <option value="turnover:desc">売買代金 多い順</option>
+      <option value="score:desc">スコア 高い順</option>
+      <option value="score:asc">スコア 低い順</option>
       <option value="ticker:asc">コード 昇順</option>
       <option value="sheet_name:asc">銘柄名 昇順</option>
     </select>
@@ -62,6 +64,7 @@
         <th>前日終値</th>
         <th>出来高</th>
         <th>売買代金</th>
+        <th>スコア</th>
         <th class="left">更新</th>
       </tr>
     </thead>
@@ -122,6 +125,7 @@
         <td class="mono">${fmt(r.prev_close, 2)}</td>
         <td class="mono">${fmt(r.volume)}</td>
         <td class="mono">${fmt(r.turnover)}</td>
+        <td class="mono">${r.score ?? ""}</td>
         <td class="left muted">${r.updated_at ?? ""}</td>
       `;
       tbody.appendChild(tr);

@@ -559,3 +559,246 @@ def create_score_table_short(data_dict):
         drop=True
     )
     return df_score
+import sqlite3
+from typing import Dict, Optional, List
+
+def _latest_trade_date(conn: sqlite3.Connection, ticker: str) -> Optional[str]:
+    cur = conn.execute("""
+        SELECT date(datetime) AS d
+        FROM minute_data
+        WHERE ticker=?
+        ORDER BY datetime DESC
+        LIMIT 1
+    """, (ticker,))
+    row = cur.fetchone()
+    return row[0] if row and row[0] else None
+
+def _latest_completed_trade_date(conn: sqlite3.Connection, ticker: str, min_bars: int = 332) -> Optional[str]:
+    cur = conn.execute(
+        """
+        SELECT d FROM (
+            SELECT date(datetime) AS d, COUNT(*) AS c
+            FROM minute_data
+            WHERE ticker=?
+            GROUP BY d
+        )
+        WHERE c >= ?
+        ORDER BY d DESC
+        LIMIT 1
+        """,
+        (ticker, min_bars),
+    )
+    row = cur.fetchone()
+    return row[0] if row and row[0] else None
+
+def _count_minutes_of_day(conn: sqlite3.Connection, ticker: str, trade_date: str) -> int:
+    cur = conn.execute("""
+        SELECT COUNT(*)
+        FROM minute_data
+        WHERE ticker=? AND date(datetime)=?
+    """, (ticker, trade_date))
+    return int(cur.fetchone()[0])
+
+def _daily_ohlcv(conn: sqlite3.Connection, ticker: str, trade_date: str) -> Optional[Dict[str, float]]:
+    # 当日のOHLCV（プレースホルダ分足：OHLCがNULLかつVolume=0 は無視）
+    open_row = conn.execute("""
+        SELECT open FROM minute_data
+        WHERE ticker=? AND date(datetime)=? AND open IS NOT NULL
+        ORDER BY datetime ASC LIMIT 1
+    """, (ticker, trade_date)).fetchone()
+    close_row = conn.execute("""
+        SELECT close FROM minute_data
+        WHERE ticker=? AND date(datetime)=? AND close IS NOT NULL
+        ORDER BY datetime DESC LIMIT 1
+    """, (ticker, trade_date)).fetchone()
+    high_row = conn.execute("""
+        SELECT MAX(high) FROM minute_data
+        WHERE ticker=? AND date(datetime)=? AND high IS NOT NULL
+    """, (ticker, trade_date)).fetchone()
+    low_row = conn.execute("""
+        SELECT MIN(low) FROM minute_data
+        WHERE ticker=? AND date(datetime)=? AND low IS NOT NULL
+    """, (ticker, trade_date)).fetchone()
+    vol_row = conn.execute("""
+        SELECT COALESCE(SUM(volume),0) FROM minute_data
+        WHERE ticker=? AND date(datetime)=? AND volume IS NOT NULL
+    """, (ticker, trade_date)).fetchone()
+
+    if not any([open_row and open_row[0] is not None,
+                close_row and close_row[0] is not None,
+                high_row and high_row[0] is not None,
+                low_row and low_row[0] is not None]):
+        return None
+
+    return {
+        "open": float(open_row[0]) if open_row and open_row[0] is not None else None,
+        "close": float(close_row[0]) if close_row and close_row[0] is not None else None,
+        "high": float(high_row[0]) if high_row and high_row[0] is not None else None,
+        "low":  float(low_row[0])  if low_row  and low_row[0]  is not None else None,
+        "volume": int(vol_row[0]) if vol_row and vol_row[0] is not None else 0,
+    }
+
+def _prev_daily_refs(
+    conn: sqlite3.Connection,
+    ticker: str,
+    base_date: str,
+    n_days: int = 5,
+    min_bars: int = 332,
+) -> List[Dict[str, float]]:
+    # base_date の前日から、分足本数が min_bars 以上の営業日だけを n_days 件取得
+    cur = conn.execute(
+        """
+        SELECT d FROM (
+            SELECT date(datetime) AS d, COUNT(*) AS c
+            FROM minute_data
+            WHERE ticker=? AND date(datetime) < ?
+            GROUP BY d
+        )
+        WHERE c >= ?
+        ORDER BY d DESC
+        LIMIT ?
+        """,
+        (ticker, base_date, min_bars, n_days),
+    )
+    dates = [r[0] for r in cur.fetchall()]
+    out: List[Dict[str, float]] = []
+    for d in dates:
+        v = _daily_ohlcv(conn, ticker, d)
+        if v and all(v[k] is not None for k in ("open", "close", "high", "low")):
+            out.append({"date": d, **v})
+    return out
+
+def _score_buy(today, prevs) -> int:
+    # 買い（プラス）— 複数観点の多段階評価
+    score = 0
+    highs  = [p["high"]  for p in prevs[:5]]
+    lows   = [p["low"]   for p in prevs[:5]]
+    vols   = [p["volume"] for p in prevs[:5]]
+
+    # 1) トレンド
+    if len(highs) >= 3 and len(lows) >= 3:
+        if highs[2] < highs[1] < highs[0] and lows[2] < lows[1] < lows[0]:
+            score += 2
+        elif highs[1] < highs[0] or lows[1] < lows[0]:
+            score += 1
+
+    # 2) 出来高（前日比：直近5〜10分急増の厳密判定は実装しない）
+    if len(vols) >= 1 and vols[0] > 0:
+        ratio = (today["volume"] - vols[0]) / max(vols[0], 1)
+        if ratio >= 0.20:
+            score += 2
+        elif ratio >= 0.05:
+            score += 1
+
+    # 3) ブレイク位置（前日高値）
+    if len(highs) >= 1 and today["close"] and highs[0]:
+        diff = (today["close"] - highs[0]) / highs[0]
+        if diff >= 0.005:
+            score += 2
+        elif abs(diff) < 0.005:
+            score += 1
+
+    # 4) 引け位置（当日高値に近い）
+    if today["high"] and today["close"]:
+        diff_close_high = (today["high"] - today["close"]) / today["high"]
+        if diff_close_high <= 0.005:
+            score += 2
+        elif diff_close_high <= 0.01:
+            score += 1
+
+    # 5) ボラティリティ
+    if today["close"] and (today["high"] - today["low"]) / today["close"] >= 0.03:
+        score += 1
+
+    # 6) 出来高水準（過去5日平均の1.5倍以上）
+    if len(prevs) >= 5:
+        avg5 = sum(p["volume"] for p in prevs[:5]) / 5
+        if today["volume"] >= 1.5 * avg5:
+            score += 1
+
+    return int(score)
+
+def _score_sell(today, prevs) -> int:
+    # 売り（プラスで返却。最終的に負符号にする）
+    score = 0
+    highs  = [p["high"]  for p in prevs[:5]]
+    lows   = [p["low"]   for p in prevs[:5]]
+    vols   = [p["volume"] for p in prevs[:5]]
+
+    # 1) トレンド：切り下げ
+    if len(highs) >= 3 and len(lows) >= 3:
+        if highs[2] > highs[1] > highs[0] and lows[2] > lows[1] > lows[0]:
+            score += 2
+        elif highs[1] > highs[0] or lows[1] > lows[0]:
+            score += 1
+
+    # 2) 出来高：急増→減少（近似）
+    if len(vols) >= 3 and vols[1] < vols[2] and vols[1] < vols[0]:
+        score += 2
+    elif len(vols) >= 2 and vols[0] < vols[1]:
+        score += 1
+
+    # 3) ブレイク位置：前日安値割れ
+    if len(lows) >= 1 and today["close"] and lows[0]:
+        diff = (today["close"] - lows[0]) / lows[0]
+        if diff <= -0.005:
+            score += 2
+        elif diff < 0:
+            score += 1
+
+    # 4) 引け位置：当日安値に近い
+    if today["low"] and today["close"]:
+        diff_close_low = (today["close"] - today["low"]) / today["low"]
+        if diff_close_low <= 0.005:
+            score += 2
+        elif diff_close_low <= 0.01:
+            score += 1
+
+    # 5) ボラティリティ
+    if today["close"] and (today["high"] - today["low"]) / today["close"] >= 0.03:
+        score += 1
+
+    # 6) 出来高水準
+    if len(prevs) >= 5:
+        avg5 = sum(p["volume"] for p in prevs[:5]) / 5
+        if today["volume"] >= 1.5 * avg5:
+            score += 1
+
+    return int(score)
+
+def compute_trend_score_for_snapshots(db_path: str) -> Dict[str, Optional[int]]:
+    """
+    Return {ticker: score or None} for all tickers in quote_latest.
+    - Use the latest trade date that has at least 332 1-min bars.
+    - Buy score and Sell score are computed separately.
+      Final score = (buy >= sell) ? +buy : -sell
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    out: Dict[str, Optional[int]] = {}
+
+    tickers = [r[0] for r in conn.execute("SELECT ticker FROM quote_latest").fetchall()]
+
+    for ticker in tickers:
+        # 最新の「332本以上が揃っている」営業日を採用
+        trade_date = _latest_completed_trade_date(conn, ticker, min_bars=332)
+        if not trade_date:
+            out[ticker] = None
+            continue
+
+        today = _daily_ohlcv(conn, ticker, trade_date)
+        if not today or any(today[k] is None for k in ("open","close","high","low")):
+            out[ticker] = None
+            continue
+
+        prevs = _prev_daily_refs(conn, ticker, trade_date, n_days=5, min_bars=332)
+        if not prevs:
+            out[ticker] = None
+            continue
+
+        buy = _score_buy(today, prevs)
+        sell = _score_sell(today, prevs)
+        out[ticker] = buy if buy >= sell else -sell
+
+    conn.close()
+    return out

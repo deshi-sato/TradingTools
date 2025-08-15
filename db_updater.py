@@ -254,15 +254,12 @@ def read_excel_fixed(path: Path) -> Dict[Tuple[str, str], pd.DataFrame]:
                 "high": pd.to_numeric(df["high"], errors="coerce"),
                 "low": pd.to_numeric(df["low"], errors="coerce"),
                 "close": pd.to_numeric(df["close"], errors="coerce"),
-                "volume": pd.to_numeric(df["volume"], errors="coerce")
-                .fillna(0)
-                .astype("Int64"),
+                "volume": pd.to_numeric(df["volume"], errors="coerce"),
             }
         )
 
-        mask_no_ohlc = w[["open", "high", "low", "close"]].isna().all(axis=1)
-        mask_zero_and_noohlc = (w["volume"].fillna(0) == 0) & mask_no_ohlc
-        w = w[~(mask_no_ohlc | mask_zero_and_noohlc)].dropna(subset=["datetime"])
+        # 保存時は欠損OHLCや出来高0でも除外せず、ticker/datetimeが正常なら保存
+        w = w.dropna(subset=["datetime"])  # datetime不正のみ除外
         w = w.sort_values("datetime").reset_index(drop=True)
         out[(ticker, sheet_name)] = w
 

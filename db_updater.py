@@ -15,7 +15,7 @@ from typing import Dict, Tuple, Callable, Any
 # ========= 設定 =========
 SCRIPT_DIR = Path(__file__).resolve().parent
 EXCEL_PATH = SCRIPT_DIR / "デイトレ株価データ.xlsm"
-DB_PATH = SCRIPT_DIR / "rss_data.db"
+DB_PATH = SCRIPT_DIR / "data" / "rss_data.db"
 
 # ========= DB =========
 DDL = """

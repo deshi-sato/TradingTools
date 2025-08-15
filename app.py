@@ -5,7 +5,7 @@ import sqlite3
 from flask import Flask, render_template, jsonify, request
 
 APP_DIR = Path(__file__).resolve().parent
-DB_PATH = APP_DIR / "rss_data.db"
+DB_PATH = APP_DIR / "data" / "rss_data.db"
 
 app = Flask(__name__)
 
@@ -81,7 +81,11 @@ def api_snapshots():
         "diff_pct",
         "updated_at",
     ]
-    data = [dict(zip(cols, r)) for r in rows]
+    data = []
+    for r in rows:
+        d = dict(zip(cols, r))
+        d["score"] = scores_map.get(d["ticker"])
+        data.append(d)
     return jsonify(data)
 
 

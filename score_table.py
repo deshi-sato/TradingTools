@@ -39,6 +39,7 @@ def save_latest_row_index(index):
     with open(INI_PATH, "w") as f:
         config.write(f)
 
+
 def get_japan_market_today():
     now = datetime.now()
     market_start = now.replace(hour=9, minute=0, second=0, microsecond=0)
@@ -559,21 +560,30 @@ def create_score_table_short(data_dict):
         drop=True
     )
     return df_score
+
+
 import sqlite3
 from typing import Dict, Optional, List
 
+
 def _latest_trade_date(conn: sqlite3.Connection, ticker: str) -> Optional[str]:
-    cur = conn.execute("""
+    cur = conn.execute(
+        """
         SELECT date(datetime) AS d
         FROM minute_data
         WHERE ticker=?
         ORDER BY datetime DESC
         LIMIT 1
-    """, (ticker,))
+    """,
+        (ticker,),
+    )
     row = cur.fetchone()
     return row[0] if row and row[0] else None
 
-def _latest_completed_trade_date(conn: sqlite3.Connection, ticker: str, min_bars: int = 332) -> Optional[str]:
+
+def _latest_completed_trade_date(
+    conn: sqlite3.Connection, ticker: str, min_bars: int = 332
+) -> Optional[str]:
     cur = conn.execute(
         """
         SELECT d FROM (
@@ -591,52 +601,83 @@ def _latest_completed_trade_date(conn: sqlite3.Connection, ticker: str, min_bars
     row = cur.fetchone()
     return row[0] if row and row[0] else None
 
-def _count_minutes_of_day(conn: sqlite3.Connection, ticker: str, trade_date: str) -> int:
-    cur = conn.execute("""
+
+def _count_minutes_of_day(
+    conn: sqlite3.Connection, ticker: str, trade_date: str
+) -> int:
+    cur = conn.execute(
+        """
         SELECT COUNT(*)
         FROM minute_data
         WHERE ticker=? AND date(datetime)=?
-    """, (ticker, trade_date))
+    """,
+        (ticker, trade_date),
+    )
     return int(cur.fetchone()[0])
 
-def _daily_ohlcv(conn: sqlite3.Connection, ticker: str, trade_date: str) -> Optional[Dict[str, float]]:
+
+def _daily_ohlcv(
+    conn: sqlite3.Connection, ticker: str, trade_date: str
+) -> Optional[Dict[str, float]]:
     # 当日のOHLCV（プレースホルダ分足：OHLCがNULLかつVolume=0 は無視）
-    open_row = conn.execute("""
+    open_row = conn.execute(
+        """
         SELECT open FROM minute_data
         WHERE ticker=? AND date(datetime)=? AND open IS NOT NULL
         ORDER BY datetime ASC LIMIT 1
-    """, (ticker, trade_date)).fetchone()
-    close_row = conn.execute("""
+    """,
+        (ticker, trade_date),
+    ).fetchone()
+    close_row = conn.execute(
+        """
         SELECT close FROM minute_data
         WHERE ticker=? AND date(datetime)=? AND close IS NOT NULL
         ORDER BY datetime DESC LIMIT 1
-    """, (ticker, trade_date)).fetchone()
-    high_row = conn.execute("""
+    """,
+        (ticker, trade_date),
+    ).fetchone()
+    high_row = conn.execute(
+        """
         SELECT MAX(high) FROM minute_data
         WHERE ticker=? AND date(datetime)=? AND high IS NOT NULL
-    """, (ticker, trade_date)).fetchone()
-    low_row = conn.execute("""
+    """,
+        (ticker, trade_date),
+    ).fetchone()
+    low_row = conn.execute(
+        """
         SELECT MIN(low) FROM minute_data
         WHERE ticker=? AND date(datetime)=? AND low IS NOT NULL
-    """, (ticker, trade_date)).fetchone()
-    vol_row = conn.execute("""
+    """,
+        (ticker, trade_date),
+    ).fetchone()
+    vol_row = conn.execute(
+        """
         SELECT COALESCE(SUM(volume),0) FROM minute_data
         WHERE ticker=? AND date(datetime)=? AND volume IS NOT NULL
-    """, (ticker, trade_date)).fetchone()
+    """,
+        (ticker, trade_date),
+    ).fetchone()
 
-    if not any([open_row and open_row[0] is not None,
-                close_row and close_row[0] is not None,
-                high_row and high_row[0] is not None,
-                low_row and low_row[0] is not None]):
+    if not any(
+        [
+            open_row and open_row[0] is not None,
+            close_row and close_row[0] is not None,
+            high_row and high_row[0] is not None,
+            low_row and low_row[0] is not None,
+        ]
+    ):
         return None
 
     return {
         "open": float(open_row[0]) if open_row and open_row[0] is not None else None,
-        "close": float(close_row[0]) if close_row and close_row[0] is not None else None,
+        "close": (
+            float(close_row[0]) if close_row and close_row[0] is not None else None
+        ),
         "high": float(high_row[0]) if high_row and high_row[0] is not None else None,
-        "low":  float(low_row[0])  if low_row  and low_row[0]  is not None else None,
+        "low": float(low_row[0]) if low_row and low_row[0] is not None else None,
         "volume": int(vol_row[0]) if vol_row and vol_row[0] is not None else 0,
     }
+
 
 def _prev_daily_refs(
     conn: sqlite3.Connection,
@@ -668,103 +709,6 @@ def _prev_daily_refs(
             out.append({"date": d, **v})
     return out
 
-def _score_buy(today, prevs) -> int:
-    # 買い（プラス）— 複数観点の多段階評価
-    score = 0
-    highs  = [p["high"]  for p in prevs[:5]]
-    lows   = [p["low"]   for p in prevs[:5]]
-    vols   = [p["volume"] for p in prevs[:5]]
-
-    # 1) トレンド
-    if len(highs) >= 3 and len(lows) >= 3:
-        if highs[2] < highs[1] < highs[0] and lows[2] < lows[1] < lows[0]:
-            score += 2
-        elif highs[1] < highs[0] or lows[1] < lows[0]:
-            score += 1
-
-    # 2) 出来高（前日比：直近5〜10分急増の厳密判定は実装しない）
-    if len(vols) >= 1 and vols[0] > 0:
-        ratio = (today["volume"] - vols[0]) / max(vols[0], 1)
-        if ratio >= 0.20:
-            score += 2
-        elif ratio >= 0.05:
-            score += 1
-
-    # 3) ブレイク位置（前日高値）
-    if len(highs) >= 1 and today["close"] and highs[0]:
-        diff = (today["close"] - highs[0]) / highs[0]
-        if diff >= 0.005:
-            score += 2
-        elif abs(diff) < 0.005:
-            score += 1
-
-    # 4) 引け位置（当日高値に近い）
-    if today["high"] and today["close"]:
-        diff_close_high = (today["high"] - today["close"]) / today["high"]
-        if diff_close_high <= 0.005:
-            score += 2
-        elif diff_close_high <= 0.01:
-            score += 1
-
-    # 5) ボラティリティ
-    if today["close"] and (today["high"] - today["low"]) / today["close"] >= 0.03:
-        score += 1
-
-    # 6) 出来高水準（過去5日平均の1.5倍以上）
-    if len(prevs) >= 5:
-        avg5 = sum(p["volume"] for p in prevs[:5]) / 5
-        if today["volume"] >= 1.5 * avg5:
-            score += 1
-
-    return int(score)
-
-def _score_sell(today, prevs) -> int:
-    # 売り（プラスで返却。最終的に負符号にする）
-    score = 0
-    highs  = [p["high"]  for p in prevs[:5]]
-    lows   = [p["low"]   for p in prevs[:5]]
-    vols   = [p["volume"] for p in prevs[:5]]
-
-    # 1) トレンド：切り下げ
-    if len(highs) >= 3 and len(lows) >= 3:
-        if highs[2] > highs[1] > highs[0] and lows[2] > lows[1] > lows[0]:
-            score += 2
-        elif highs[1] > highs[0] or lows[1] > lows[0]:
-            score += 1
-
-    # 2) 出来高：急増→減少（近似）
-    if len(vols) >= 3 and vols[1] < vols[2] and vols[1] < vols[0]:
-        score += 2
-    elif len(vols) >= 2 and vols[0] < vols[1]:
-        score += 1
-
-    # 3) ブレイク位置：前日安値割れ
-    if len(lows) >= 1 and today["close"] and lows[0]:
-        diff = (today["close"] - lows[0]) / lows[0]
-        if diff <= -0.005:
-            score += 2
-        elif diff < 0:
-            score += 1
-
-    # 4) 引け位置：当日安値に近い
-    if today["low"] and today["close"]:
-        diff_close_low = (today["close"] - today["low"]) / today["low"]
-        if diff_close_low <= 0.005:
-            score += 2
-        elif diff_close_low <= 0.01:
-            score += 1
-
-    # 5) ボラティリティ
-    if today["close"] and (today["high"] - today["low"]) / today["close"] >= 0.03:
-        score += 1
-
-    # 6) 出来高水準
-    if len(prevs) >= 5:
-        avg5 = sum(p["volume"] for p in prevs[:5]) / 5
-        if today["volume"] >= 1.5 * avg5:
-            score += 1
-
-    return int(score)
 
 def compute_trend_score_for_snapshots(db_path: str) -> Dict[str, Optional[int]]:
     """
@@ -787,7 +731,7 @@ def compute_trend_score_for_snapshots(db_path: str) -> Dict[str, Optional[int]]:
             continue
 
         today = _daily_ohlcv(conn, ticker, trade_date)
-        if not today or any(today[k] is None for k in ("open","close","high","low")):
+        if not today or any(today[k] is None for k in ("open", "close", "high", "low")):
             out[ticker] = None
             continue
 
@@ -802,3 +746,287 @@ def compute_trend_score_for_snapshots(db_path: str) -> Dict[str, Optional[int]]:
 
     conn.close()
     return out
+
+
+def _score_buy(today, prevs) -> int:
+    """
+    翌日上昇シグナル向けの買いスコアを算出（当日＋直近過去データの簡易日足ベース）。
+    加点: 出来高急増 / 5日線上抜け / 前日高値ブレイク / 引けが高値寄り / ボラ適度
+    減点: 上ヒゲ過大 / 出来高ピークのみ / 5日線からの過熱乖離
+    位置補正: 直近安値圏×出来高急増×陽線は加点 / 高値圏×出来高急増×上ヒゲは減点
+    返り値: 合計点（int）。
+    """
+    score = 0
+    if not today or not prevs:
+        return 0
+
+    # 直近5本の参照（prevs は前日が先頭を想定）
+    recent = prevs[:5]
+    highs = [p.get("high") for p in recent if p.get("high") is not None]
+    lows = [p.get("low") for p in recent if p.get("low") is not None]
+    vols = [p.get("volume") for p in recent if p.get("volume") is not None]
+
+    t_open = today.get("open")
+    t_high = today.get("high")
+    t_low = today.get("low")
+    t_close = today.get("close")
+    t_vol = today.get("volume")
+
+    # 5日移動平均（前4日＋当日で近似）
+    closes_for_ma = [p.get("close") for p in recent[:4] if p.get("close") is not None]
+    if t_close is not None:
+        closes_for_ma.append(t_close)
+    ma5 = (sum(closes_for_ma) / len(closes_for_ma)) if len(closes_for_ma) >= 3 else None
+
+    # 5日平均出来高（前4日＋当日）
+    vols_for_avg = [p.get("volume") for p in recent[:4] if p.get("volume") is not None]
+    if t_vol is not None:
+        vols_for_avg.append(t_vol)
+    avg5_vol = (
+        (sum(vols_for_avg) / len(vols_for_avg)) if len(vols_for_avg) >= 3 else None
+    )
+
+    # 直近レンジ（前日まで）
+    recent_low = min(lows) if lows else None
+    recent_high = max(highs) if highs else None
+
+    # ===== 加点ロジック =====
+    # 1) 出来高急増（当日 vs 5日平均）
+    if t_vol and avg5_vol and avg5_vol > 0:
+        vol_ratio = t_vol / avg5_vol
+        if vol_ratio >= 1.5:
+            score += 3
+        elif vol_ratio >= 1.2:
+            score += 2
+        elif vol_ratio >= 1.05:
+            score += 1
+
+    # 2) 5日線上抜け
+    if ma5 and t_close and t_close > ma5:
+        score += 2
+
+    # 3) 前日高値ブレイク（±0.5% 以内は小幅加点）
+    if highs and t_close and highs[0] is not None:
+        base = highs[0]
+        if base and base > 0:
+            diff = (t_close - base) / base
+            if diff >= 0.005:
+                score += 2
+            elif abs(diff) < 0.005:
+                score += 1
+
+    # 4) 引けが当日高値に近い（勢いの持続）
+    if t_high and t_close and t_high > 0:
+        diff_close_high = (t_high - t_close) / t_high
+        if diff_close_high <= 0.005:
+            score += 2
+        elif diff_close_high <= 0.01:
+            score += 1
+
+    # 5) ボラが適度（小さすぎず大きすぎず）
+    if t_close and t_high and t_low and t_close > 0:
+        intraday_range = (t_high - t_low) / t_close
+        if 0.02 <= intraday_range <= 0.06:
+            score += 1
+
+    # ===== 減点ロジック =====
+    # A) 上ヒゲ過大
+    if t_close and t_high and t_close > 0:
+        upper_shadow = (t_high - t_close) / t_close
+        if upper_shadow >= 0.05:
+            score -= 2
+        elif upper_shadow >= 0.03:
+            score -= 1
+
+    # B) 直近5本で当日が出来高ピーク（押し出し・一巡懸念）
+    if vols and t_vol is not None and len(vols) >= 3:
+        if t_vol >= max([t_vol] + vols):
+            score -= 1
+
+    # C) 5MAからの過熱乖離
+    if ma5 and t_close and ma5 > 0:
+        overheat = (t_close / ma5) - 1.0
+        if overheat >= 0.08:
+            score -= 2
+        elif overheat >= 0.06:
+            score -= 1
+
+    # ===== 位置補正 =====
+    is_bullish = t_close is not None and t_open is not None and t_close > t_open
+    near_recent_low = (
+        recent_low is not None and t_close is not None and t_close <= recent_low * 1.02
+    )
+    near_recent_high = (
+        recent_high is not None
+        and t_close is not None
+        and t_close >= recent_high * 0.98
+    )
+
+    # 安値圏×出来高急増×陽線 → 反発初動の加点
+    if (
+        avg5_vol
+        and avg5_vol > 0
+        and t_vol
+        and (t_vol / avg5_vol) >= 1.5
+        and near_recent_low
+        and is_bullish
+    ):
+        score += 2
+
+    # 高値圏×出来高急増×上ヒゲ過大 → 天井リスクの減点
+    if (
+        avg5_vol
+        and avg5_vol > 0
+        and t_vol
+        and (t_vol / avg5_vol) >= 1.5
+        and near_recent_high
+    ):
+        if (
+            t_close
+            and t_high
+            and t_close > 0
+            and ((t_high - t_close) / t_close) >= 0.03
+        ):
+            score -= 2
+
+    return int(score)
+
+
+def _score_sell(today, prevs) -> int:
+    """
+    翌日下降シグナル向けの売りスコアを算出（当日＋直近過去データの簡易日足ベース）。
+    加点: 出来高急増を伴う陰線 / 5日線割れ / 前日安値割れ / 引けが安値寄り / ボラ適度
+    減点: 下ヒゲ過大（買い戻し示唆）/ 出来高ピークのみ / 5日線からの過度な売られ過ぎ乖離
+    位置補正: 直近高値圏×出来高急増×陰線は加点 / 直近安値圏×出来高急増×陽線は減点
+    返り値は合計点（int）。
+    """
+    score = 0
+    if not today or not prevs:
+        return 0
+
+    # 直近5本の参照（prevs は前日が先頭を想定）
+    recent = prevs[:5]
+    highs = [p.get("high") for p in recent if p.get("high") is not None]
+    lows = [p.get("low") for p in recent if p.get("low") is not None]
+    vols = [p.get("volume") for p in recent if p.get("volume") is not None]
+
+    t_open = today.get("open")
+    t_high = today.get("high")
+    t_low = today.get("low")
+    t_close = today.get("close")
+    t_vol = today.get("volume")
+
+    # 5日移動平均（前4日＋当日で近似）
+    closes_for_ma = [p.get("close") for p in recent[:4] if p.get("close") is not None]
+    if t_close is not None:
+        closes_for_ma.append(t_close)
+    ma5 = (sum(closes_for_ma) / len(closes_for_ma)) if len(closes_for_ma) >= 3 else None
+
+    # 5日平均出来高（前4日＋当日）
+    vols_for_avg = [p.get("volume") for p in recent[:4] if p.get("volume") is not None]
+    if t_vol is not None:
+        vols_for_avg.append(t_vol)
+    avg5_vol = (
+        (sum(vols_for_avg) / len(vols_for_avg)) if len(vols_for_avg) >= 3 else None
+    )
+
+    # 直近レンジ（前日まで）
+    recent_low = min(lows) if lows else None
+    recent_high = max(highs) if highs else None
+
+    # ===== 加点ロジック =====
+    # 1) 出来高急増 × 陰線
+    is_bearish = t_close is not None and t_open is not None and t_close < t_open
+    if t_vol and avg5_vol and avg5_vol > 0 and is_bearish:
+        vol_ratio = t_vol / avg5_vol
+        if vol_ratio >= 1.5:
+            score += 3
+        elif vol_ratio >= 1.2:
+            score += 2
+        elif vol_ratio >= 1.05:
+            score += 1
+
+    # 2) 5日線割れ
+    if ma5 and t_close and t_close < ma5:
+        score += 2
+
+    # 3) 前日安値割れ（±0.5% 以内は小幅加点）
+    if lows and t_close and lows[0] is not None:
+        base = lows[0]
+        if base and base > 0:
+            diff = (base - t_close) / base
+            if diff >= 0.005:
+                score += 2
+            elif abs(diff) < 0.005 and t_close <= base:
+                score += 1
+
+    # 4) 引けが当日安値に近い（弱さの持続）
+    if t_low and t_close and t_close > 0:
+        diff_close_low = (t_close - t_low) / t_close
+        if diff_close_low <= 0.005:
+            score += 2
+        elif diff_close_low <= 0.01:
+            score += 1
+
+    # 5) ボラが適度（自律反発過小・過大を避ける）
+    if t_close and t_high and t_low and t_close > 0:
+        intraday_range = (t_high - t_low) / t_close
+        if 0.02 <= intraday_range <= 0.06:
+            score += 1
+
+    # ===== 減点ロジック =====
+    # A) 下ヒゲ過大（買い戻しの強さ）
+    if t_close and t_low and t_close > 0:
+        lower_shadow = (t_close - t_low) / t_close
+        if lower_shadow >= 0.05:
+            score -= 2
+        elif lower_shadow >= 0.03:
+            score -= 1
+
+    # B) 直近5本で当日が出来高ピーク（投げ一巡の可能性）
+    if vols and t_vol is not None and len(vols) >= 3:
+        if t_vol >= max([t_vol] + vols):
+            score -= 1
+
+    # C) 5MAからの過度な乖離（売られ過ぎ）
+    if ma5 and t_close and t_close > 0:
+        underheat = (ma5 / t_close) - 1.0
+        if underheat >= 0.08:
+            score -= 2
+        elif underheat >= 0.06:
+            score -= 1
+
+    # ===== 位置補正 =====
+    near_recent_low = (
+        recent_low is not None and t_close is not None and t_close <= recent_low * 1.02
+    )
+    near_recent_high = (
+        recent_high is not None
+        and t_close is not None
+        and t_close >= recent_high * 0.98
+    )
+
+    # 高値圏×出来高急増×陰線 → 天井打ちの加点
+    if (
+        avg5_vol
+        and avg5_vol > 0
+        and t_vol
+        and (t_vol / avg5_vol) >= 1.5
+        and near_recent_high
+        and is_bearish
+    ):
+        score += 2
+
+    # 安値圏×出来高急増×陽線 → 反発初動の可能性で減点
+    is_bullish = t_close is not None and t_open is not None and t_close > t_open
+    if (
+        avg5_vol
+        and avg5_vol > 0
+        and t_vol
+        and (t_vol / avg5_vol) >= 1.5
+        and near_recent_low
+        and is_bullish
+    ):
+        score -= 2
+
+    return int(score)

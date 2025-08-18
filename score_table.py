@@ -2,7 +2,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import xlwings as xw
 import os
-import configparser
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from flask import Flask
@@ -12,43 +11,6 @@ app = Flask(__name__)
 
 # フォント設定（Noto Sans CJK JP を使用）
 plt.rcParams["font.family"] = "Yu Gothic"
-
-EXCEL_PATH = "C:/Users/Owner/Documents/desshi_signal_viewer/デイトレ株価データ.xlsm"
-TEMP_PATH = "C:/Users/Owner/Documents/desshi_signal_viewer/temp_デイトレ株価データ.xlsm"
-
-# === .ini 管理設定 ===
-INI_PATH = "desshi_signal_viewer.ini"
-
-
-def get_latest_row_index():
-    config = configparser.ConfigParser()
-    config.read(INI_PATH)
-    try:
-        return int(config["読み込み状態"]["latest_row_index"])
-    except:
-        return 0
-
-
-def save_latest_row_index(index):
-    config = configparser.ConfigParser()
-    if not os.path.exists(INI_PATH):
-        config["読み込み状態"] = {"latest_row_index": str(index)}
-    else:
-        config.read(INI_PATH)
-        config["読み込み状態"]["latest_row_index"] = str(index)
-    with open(INI_PATH, "w") as f:
-        config.write(f)
-
-
-def get_japan_market_today():
-    now = datetime.now()
-    market_start = now.replace(hour=9, minute=0, second=0, microsecond=0)
-    if now < market_start:
-        # 9:00より前 → 前日を「今日」とする
-        return (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    else:
-        # 9:00以降 → 通常の今日
-        return now.strftime("%Y-%m-%d")
 
 
 def save_chart_5min(ticker, df, global_data_dict):

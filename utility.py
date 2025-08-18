@@ -25,3 +25,13 @@ def filter_top(df, min_count=5):
             break
     return df[df["合計スコア"] >= threshold]
 
+def get_japan_market_today():
+    now = datetime.now()
+    market_start = now.replace(hour=9, minute=0, second=0, microsecond=0)
+    if now < market_start:
+        # 9:00より前 → 前日を「今日」とする
+        return (now - timedelta(days=1)).strftime("%Y-%m-%d")
+    else:
+        # 9:00以降 → 通常の今日
+        return now.strftime("%Y-%m-%d")
+

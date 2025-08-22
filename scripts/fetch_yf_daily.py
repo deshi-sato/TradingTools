@@ -246,7 +246,7 @@ def main() -> None:
     args = parse_args()
 
     # ロガー
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stdout)
 
     # DB 準備
     os.makedirs(os.path.dirname(args.db) or ".", exist_ok=True)
@@ -255,6 +255,7 @@ def main() -> None:
         ensure_schema(conn)
     finally:
         conn.close()
+    logging.info("Using DB: %s", args.db)
 
     # ティッカー集合
     if args.tickers_file:
@@ -267,6 +268,7 @@ def main() -> None:
 
     # 期間
     end_inclusive, end_exclusive = compute_end_date_exclusive()
+    logging.info("End date (inclusive, JST): %s", end_inclusive)
 
     forced_since: Optional[date] = None
     if args.since:

@@ -1,0 +1,186 @@
+[33mcommit 58043266f65e0e612ea6da6b1d353320026f41b0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mscore_table.pyからエクセル操作関連を分ける[m[33m, [m[1;31morigin/score_table.pyからエクセル操作関連を分ける[m[33m)[m
+Author: Satoru <deshimaru@hotmail.com>
+Date:   Fri Aug 22 19:38:08 2025 +0900
+
+    feat: スコアパラメータ毎日取得バッチ
+
+[1mdiff --git a/compare_summary.csv b/compare_summary.csv[m
+[1mnew file mode 100644[m
+[1mindex 0000000..b550b84[m
+[1m--- /dev/null[m
+[1m+++ b/compare_summary.csv[m
+[36m@@ -0,0 +1,4 @@[m
+[32m+[m[32m﻿tag,n_windows,test_mean_avg,test_mean_std,win_rate,cum_return_end,max_drawdown[m
+[32m+[m[32mT60_V30,5,0.00140019088417686,0.002257390486521254,0.8,1.2140377994281677,-0.1368951414147861[m
+[32m+[m[32mT90_V30,4,0.001523036568445675,0.002587239583782761,0.75,1.1824677720731045,-0.1368951414147861[m
+[32m+[m[32mT180_V30,1,0.0005679797179625,0.0,1.0,1.0155287875771346,-0.03611714118302978[m
+[1mdiff --git a/run_report.ps1 b/run_report.ps1[m
+[1mnew file mode 100644[m
+[1mindex 0000000..fa1bed5[m
+[1m--- /dev/null[m
+[1m+++ b/run_report.ps1[m
+[36m@@ -0,0 +1,164 @@[m
+[32m+[m[32m# ===== run_report.ps1 =====[m
+[32m+[m[32m#Requires -Version 5.1[m
+[32m+[m[32mparam([m
+[32m+[m[32m    # Pythonスクリプトの相対/絶対パス（省略時はルート直下の既定名）[m
+[32m+[m[32m    [string]$Script = "summarize_wf_results.py"[m
+[32m+[m[32m)[m
+[32m+[m
+[32m+[m[32mSet-StrictMode -Version Latest[m
+[32m+[m[32m$ErrorActionPreference = 'Stop'[m
+[32m+[m
+[32m+[m[32m# --- Console をUTF-8（化け対策・絵文字は使わない） ---[m
+[32m+[m[32mtry {[m
+[32m+[m[32m    chcp 65001 | Out-Null[m
+[32m+[m[32m    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8[m
+[32m+[m[32m    $OutputEncoding = [System.Text.Encoding]::UTF8[m
+[32m+[m[32m} catch {}[m
+[32m+[m
+[32m+[m[32m# --- Paths ---------------------------------------------------------------[m
+[32m+[m[32m$Self  = $MyInvocation.MyCommand.Path[m
+[32m+[m[32m$Root  = Split-Path -Parent $Self[m
+[32m+[m[32m$Venv  = Join-Path $Root ".venv"[m
+[32m+[m[32m$PyExe = Join-Path $Venv "Scripts\python.exe"[m
+[32m+[m[32m$Req   = Join-Path $Root "requirements.txt"[m
+[32m+[m[32m$Logs  = Join-Path $Root "logs"[m
+[32m+[m
+[32m+[m[32m# Script は相対パスでもOK（scripts\xxx.py など）[m
+[32m+[m[32mif (-not (Test-Path $Script)) {[m
+[32m+[m[32m    $PyScript = Join-Path $Root $Script[m
+[32m+[m[32m} else {[m
+[32m+[m[32m    $PyScript = (Resolve-Path $Script).Path[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# --- Ensure folders ------------------------------------------------------[m
+[32m+[m[32mif (-not (Test-Path $Logs)) { New-Item -ItemType Directory -Path $Logs | Out-Null }[m
+[32m+[m
+[32m+[m[32m# --- Create venv if missing ---------------------------------------------[m
+[32m+[m[32mif (-not (Test-Path $PyExe)) {[m
+[32m+[m[32m    Write-Host "Creating venv at $Venv ..."[m
+[32m+[m[32m    & py -3 -m venv $Venv[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# --- Upgrade pip/setuptools/wheel ---------------------------------------[m
+[32m+[m[32mWrite-Host "Upgrading pip/setuptools/wheel ..."[m
+[32m+[m[32m& $PyExe -m pip install --upgrade pip setuptools wheel[m
+[32m+[m
+[32m+[m[32m# --- Install requirements if exists -------------------------------------[m
+[32m+[m[32mif (Test-Path $Req) {[m
+[32m+[m[32m    Write-Host "Installing from requirements.txt ..."[m
+[32m+[m[32m    & $PyExe -m pip install -r $Req[m
+[32m+[m[32m} else {[m
+[32m+[m[32m    Write-Host "requirements.txt not found. Skipping dependency install."[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# --- Log file ------------------------------------------------------------[m
+[32m+[m[32m$Ts = Get-Date -Format "yyyyMMdd_HHmmss"[m
+[32m+[m[32m$LogPath = Join-Path $Logs "run_${Ts}.log"[m
+[32m+[m
+[32m+[m[32m# --- Run Python ----------------------------------------------------------[m
+[32m+[m[32mif (-not (Test-Path $PyScript)) {[m
+[32m+[m[32m    throw "Python script not found: $PyScript"[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mWrite-Host "Running: $PyScript"[m
+[32m+[m[32m$psi = New-Object System.Diagnostics.ProcessStartInfo[m
+[32m+[m[32m$psi.FileName = $PyExe[m
+[32m+[m[32m$psi.WorkingDirectory = $Root[m
+[32m+[m[32m$forward = $args -join " "[m
+[32m+[m[32m$psi.Arguments = "`"$PyScript`" $forward"[m
+[32m+[m[32m$psi.RedirectStandardOutput = $true[m
+[32m+[m[32m$psi.RedirectStandardError  = $true[m
+[32m+[m[32m$psi.UseShellExecute = $false[m
+[32m+[m
+[32m+[m[32m$proc = New-Object System.Diagnostics.Process[m
+[32m+[m[32m$proc.StartInfo = $psi[m
+[32m+[m[32m$null   = $proc.Start()[m
+[32m+[m[32m$stdOut = $proc.StandardOutput.ReadToEnd()[m
+[32m+[m[32m$stdErr = $proc.StandardError.ReadToEnd()[m
+[32m+[m[32m$proc.WaitForExit()[m
+[32m+[m
+[32m+[m[32m$stdOut | Tee-Object -FilePath $LogPath -Append | Out-Host[m
+[32m+[m[32mif ($stdErr) {[m
+[32m+[m[32m    "=== STDERR ===" | Tee-Object -FilePath $LogPath -Append | Out-Null[m
+[32m+[m[32m    $stdErr | Tee-Object -FilePath $LogPath -Append | Out-Host[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# --- Compatibility mapping: search wf_* anywhere under data\analysis -----[m
+[32m+[m[32m$report = Join-Path $Root "report.md"[m
+[32m+[m[32m$anaDir = Join-Path $Root "data\analysis"[m
+[32m+[m
+[32m+[m[32mfunction _mapCopy($pattern, $destName) {[m
+[32m+[m[32m    $srcItem = $null[m
+[32m+[m[32m    if (Test-Path $anaDir) {[m
+[32m+[m[32m        $srcItem = Get-ChildItem -Path $anaDir -Filter $pattern -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1[m
+[32m+[m[32m    }[m
+[32m+[m[32m    if ($srcItem) {[m
+[32m+[m[32m        $dst = Join-Path $Root $destName[m
+[32m+[m[32m        Copy-Item $srcItem.FullName $dst -Force[m
+[32m+[m[32m        "mapped: $($srcItem.FullName) -> $destName" | Tee-Object -FilePath $LogPath -Append | Out-Null[m
+[32m+[m[32m        return $true[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m        "source not found (skip): $pattern" | Tee-Object -FilePath $LogPath -Append | Out-Null[m
+[32m+[m[32m        return $false[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# 必須3点を探して compare_* にコピー[m
+[32m+[m[32m$ok1 = _mapCopy "wf_summary_table.csv"   "compare_summary.csv"[m
+[32m+[m[32m$ok2 = _mapCopy "wf_summary_bar.png"     "compare_cum.png"[m
+[32m+[m[32m$ok3 = _mapCopy "wf_summary_scatter.png" "compare_monthly_mean.png"[m
+[32m+[m
+[32m+[m[32m# 最低限の report.md を生成（互換暫定）[m
+[32m+[m[32m$lines = @([m
+[32m+[m[32m    "# Strategy Report", "",[m
+[32m+[m[32m    "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')", ""[m
+[32m+[m[32m)[m
+[32m+[m[32mif (Test-Path (Join-Path $Root "compare_cum.png")) {[m
+[32m+[m[32m    $lines += "## Cumulative Return"[m
+[32m+[m[32m    $lines += "![compare_cum](compare_cum.png)"[m
+[32m+[m[32m    $lines += ""[m
+[32m+[m[32m}[m
+[32m+[m[32mif (Test-Path (Join-Path $Root "compare_monthly_mean.png")) {[m
+[32m+[m[32m    $lines += "## Monthly Mean Return"[m
+[32m+[m[32m    $lines += "![compare_monthly_mean](compare_monthly_mean.png)"[m
+[32m+[m[32m    $lines += ""[m
+[32m+[m[32m}[m
+[32m+[m[32mif (Test-Path (Join-Path $Root "compare_summary.csv")) {[m
+[32m+[m[32m    $lines += "## Summary (CSV)"[m
+[32m+[m[32m    $lines += "- compare_summary.csv"[m
+[32m+[m[32m    $lines += ""[m
+[32m+[m[32m}[m
+[32m+[m[32mSet-Content -Path $report -Value $lines -Encoding UTF8[m
+[32m+[m[32m"wrote report.md (compat)" | Tee-Object -FilePath $LogPath -Append | Out-Null[m
+[32m+[m
+[32m+[m[32m# --- Post-run checks -----------------------------------------------------[m
+[32m+[m[32m$Expected = @([m
+[32m+[m[32m    "compare_summary.csv",[m
+[32m+[m[32m    "compare_cum.png",[m
+[32m+[m[32m    "compare_monthly_mean.png",[m
+[32m+[m[32m    "report.md"[m
+[32m+[m[32m) | ForEach-Object { Join-Path $Root $_ }[m
+[32m+[m
+[32m+[m[32m$Expected = @([m
+[32m+[m[32m    "compare_summary.csv",[m
+[32m+[m[32m    "compare_cum.png",[m
+[32m+[m[32m    "compare_monthly_mean.png",[m
+[32m+[m[32m    "report.md"[m
+[32m+[m[32m) | ForEach-Object { Join-Path $Root $_ }[m
+[32m+[m
+[32m+[m[32m$Missing = @($Expected | Where-Object { -not (Test-Path $_) })[m
+[32m+[m[32mif ($Missing.Count -gt 0) {[m
+[32m+[m[32m    "Missing outputs:`n - " + ($Missing -join "`n - ") | Tee-Object -FilePath $LogPath -Append | Out-Host[m
+[32m+[m[32m    Write-Host "Completed with missing artifacts. See log: $LogPath"[m
+[32m+[m[32m    exit 2[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# --- Log rotation: keep 30 days -----------------------------------------[m
+[32m+[m[32m$Cutoff = (Get-Date).AddDays(-30)[m
+[32m+[m[32mGet-ChildItem $Logs -File -ErrorAction SilentlyContinue |[m
+[32m+[m[32m    Where-Object { $_.LastWriteTime -lt $Cutoff } |[m
+[32m+[m[32m    Remove-Item -Force -ErrorAction SilentlyContinue[m
+[32m+[m
+[32m+[m[32mWrite-Host "Done. Log: $LogPath"[m
+[32m+[m[32mexit $proc.ExitCode[m
+[32m+[m[32m# ===== end =====[m

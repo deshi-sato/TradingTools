@@ -1,190 +1,314 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-TOPIX100 の銘柄コード（例: 7203）を data/topix100_codes.txt から読み込み、
-Yahoo Finance の日足（1d）を取得して SQLite: data/rss_daily.db に保存する。
+TOPIX100 の日足を yfinance から増分取得し、SQLite に UPSERT します。
 
-仕様:
-- テーブル: daily_bars (date, ticker, open, high, low, close, adj_close, volume)
-- PRIMARY KEY (ticker, date)
-- 期間: 日本の前営業日を終点として 1 年分
-- 取引所サフィックスは自動で .T を付与（yfinance 形式）
-- 冪等実行可能（INSERT OR REPLACE）
-- 祝日判定には pandas_market_calendars(=XTKS) を使用、不可なら平日フォールバック
+要件（codex_trend_score.md より要約）:
+- 対象は DB の最終日以降のみ（新規ティッカーは lookback 日）
+- 当日分は除外（前日まで、JST基準）
+- 失敗は銘柄単位で握りつぶし継続。再実行は冪等（UPSERT）
+- 既存の一括取得ではなく、増分更新が標準動作
+- DB: C:\\Users\\Owner\\Documents\\desshi_signal_viewer\\rss_daily.db（既定）
+- テーブル: daily_bars(ticker TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL, volume INTEGER, PRIMARY KEY(ticker,date))
+- CLI: --db, --tickers-file, --lookback-days, --max-workers, --since, --dry-run
 """
 
-import os
-import sys
-import time
+from __future__ import annotations
+
 import argparse
+import csv
+import logging
+import os
 import sqlite3
-import datetime as dt
-from typing import List, Optional
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import datetime, timedelta, date
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 import pandas as pd
 import yfinance as yf
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from zoneinfo import ZoneInfo
 
-# ---- 祝日/営業日計算（XTKS / fallback）--------------------------------------
-
-
-def last_trading_day_japan(end_hint: Optional[dt.date] = None) -> dt.date:
-    """
-    日本の前営業日（東京証券取引所）を返す。
-    pandas_market_calendars が利用可能なら XTKS カレンダーに準拠。
-    使えない場合は「直近日の平日（Mon-Fri）」にフォールバック。
-    """
-    if end_hint is None:
-        end_hint = dt.date.today()
-
-    # まずは XTKS で厳密に
-    try:
-        import pandas_market_calendars as pmc
-        xtks = pmc.get_calendar("XTKS")
-        # 'end_hint' の前日までで直近のセッション日を探す
-        # 例：今日が 2025-08-19（火）なら、前営業日は 2025-08-18（月）
-        sched = xtks.schedule(start_date=(end_hint - dt.timedelta(days=14)), end_date=end_hint)
-        # schedule の index はナイーブな日付（UTC）相当。営業日終了が含まれているので前日営業日を取る
-        # 当日が営業日でも「前営業日」が欲しいため、end_hint 当日の行を除外して最後を取る
-        dates = pd.to_datetime(sched.index).date
-        prevs = [d for d in dates if d < end_hint]
-        if not prevs:
-            # 直近 2 週間に前営業日が無いケースは実質ありえないが、一応フォールバック
-            raise RuntimeError("No previous trading day found in XTKS schedule window.")
-        return prevs[-1]
-    except Exception:
-        # フォールバック：平日ベース
-        d = end_hint - dt.timedelta(days=1)
-        # 月〜金まで下がる
-        while d.weekday() >= 5:  # 5=Sat, 6=Sun
-            d -= dt.timedelta(days=1)
-        return d
+JST = ZoneInfo("Asia/Tokyo")
 
 
-def one_year_ago(d: dt.date) -> dt.date:
-    try:
-        return d.replace(year=d.year - 1)
-    except ValueError:
-        # うるう年対応（2/29 → 2/28）
-        return d - dt.timedelta(days=365)
+# ---- CLI ---------------------------------------------------------------------
 
 
-# ---- DB スキーマ -------------------------------------------------------------
-
-DDL = """
-CREATE TABLE IF NOT EXISTS daily_bars (
-  date TEXT NOT NULL,
-  ticker TEXT NOT NULL,
-  open REAL, high REAL, low REAL, close REAL,
-  adj_close REAL, volume INTEGER,
-  PRIMARY KEY (ticker, date)
-);
-CREATE INDEX IF NOT EXISTS idx_daily_bars_date ON daily_bars(date);
-CREATE INDEX IF NOT EXISTS idx_daily_bars_ticker ON daily_bars(ticker);
-"""
-
-
-# ---- 引数 --------------------------------------------------------------------
-
-
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--codes_file", default="data/topix100_codes.txt",
-                   help="1行1銘柄コード（例: 7203）。.T は自動付与")
-    p.add_argument("--db", default="data/rss_daily.db")
-    p.add_argument("--sleep", type=float, default=0.6, help="リクエスト間隔（秒）")
-    p.add_argument("--auto_adjust", action="store_true",
-                   help="分割/配当調整後の価格を close に反映（adj_close も保存）")
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Fetch TOPIX100 daily bars incrementally and upsert into SQLite.")
+    p.add_argument(
+        "--db",
+        default=r"C:\\Users\\Owner\\Documents\\desshi_signal_viewer\\rss_daily.db",
+        help="Path to SQLite DB (default: repository rss_daily.db)",
+    )
+    p.add_argument(
+        "--tickers-file",
+        dest="tickers_file",
+        default=None,
+        help="Tickers list file (CSV/TSV/newline, 1st column). If omitted, fall back to data/topix100_codes.txt",
+    )
+    p.add_argument("--lookback-days", type=int, default=370, help="Initial backfill days for unseen tickers (default 370)")
+    p.add_argument("--max-workers", type=int, default=6, help="Concurrent fetch workers (default 6)")
+    p.add_argument("--since", type=str, default=None, help="Force start date YYYY-MM-DD (overrides DB max)")
+    p.add_argument("--dry-run", action="store_true", help="Fetch and compute only; do not write DB")
     return p.parse_args()
 
 
-def load_tickers(codes_file: str) -> List[str]:
-    if not os.path.exists(codes_file):
-        print(f"[ERROR] codes_file not found: {codes_file}", file=sys.stderr)
-        sys.exit(1)
-    codes = [x.strip() for x in open(codes_file, "r", encoding="utf-8").read().splitlines() if x.strip()]
-    # yfinance 用に .T を付与
-    tickers = [f"{c}.T" if not c.endswith(".T") else c for c in codes]
+# ---- Utilities ----------------------------------------------------------------
+
+
+def ensure_schema(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS daily_bars(
+          ticker TEXT NOT NULL,
+          date   TEXT NOT NULL,
+          open   REAL, high REAL, low REAL, close REAL, volume INTEGER,
+          PRIMARY KEY (ticker, date)
+        )
+        """
+    )
+    conn.commit()
+
+
+def _normalize_ticker(code: str) -> str:
+    code = code.strip()
+    if not code or code.startswith("#"):
+        return ""
+    # 1列目を採用し、カンマ/タブで区切られていれば先頭だけ使う
+    if "," in code:
+        code = code.split(",", 1)[0]
+    if "\t" in code:
+        code = code.split("\t", 1)[0]
+    code = code.strip()
+    if not code:
+        return ""
+    return code if code.endswith(".T") else f"{code}.T"
+
+
+def load_tickers_from_file(path: str) -> List[str]:
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    tickers: List[str] = []
+    with open(path, "r", encoding="utf-8") as f:
+        for raw in f:
+            t = _normalize_ticker(raw)
+            if t:
+                tickers.append(t)
+    # 重複除去し安定ソート
     return sorted(set(tickers))
 
 
-def ensure_schema(conn: sqlite3.Connection):
-    for stmt in DDL.strip().split(";"):
-        s = stmt.strip()
-        if s:
-            conn.execute(s + ";")
-    conn.commit()
+def load_default_topix100() -> List[str]:
+    # 既存のリスト（従来コード互換）
+    default_path = os.path.join("data", "topix100_codes.txt")
+    if not os.path.exists(default_path):
+        logging.warning("Default tickers file not found: %s", default_path)
+        return []
+    return load_tickers_from_file(default_path)
 
 
-# ---- 取得と保存 --------------------------------------------------------------
+def jst_today() -> date:
+    return datetime.now(JST).date()
 
 
-@retry(reraise=True, stop=stop_after_attempt(4),
-       wait=wait_exponential(multiplier=1, min=1, max=16),
-       retry=retry_if_exception_type(Exception))
-def fetch_one(ticker: str, start: str, end: str, auto_adjust: bool) -> pd.DataFrame:
-    df = yf.download(
-        ticker, start=start, end=end,
-        interval="1d", auto_adjust=auto_adjust, progress=False
+def compute_end_date_exclusive() -> Tuple[date, date]:
+    """
+    Returns (end_inclusive, end_exclusive) where inclusive is yesterday in JST.
+    """
+    today = jst_today()
+    end_inclusive = today - timedelta(days=1)
+    return end_inclusive, end_inclusive + timedelta(days=1)
+
+
+def parse_date(s: str) -> date:
+    return datetime.strptime(s, "%Y-%m-%d").date()
+
+
+def get_db_max_date(conn: sqlite3.Connection, ticker: str) -> Optional[date]:
+    cur = conn.execute("SELECT MAX(date) FROM daily_bars WHERE ticker=?", (ticker,))
+    row = cur.fetchone()
+    if not row or row[0] is None:
+        return None
+    try:
+        return parse_date(row[0])
+    except Exception:
+        return None
+
+
+def history_df(ticker: str, start_date: date, end_exclusive: date) -> pd.DataFrame:
+    df = yf.Ticker(ticker).history(
+        start=str(start_date), end=str(end_exclusive), interval="1d", auto_adjust=False
     )
     if df is None or df.empty:
-        raise RuntimeError(f"no data for {ticker} in {start}..{end}")
-    df = df.reset_index().rename(columns=str.lower)
-    # yfinance 列名整形
-    if "adj close" in df.columns:
-        df = df.rename(columns={"adj close": "adj_close"})
-    df["ticker"] = ticker
-    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-    cols = ["date","ticker","open","high","low","close","adj_close","volume"]
-    for c in cols:
-        if c not in df.columns:
-            df[c] = None
-    return df[cols]
+        return pd.DataFrame(columns=["date", "open", "high", "low", "close", "volume"])  # empty
+    # 標準化
+    df = df.rename(columns={
+        "Open": "open",
+        "High": "high",
+        "Low": "low",
+        "Close": "close",
+        "Volume": "volume",
+    })
+    # index から JST 基準の日付列を作成
+    idx = df.index
+    try:
+        # tz-aware の場合は JST に変換
+        if getattr(idx, "tz", None) is not None:
+            dates = idx.tz_convert(JST).date
+        else:
+            dates = pd.to_datetime(idx).date
+    except Exception:
+        dates = pd.to_datetime(idx).date
+    df["date"] = dates
+    df = df[["date", "open", "high", "low", "close", "volume"]].dropna(how="any")
+    return df
 
 
-def upsert(conn: sqlite3.Connection, df: pd.DataFrame):
-    rows = [tuple(x) for x in df.itertuples(index=False, name=None)]
-    conn.executemany("""
-        INSERT OR REPLACE INTO daily_bars
-        (date,ticker,open,high,low,close,adj_close,volume)
-        VALUES (?,?,?,?,?,?,?,?)
-    """, rows)
-    conn.commit()
+def to_rows(ticker: str, df: pd.DataFrame) -> List[Tuple[str, str, float, float, float, float, int]]:
+    rows: List[Tuple[str, str, float, float, float, float, int]] = []
+    for d, o, h, l, c, v in df.itertuples(index=False, name=None):
+        ds = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+        rows.append((ticker, ds, float(o), float(h), float(l), float(c), int(v or 0)))
+    return rows
 
 
-# ---- メイン ------------------------------------------------------------------
+def upsert_rows(conn: sqlite3.Connection, rows: Sequence[Tuple[str, str, float, float, float, float, int]]) -> int:
+    if not rows:
+        return 0
+    conn.executemany(
+        """
+        INSERT INTO daily_bars(ticker,date,open,high,low,close,volume)
+        VALUES (?,?,?,?,?,?,?)
+        ON CONFLICT(ticker,date) DO UPDATE SET
+          open=excluded.open,
+          high=excluded.high,
+          low=excluded.low,
+          close=excluded.close,
+          volume=excluded.volume
+        """,
+        rows,
+    )
+    return len(rows)
 
 
-def main():
-    args = parse_args()
-    os.makedirs(os.path.dirname(args.db), exist_ok=True)
+@dataclass
+class Task:
+    ticker: str
+    since: date
+    end_inclusive: date
 
-    # 期間の決定：前営業日を end、そこから 1 年前を start
-    end_date = last_trading_day_japan(dt.date.today())
-    start_date = one_year_ago(end_date)
 
-    tickers = load_tickers(args.codes_file)
-    conn = sqlite3.connect(args.db)
-    ensure_schema(conn)
-
-    print(f"Target window: {start_date} -> {end_date}  (inclusive)")
-    print(f"Tickers: {len(tickers)} symbols")
-
-    # yfinance の end は「非包含」なので、end_date の翌日を渡す
-    yf_end_exclusive = (end_date + dt.timedelta(days=1)).isoformat()
-    yf_start = start_date.isoformat()
-
-    for i, tkr in enumerate(tickers, 1):
+def worker(db_path: str, task: Task, dry_run: bool) -> Tuple[str, int, Optional[str]]:
+    """Fetch and upsert one ticker. Returns (ticker, upserted_count, error_message)."""
+    t = task.ticker
+    start = task.since
+    end_incl = task.end_inclusive
+    logging.info("%s start=%s end=%s", t, start, end_incl)
+    try:
+        df = history_df(t, start, end_incl + timedelta(days=1))
+        if df.empty:
+            logging.info("%s no rows", t)
+            return t, 0, None
+        rows = to_rows(t, df)
+        if dry_run:
+            logging.info("%s rows=%d (dry-run)", t, len(rows))
+            return t, 0, None
+        conn = sqlite3.connect(db_path, timeout=30, isolation_level=None, check_same_thread=False)
         try:
-            df = fetch_one(tkr, yf_start, yf_end_exclusive, args.auto_adjust)
-            upsert(conn, df)
-            print(f"[{i}/{len(tickers)}] {tkr} {df['date'].min()} -> {df['date'].max()}  {len(df)} rows")
-            time.sleep(args.sleep)
-        except Exception as e:
-            print(f"[{i}/{len(tickers)}] {tkr} ERROR: {e}", file=sys.stderr)
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA busy_timeout=30000;")
+            ensure_schema(conn)
+            conn.execute("BEGIN")
+            n = upsert_rows(conn, rows)
+            conn.commit()
+        finally:
+            conn.close()
+        logging.info("%s rows=%d", t, n)
+        return t, n, None
+    except Exception as e:
+        msg = str(e)
+        logging.warning("%s error: %s", t, msg)
+        # 軽いバックオフ（429 等）
+        if "429" in msg:
+            try:
+                import time as _time
 
-    conn.close()
-    print(f"Done. DB: {args.db}")
+                _time.sleep(1.0)
+            except Exception:
+                pass
+        return t, 0, msg
+
+
+def main() -> None:
+    args = parse_args()
+
+    # ロガー
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    # DB 準備
+    os.makedirs(os.path.dirname(args.db) or ".", exist_ok=True)
+    conn = sqlite3.connect(args.db, timeout=30)
+    try:
+        ensure_schema(conn)
+    finally:
+        conn.close()
+
+    # ティッカー集合
+    if args.tickers_file:
+        tickers = load_tickers_from_file(args.tickers_file)
+    else:
+        tickers = load_default_topix100()
+    if not tickers:
+        logging.error("No tickers resolved. Provide --tickers-file or prepare data/topix100_codes.txt")
+        sys.exit(1)
+
+    # 期間
+    end_inclusive, end_exclusive = compute_end_date_exclusive()
+
+    forced_since: Optional[date] = None
+    if args.since:
+        try:
+            forced_since = parse_date(args.since)
+        except Exception:
+            logging.error("Invalid --since format. Use YYYY-MM-DD")
+            sys.exit(2)
+
+    # 各ティッカーの since を決定
+    tasks: List[Task] = []
+    conn = sqlite3.connect(args.db, timeout=30)
+    try:
+        for t in tickers:
+            maxd = get_db_max_date(conn, t)
+            if maxd is None:
+                since = end_inclusive - timedelta(days=int(args.lookback_days))
+            else:
+                since = maxd + timedelta(days=1)
+            if forced_since is not None:
+                since = max(since, forced_since)
+            if since > end_inclusive:
+                logging.info("%s up-to-date (since=%s > end=%s)", t, since, end_inclusive)
+                continue
+            tasks.append(Task(ticker=t, since=since, end_inclusive=end_inclusive))
+    finally:
+        conn.close()
+
+    if not tasks:
+        logging.info("All tickers are up-to-date. Nothing to do.")
+        return
+
+    # 並列処理
+    total_upserts = 0
+    with ThreadPoolExecutor(max_workers=int(args.max_workers)) as ex:
+        futs = [ex.submit(worker, args.db, task, args.dry_run) for task in tasks]
+        for fut in as_completed(futs):
+            t, n, err = fut.result()
+            if not err:
+                total_upserts += n
+
+    logging.info("Total upserts: %d", total_upserts)
 
 
 if __name__ == "__main__":

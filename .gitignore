@@ -7,6 +7,10 @@ __pycache__/
 *.png
 *.dll
 *.db
+*.csv
+*.xlsx
+*.json
+*.ps1
 *.bak
 *.md
 templates/index.html.txt

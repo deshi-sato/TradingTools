@@ -46,7 +46,9 @@ def window_eval(df: pd.DataFrame, train_dates: pd.Series) -> dict:
     return {"side": best[0], "n": best[1], "train_mean": best[2]}
 
 
-def apply_strategy(df: pd.DataFrame, test_dates: pd.Series, side: str, n: int) -> pd.DataFrame:
+def apply_strategy(
+    df: pd.DataFrame, test_dates: pd.Series, side: str, n: int
+) -> pd.DataFrame:
     """Apply chosen strategy on test period and return daily returns."""
     test_df = df[df["date"].isin(set(test_dates))]
     out = []
@@ -61,19 +63,24 @@ def main() -> int:
     # Input validation
     if not os.path.exists(CODES_CSV):
         print(f"[ERROR] not found: {CODES_CSV}", file=sys.stderr)
-        return 1
+        return 2
     df = pd.read_csv(CODES_CSV)
     required = ["date", "code", "score", "next_return"]
     for c in required:
         if c not in df.columns:
             print(f"[ERROR] missing column '{c}' in {CODES_CSV}", file=sys.stderr)
-            return 1
+            return 2
     df["date"] = pd.to_datetime(df["date"]).dt.date
-    df = df.sort_values(["date", "score"], ascending=[True, False]).reset_index(drop=True)
+    df = df.sort_values(["date", "score"], ascending=[True, False]).reset_index(
+        drop=True
+    )
 
     days = pd.Series(sorted(df["date"].unique()))
     if len(days) < (TRAIN_DAYS + TEST_DAYS):
-        print(f"[ERROR] insufficient days: {len(days)} < {TRAIN_DAYS + TEST_DAYS}", file=sys.stderr)
+        print(
+            f"[ERROR] insufficient days: {len(days)} < {TRAIN_DAYS + TEST_DAYS}",
+            file=sys.stderr,
+        )
         return 3
 
     print(f"[INFO] settings: TRAIN_DAYS={TRAIN_DAYS} TEST_DAYS={TEST_DAYS}")
@@ -124,15 +131,21 @@ def main() -> int:
 
     # Outputs
     res_df = pd.DataFrame(results)
-    res_df.to_csv(os.path.join(OUTDIR, "wf_results.csv"), index=False, encoding="utf-8-sig")
+    res_df.to_csv(
+        os.path.join(OUTDIR, "wf_results.csv"), index=False, encoding="utf-8-sig"
+    )
 
     wf_daily = (
         pd.concat(wf_daily_all, ignore_index=True)
         if wf_daily_all
         else pd.DataFrame(columns=["date", "ret", "window_id"])
     )
-    wf_daily = wf_daily.sort_values(["date", "window_id"]) if not wf_daily.empty else wf_daily
-    wf_daily.to_csv(os.path.join(OUTDIR, "wf_daily.csv"), index=False, encoding="utf-8-sig")
+    wf_daily = (
+        wf_daily.sort_values(["date", "window_id"]) if not wf_daily.empty else wf_daily
+    )
+    wf_daily.to_csv(
+        os.path.join(OUTDIR, "wf_daily.csv"), index=False, encoding="utf-8-sig"
+    )
 
     # Plot: cumulative
     plt.figure()

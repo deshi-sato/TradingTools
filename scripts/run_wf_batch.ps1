@@ -36,3 +36,15 @@ foreach($c in $cfgs){
 }
 
 Write-Host "Done. Outputs under data\\analysis\\*_(T*_V*).{csv,png}"
+
+# Optionally summarize if summarizer exists
+if (Test-Path 'scripts\summarize_wf_results.py') {
+  Write-Host '>>> Summarize WF results'
+  python 'scripts\summarize_wf_results.py'
+  Write-Host "summarize EXIT=$LASTEXITCODE"
+}
+if (Test-Path 'scripts\summarize_top_strategies.py') {
+  Write-Host '>>> Pick top WF configs'
+  python 'scripts\summarize_top_strategies.py'
+  Write-Host "top-pick EXIT=$LASTEXITCODE"
+}

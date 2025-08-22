@@ -167,7 +167,7 @@ def main():
     conn = sqlite3.connect(args.db)
     ensure_schema(conn)
 
-    print(f"Target window: {start_date} → {end_date}  (inclusive)")
+    print(f"Target window: {start_date} -> {end_date}  (inclusive)")
     print(f"Tickers: {len(tickers)} symbols")
 
     # yfinance の end は「非包含」なので、end_date の翌日を渡す
@@ -178,15 +178,14 @@ def main():
         try:
             df = fetch_one(tkr, yf_start, yf_end_exclusive, args.auto_adjust)
             upsert(conn, df)
-            print(f"[{i}/{len(tickers)}] {tkr} {df['date'].min()} → {df['date'].max()}  {len(df)} rows")
+            print(f"[{i}/{len(tickers)}] {tkr} {df['date'].min()} -> {df['date'].max()}  {len(df)} rows")
             time.sleep(args.sleep)
         except Exception as e:
             print(f"[{i}/{len(tickers)}] {tkr} ERROR: {e}", file=sys.stderr)
 
     conn.close()
-    print(f"✅ Done. DB: {args.db}")
+    print(f"Done. DB: {args.db}")
 
 
 if __name__ == "__main__":
     main()
-

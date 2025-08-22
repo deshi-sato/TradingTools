@@ -1,0 +1,2 @@
+[ERROR] 必須列が見つかりません。date_col=date, id_col=None, score_col=None, ret_col=None
+CSV列: ['date', 'w_vol', 'w_ma', 'w_brk', 'days_used', 'avg_corr', 'avg_topN_return', 'rank_method']

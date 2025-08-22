@@ -1,32 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-score_tuner.py
+score_tuner.py  (daily-ready, summary + per-code detail exporter)
 
-1分足のSQLiteテーブルから日足OHLCVを集計し、
-「出来高急増」「5日線上抜け」「前日高値ブレイク」の3因子を
-前日(Prev)に算出、翌日(Next)のリターンと整合度を評価します。
-
-通常評価:
-  python scripts\score_tuner.py --db data\rss_data.db --table minute_data --date_col datetime --code_col ticker --price_col close --volume_col volume --start 2025-08-14 --end 2025-08-15 --out results\score_tuner_summary.csv
-
-重み最適化:
-  python scripts\score_tuner.py --db data\rss_data.db --table minute_data --date_col datetime --code_col ticker --price_col close --volume_col volume --start 2025-08-14 --end 2025-08-15 --optimize --step 0.25 --topn 10 --out results\weights_grid.csv
+日足OHLCVを使って Prev(日)の3因子スコアを作成し、Next(日)のリターンと整合度を評価。
+出力:
+- サマリー: --out で指定 (例: data/score_daily.csv)
+- 明細    : --out のベース名 + ".codes.csv"  (例: data/score_daily.codes.csv)
+           列 = [date, code, score, next_return]
 """
+
 from __future__ import annotations
-
-import argparse
-import os
-import sqlite3
+import argparse, os, sqlite3
 from typing import Dict, List, Tuple
-
 import numpy as np
 import pandas as pd
 from scipy.stats import kendalltau, spearmanr
 
 
-# ========= 1分足取り出し → 日足集計 =========
-
-
+# ========= 1) データ取得 =========
 def fetch_minutes_as_df(
     db_path: str,
     table: str,
@@ -38,10 +29,7 @@ def fetch_minutes_as_df(
     end: str,
     pad_days: int = 5,
 ) -> pd.DataFrame:
-    """
-    SQLiteの1分足から必要列を取得し、標準列名に正規化する。
-    取り出す列: dt, code, close, volume, high
-    """
+    """SQLiteから必要列を取得（dt, code, close, volume, high）。日足テーブルでもOK。"""
     conn = sqlite3.connect(db_path)
     try:
         q = f"""
@@ -57,30 +45,20 @@ def fetch_minutes_as_df(
         df = pd.read_sql_query(q, conn, params=[start, end])
     finally:
         conn.close()
-
     if df.empty:
         raise RuntimeError("指定範囲にレコードがありません (--start/--end を確認)。")
-
     df["dt"] = pd.to_datetime(df["dt"])
     df["date"] = df["dt"].dt.date.astype(str)
-    df = df.sort_values(["code", "dt"]).reset_index(drop=True)
-    return df
+    return df.sort_values(["code", "dt"]).reset_index(drop=True)
 
 
 def minutes_to_daily(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    標準化された1分足(df: dt, code, close, volume, high)から日足に集計。
-    """
+    """標準列(dt, code, close, volume, high) → 日足(date, code, close, volume, high)"""
     d = df[["dt", "code", "close", "volume", "high"]].copy()
     d["date"] = d["dt"].dt.date
-
     daily = (
         d.groupby(["date", "code"], as_index=False)
-        .agg(
-            close=("close", "last"),
-            volume=("volume", "sum"),
-            high=("high", "max"),
-        )
+        .agg(close=("close", "last"), volume=("volume", "sum"), high=("high", "max"))
         .sort_values(["code", "date"])
         .reset_index(drop=True)
     )
@@ -88,18 +66,16 @@ def minutes_to_daily(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_prev_next_pairs(daily: pd.DataFrame) -> pd.DataFrame:
-    """
-    各銘柄ごとに(Prev, Next)ペアを作る。Prevはスコア計算、Nextは翌日リターン。
-    """
+    """各銘柄ごとに Prev→Next ペアを作る（Prevでスコア、Nextでリターン）。"""
     daily = daily.sort_values(["code", "date"]).reset_index(drop=True)
 
-    def _per_code(df: pd.DataFrame) -> pd.DataFrame:
-        df = df.copy()
-        df["date_next"] = df["date"].shift(-1)
-        df["close_next"] = df["close"].shift(-1)
-        df["high_prevday"] = df["high"].shift(1)  # 前日高値（Prev基準）
-        df["next_return"] = (df["close_next"] - df["close"]) / df["close"]
-        return df
+    def _per_code(g: pd.DataFrame) -> pd.DataFrame:
+        g = g.copy()
+        g["date_next"] = g["date"].shift(-1)
+        g["close_next"] = g["close"].shift(-1)
+        g["high_prevday"] = g["high"].shift(1)
+        g["next_return"] = (g["close_next"] - g["close"]) / g["close"]
+        return g
 
     paired = (
         daily.groupby("code", group_keys=False)
@@ -110,40 +86,33 @@ def build_prev_next_pairs(daily: pd.DataFrame) -> pd.DataFrame:
     return paired
 
 
-# ========= 3因子スコア =========
-
-
+# ========= 2) 因子スコア（Prev側で計算） =========
 def compute_factor_scores(paired: pd.DataFrame) -> pd.DataFrame:
     """
-    3因子をPrev側で算出:
-      - score_vol: 出来高急増 (vol/5日平均 - 1).clip(min=0)
-      - score_ma : 5日線上抜け (close > MA5)
-      - score_brk: 前日高値ブレイク (close >= high_prevday)
+    3因子:
+      score_vol = max(vol/MA5(vol)-1, 0)
+      score_ma  = 1{ close > MA5(close) }
+      score_brk = 1{ close >= 前日高値 }
     """
     df = paired.copy()
 
-    def _per_code(df1: pd.DataFrame) -> pd.DataFrame:
-        df1 = df1.copy()
-        df1["ma5"] = df1["close"].rolling(5, min_periods=3).mean()
-        df1["vol_mean5"] = df1["volume"].rolling(5, min_periods=3).mean()
-
-        ratio = df1["volume"] / df1["vol_mean5"]
-        df1["score_vol"] = np.clip(ratio - 1.0, 0.0, None).astype(float)
-        df1["score_ma"] = (df1["close"] > df1["ma5"]).astype(float)
-        df1["score_brk"] = (df1["close"] >= df1["high_prevday"]).astype(float)
-        return df1
+    def _per_code(g: pd.DataFrame) -> pd.DataFrame:
+        g = g.copy()
+        g["ma5"] = g["close"].rolling(5, min_periods=3).mean()
+        g["vol_mean5"] = g["volume"].rolling(5, min_periods=3).mean()
+        ratio = g["volume"] / g["vol_mean5"]
+        g["score_vol"] = np.clip(ratio - 1.0, 0.0, None).astype(float)
+        g["score_ma"] = (g["close"] > g["ma5"]).astype(float)
+        g["score_brk"] = (g["close"] >= g["high_prevday"]).astype(float)
+        return g
 
     df = df.groupby("code", group_keys=False).apply(_per_code)
-
     for c in ["score_vol", "score_ma", "score_brk"]:
         df[c] = df[c].fillna(0.0)
-
     return df
 
 
-# ========= 評価ロジック =========
-
-
+# ========= 3) 評価ロジック =========
 def evaluate_by_date(
     df_scores: pd.DataFrame,
     w: Tuple[float, float, float],
@@ -151,21 +120,14 @@ def evaluate_by_date(
     rank_method: str = "spearman",
     topn: int | None = None,
 ) -> Tuple[float, float, int]:
-    """
-    日ごとにスコア= w·f を作って順位相関/TopN平均を計算し、平均を返す。
-    """
-    corr_list: List[float] = []
-    top_list: List[float] = []
-
+    corr_list, top_list = [], []
     for d in dates:
         day = df_scores[df_scores["date"] == d]
         if day.empty:
             continue
-
         score = (
             w[0] * day["score_vol"] + w[1] * day["score_ma"] + w[2] * day["score_brk"]
         )
-
         try:
             if rank_method == "spearman":
                 corr, _ = spearmanr(score, day["next_return"])
@@ -173,25 +135,46 @@ def evaluate_by_date(
                 corr, _ = kendalltau(score, day["next_return"])
         except Exception:
             corr = np.nan
-
         if not np.isnan(corr):
             corr_list.append(float(corr))
-
         if topn and topn > 0:
             top_df = (
                 day.assign(score=score).sort_values("score", ascending=False).head(topn)
             )
             if not top_df.empty:
                 top_list.append(float(np.mean(top_df["next_return"])))
-
     avg_corr = float(np.mean(corr_list)) if corr_list else float("nan")
     avg_top = float(np.mean(top_list)) if top_list else float("nan")
     return avg_corr, avg_top, len(corr_list)
 
 
-# ========= メイン =========
+# ========= 4) 明細エクスポート（共通） =========
+def export_codes_detail(
+    scored: pd.DataFrame,
+    w: Tuple[float, float, float],
+    use_dates: List[str],
+    out_base: str,
+) -> str:
+    """評価に使った全日付について [date,code,score,next_return] を保存。"""
+    import os
+
+    detail = scored[scored["date"].isin(use_dates)].copy()
+    detail["score"] = (
+        w[0] * detail["score_vol"]
+        + w[1] * detail["score_ma"]
+        + w[2] * detail["score_brk"]
+    )
+    detail = detail[["date", "code", "score", "next_return"]].copy()
+    detail["date"] = detail["date"].astype(str)
+    root, _ = os.path.splitext(out_base if out_base else "data/score_daily.csv")
+    out_codes = root + ".codes.csv"
+    os.makedirs(os.path.dirname(out_base) or ".", exist_ok=True)
+    detail.to_csv(out_codes, index=False, encoding="utf-8")
+    print(f"Saved per-code detail: {out_codes} rows: {len(detail)}")
+    return out_codes
 
 
+# ========= 5) メイン =========
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True)
@@ -211,46 +194,45 @@ def main():
     ap.add_argument("--topn", type=int, default=10)
     args = ap.parse_args()
 
-    # 1) 1分足→日足
+    # 1) 取得→日足化
     minutes = fetch_minutes_as_df(
-        db_path=args.db,
-        table=args.table,
-        date_col=args.date_col,
-        code_col=args.code_col,
-        price_col=args.price_col,
-        volume_col=args.volume_col,
-        start=args.start,
-        end=args.end,
+        args.db,
+        args.table,
+        args.date_col,
+        args.code_col,
+        args.price_col,
+        args.volume_col,
+        args.start,
+        args.end,
         pad_days=5,
     )
     daily = minutes_to_daily(minutes)
 
-    # 2) Prev→Nextペア & スコア
+    # 2) Prev→Next & 因子
     paired = build_prev_next_pairs(daily)
     scored = compute_factor_scores(paired)
 
-    # 3) 評価対象(Prev日)を期間でフィルタ
+    # 3) 期間フィルタ（Prev日ベース）
     start_date = pd.to_datetime(args.start).date()
     end_date = pd.to_datetime(args.end).date()
-
-    mask = (scored["date"] >= start_date) & (scored["date"] <= end_date)
-    scored = scored.loc[mask].copy()
+    scored = scored.loc[
+        (scored["date"] >= start_date) & (scored["date"] <= end_date)
+    ].copy()
     if scored.empty:
         raise RuntimeError(
             "評価できる日ペアがありませんでした (--start/--end を見直してください)。"
         )
-
     use_dates = sorted(scored["date"].unique().tolist())
     print(
         f"Table: {args.table}  Date(prev..end)=({use_dates[0]}, {use_dates[-1]})  Days: {len(use_dates)}"
     )
-
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
 
     if not args.optimize:
+        # === 通常評価 ===
         w = (1.0, 1.0, 1.0)
         avg_corr, avg_top, used = evaluate_by_date(
-            scored, w=w, dates=use_dates, rank_method=args.rank, topn=args.topn
+            scored, w, use_dates, args.rank, args.topn
         )
         pd.DataFrame(
             [
@@ -269,22 +251,23 @@ def main():
         if args.topn > 0:
             print(f"Top{args.topn}  avg next_return: {avg_top:.6f}")
         print(f"Saved: {args.out}")
+        # ★ 明細の出力
+        export_codes_detail(scored, w, use_dates, args.out)
         return
 
-    # ---- 重み最適化 ----
-    grid_vals = np.arange(0.0, 1.0 + 1e-9, args.step)
-    cand: List[Tuple[float, float, float]] = [
+    # === 重み最適化 ===
+    grid = np.arange(0.0, 1.0 + 1e-9, args.step)
+    cand = [
         (float(a), float(b), float(c))
-        for a in grid_vals
-        for b in grid_vals
-        for c in grid_vals
+        for a in grid
+        for b in grid
+        for c in grid
         if not (a == 0 and b == 0 and c == 0)
     ]
-
     rows: List[Dict] = []
     for w in cand:
         avg_corr, avg_top, used = evaluate_by_date(
-            scored, w=w, dates=use_dates, rank_method=args.rank, topn=args.topn
+            scored, w, use_dates, args.rank, args.topn
         )
         rows.append(
             {
@@ -296,12 +279,10 @@ def main():
                 "avg_topN_return": avg_top,
             }
         )
-
     df_res = pd.DataFrame(rows).sort_values(
         ["avg_corr", "avg_topN_return"], ascending=[False, False]
     )
     df_res.to_csv(args.out, index=False, encoding="utf-8-sig")
-
     best = df_res.iloc[0]
     print("=== Best Weights ===")
     print(f"w_vol={best.w_vol:.2f}, w_ma={best.w_ma:.2f}, w_brk={best.w_brk:.2f}")
@@ -309,6 +290,9 @@ def main():
         f"avg_corr={best.avg_corr:.6f}, avg_topN_return={best.avg_topN_return:.6f}, days_used={int(best.days_used)}"
     )
     print(f"Saved: {args.out}")
+    # ★ 最良重みで明細も出力
+    w_best = (float(best.w_vol), float(best.w_ma), float(best.w_brk))
+    export_codes_detail(scored, w_best, use_dates, args.out)
 
 
 if __name__ == "__main__":

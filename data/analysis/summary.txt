@@ -1,0 +1,8 @@
+MODE=A(codes)  rows=23661  days=239  from 2024-08-23 to 2025-08-15
+IC mean=-0.004492  std=0.156291
+Top5 mean next-ret = 0.001402
+Bottom5 mean next-ret = 0.000080
+Top10 mean next-ret = 0.000524
+Bottom10 mean next-ret = -0.000010
+Top20 mean next-ret = 0.000632
+Bottom20 mean next-ret = 0.000443

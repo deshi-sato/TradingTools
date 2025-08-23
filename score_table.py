@@ -992,3 +992,65 @@ def _score_sell(today, prevs) -> int:
         score -= 2
 
     return int(score)
+
+# === Trend score (common for LONG/SHORT) ================================
+import numpy as np
+import pandas as pd
+
+def _slope_last(series: pd.Series, span: int) -> float:
+    """直近 span+1 区間での単純傾き（終値ベース）。データ不足時は0。"""
+    if len(series.dropna()) < span + 1:
+        return 0.0
+    a, b = series.iloc[-(span+1)], series.iloc[-1]
+    return (b - a) / span
+
+def add_trend_score(df: pd.DataFrame, ma_fast:int=5, ma_slow:int=25,
+                    slope_fast_span:int=5, slope_slow_span:int=10,
+                    breakout_lookback:int=3) -> pd.DataFrame:
+    """
+    df: 必須列 -> ['close','high','low']、インデックス or 列に日付があること
+    戻り値: dfに 'ma_fast','ma_slow','trend_score' 列を追加
+    スコアの範囲: おおむね -8 ～ +8
+    """
+    d = df.copy()
+
+    # 移動平均（終値）
+    d["ma_fast"] = d["close"].rolling(ma_fast, min_periods=1).mean()
+    d["ma_slow"] = d["close"].rolling(ma_slow, min_periods=1).mean()
+
+    # ブレイク基準（直近N日高値/安値）
+    d["recent_high"] = d["high"].rolling(breakout_lookback, min_periods=1).max()
+    d["recent_low"]  = d["low"].rolling(breakout_lookback,  min_periods=1).min()
+
+    # 傾き（直近の“上がり具合/下がり具合”）
+    d["slope_fast"] = d["ma_fast"].apply(lambda _: np.nan)  # プレースホルダ
+    d["slope_slow"] = d["ma_slow"].apply(lambda _: np.nan)
+    # ベクトル化しにくいので最後だけ評価（全行評価にしたい場合は rolling-apply でもOK）
+    d.loc[d.index[-1], "slope_fast"] = _slope_last(d["ma_fast"], slope_fast_span)
+    d.loc[d.index[-1], "slope_slow"] = _slope_last(d["ma_slow"], slope_slow_span)
+
+    # スコア合成（重みは後で調整可能）
+    score = pd.Series(0, index=d.index, dtype="int64")
+
+    # 1) ゴールデンクロス/デッドクロス気味（fast vs slow）
+    score += np.where(d["ma_fast"] > d["ma_slow"], 2, -2)
+
+    # 2) 傾き（直近の方向性）…最後の1点のみ効かせる
+    sf = d["slope_fast"].iloc[-1]
+    sl = d["slope_slow"].iloc[-1]
+    score.iloc[-1] += (1 if sf > 0 else -1 if sf < 0 else 0)
+    score.iloc[-1] += (1 if sl > 0 else -1 if sl < 0 else 0)
+
+    # 3) 現在値とMA位置（25MAを基準とした圧力）
+    score += np.where(d["close"] > d["ma_slow"], 1, -1)
+
+    # 4) 直近ブレイク・割れ（終値ベース）
+    score += np.where(d["close"] > d["recent_high"].shift(1).fillna(d["recent_high"]), 1, 0)
+    score += np.where(d["close"] < d["recent_low"].shift(1).fillna(d["recent_low"]), -1, 0)
+
+    d["trend_score"] = score
+
+    # 方向別の解釈ヘルパ（任意で使う）
+    #   LONGに有利: trend_score が高い
+    #   SHORTに有利: trend_score が低い
+    return d

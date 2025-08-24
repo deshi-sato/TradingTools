@@ -10,7 +10,6 @@ __pycache__/
 *.csv
 *.xlsx
 *.json
-*.ps1
 *.bak
 *.md
 templates/index.html.txt

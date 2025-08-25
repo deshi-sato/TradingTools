@@ -149,6 +149,56 @@ try {
     }
 
     # =========================
+    # 銘柄抽出（pick_tickers.py）: daily_strategy_pick.csv の最新行に従い BUY/SELL を1銘柄ずつ選定
+    # =========================
+    try {
+        $PyExe      = Join-Path $Root ".venv\Scripts\python.exe"
+        $PickScript = Join-Path $Root "scripts\pick_tickers.py"
+        $AnaDir     = Join-Path $Root "data\analysis"
+        $PickList   = Join-Path $AnaDir "daily_strategy_pick.csv"
+        $DbPath     = Join-Path $Root "rss_daily.db"
+
+        if (-not (Test-Path $PickList)) { throw "daily_strategy_pick.csv not found: $PickList" }
+        if (-not (Test-Path $PickScript)) { throw "pick_tickers.py not found: $PickScript" }
+        if (-not (Test-Path $PyExe)) { throw "Python not found: $PyExe" }
+        if (-not (Test-Path $DbPath)) { throw "DB not found: $DbPath" }
+
+        Write-Host "[INFO] Picking tickers from $PickList ..."
+        # しきい値は必要に応じて調整: --min-vol-ma 0（出来高フィルタ無効）、--min-days 0（自動= max(T,V)+1）
+
+        # ① ウォッチリスト（各15・サイズ付き）
+        & $PyExe $PickScript `
+            --db $DbPath `
+            --from-daily-pick $PickList `
+            --top-long 15 --top-short 15 `
+            --size-mode atr --capital 1000000 --risk-pct 0.005 --atr-window 14 --atr-mult 1.5 `
+            --lot 100 --min-notional 100000 --max-notional 2000000 `
+            --out (Join-Path $AnaDir ("watchlist_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd'))) `
+            2>&1
+
+        # ② 最小ピック（各1・サイズ付き：強制発注デフォルト）
+        & $PyExe $PickScript `
+            --db $DbPath `
+            --from-daily-pick $PickList `
+            --top-long 1 --top-short 1 `
+            --size-mode atr --capital 1000000 --risk-pct 0.005 --atr-window 14 --atr-mult 1.5 `
+            --lot 100 --min-notional 100000 --max-notional 2000000 `
+            2>&1
+
+        # 直近の picks_*.csv を表示（確認用）
+        $lastPick = Get-ChildItem (Join-Path $AnaDir "picks_*.csv") -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Desc | Select-Object -First 1
+        if ($null -ne $lastPick) {
+            Write-Host ("[INFO] Latest picks: {0} ({1})" -f $lastPick.Name, $lastPick.LastWriteTime)
+        } else {
+            Write-Warning "No picks_*.csv found under $AnaDir"
+        }
+    }
+    catch {
+        Write-Warning "Pick step skipped: $($_.Exception.Message)"
+    }
+
+    # =========================
     # 成果物の存在確認（data\analysis 内をチェック）
     # =========================
     $src = Join-Path $Root "data\analysis"

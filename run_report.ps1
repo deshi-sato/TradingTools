@@ -227,3 +227,11 @@ finally {
     "== Finished: $(Get-Date -Format 'yyyyMMdd_HHmmss') ==" | Out-Host
     Stop-Transcript
 }
+# === Watchlist → index 反映 ===
+python .\scripts\update_rss_snapshot_index.py `
+    --data-dir ".\data\analysis" `
+    --excel ".\株価データ.xlsm" `
+    --sheet "index" `
+    --max-buy 15 `
+    --max-sell 15 `
+    --log ".\data\analysis\update_rss_snapshot_index.log"

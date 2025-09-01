@@ -21,7 +21,7 @@ from openpyxl import load_workbook
 
 # 既定値
 DEFAULT_DATA_DIR = Path("./data")
-DEFAULT_EXCEL = DEFAULT_DATA_DIR / "rss_snapshot.xlsm"
+DEFAULT_EXCEL = DEFAULT_DATA_DIR / "株価データ.xlsm"
 DEFAULT_SHEET = "index"
 DEFAULT_MAX_BUY = 15
 DEFAULT_MAX_SELL = 15
@@ -65,7 +65,9 @@ def pick_latest_watchlist(data_dir: Path) -> Path:
     return max(cands, key=lambda p: p.stat().st_mtime)
 
 
-def read_codes_by_side(path: Path, max_buy: int, max_sell: int, logger: logging.Logger) -> Tuple[List[str], List[str]]:
+def read_codes_by_side(
+    path: Path, max_buy: int, max_sell: int, logger: logging.Logger
+) -> Tuple[List[str], List[str]]:
     # 文字コード差異に強く
     df = pd.read_csv(path, encoding="utf-8-sig")
     cols_lower = {c.lower(): c for c in df.columns}
@@ -86,32 +88,62 @@ def read_codes_by_side(path: Path, max_buy: int, max_sell: int, logger: logging.
         # 小文字化でも探索
         for c in df.columns:
             if c.lower().startswith("ticker"):
-                tick_col = c; break
+                tick_col = c
+                break
     if tick_col is None:
-        raise KeyError(f"{path.name} にティッカー列が見つかりません。候補: {tick_candidates} / 実列: {list(df.columns)}")
+        raise KeyError(
+            f"{path.name} にティッカー列が見つかりません。候補: {tick_candidates} / 実列: {list(df.columns)}"
+        )
 
     def to_code(x) -> str:
         s = str(x).strip()
         return s.split(".", 1)[0] if s else ""
 
-    buy_all  = [to_code(x) for x in df.loc[df[side_col].astype(str).str.upper() == "BUY",  tick_col].tolist()]
-    sell_all = [to_code(x) for x in df.loc[df[side_col].astype(str).str.upper() == "SELL", tick_col].tolist()]
+    buy_all = [
+        to_code(x)
+        for x in df.loc[
+            df[side_col].astype(str).str.upper() == "BUY", tick_col
+        ].tolist()
+    ]
+    sell_all = [
+        to_code(x)
+        for x in df.loc[
+            df[side_col].astype(str).str.upper() == "SELL", tick_col
+        ].tolist()
+    ]
 
-    buys  = buy_all[:max_buy]
+    buys = buy_all[:max_buy]
     sells = sell_all[:max_sell]
 
-    logger.info("watchlist=%s  BUY(raw)=%d -> %d  SELL(raw)=%d -> %d",
-                path.name, len(buy_all), len(buys), len(sell_all), len(sells))
+    logger.info(
+        "watchlist=%s  BUY(raw)=%d -> %d  SELL(raw)=%d -> %d",
+        path.name,
+        len(buy_all),
+        len(buys),
+        len(sell_all),
+        len(sells),
+    )
     if not buys and not sells:
-        logger.warning("BUY/SELL ともに空です。csv の side 列や列名を確認してください。")
+        logger.warning(
+            "BUY/SELL ともに空です。csv の side 列や列名を確認してください。"
+        )
     return buys, sells
 
 
-def write_to_xlsm(excel_path: Path, sheet: str, buys: List[str], sells: List[str],
-                  max_buy: int, max_sell: int, logger: logging.Logger) -> None:
+def write_to_xlsm(
+    excel_path: Path,
+    sheet: str,
+    buys: List[str],
+    sells: List[str],
+    max_buy: int,
+    max_sell: int,
+    logger: logging.Logger,
+) -> None:
     if not excel_path.exists():
         raise FileNotFoundError(f"Excel が見つかりません: {excel_path}")
-    wb = load_workbook(filename=str(excel_path), keep_vba=True, read_only=False, data_only=False)
+    wb = load_workbook(
+        filename=str(excel_path), keep_vba=True, read_only=False, data_only=False
+    )
     try:
         if sheet not in wb.sheetnames:
             raise KeyError(f"シート '{sheet}' がありません。存在: {wb.sheetnames}")
@@ -121,10 +153,20 @@ def write_to_xlsm(excel_path: Path, sheet: str, buys: List[str], sells: List[str
         for i in range(max_buy):
             ws.cell(row=i + 1, column=1, value=(buys[i] if i < len(buys) else None))
         for j in range(max_sell):
-            ws.cell(row=max_buy + j + 1, column=1, value=(sells[j] if j < len(sells) else None))
+            ws.cell(
+                row=max_buy + j + 1,
+                column=1,
+                value=(sells[j] if j < len(sells) else None),
+            )
 
         wb.save(str(excel_path))
-        logger.info("wrote %s!A1:A%d (BUY:%d, SELL:%d)", sheet, max_buy + max_sell, len(buys), len(sells))
+        logger.info(
+            "wrote %s!A1:A%d (BUY:%d, SELL:%d)",
+            sheet,
+            max_buy + max_sell,
+            len(buys),
+            len(sells),
+        )
     finally:
         try:
             wb.close()
@@ -134,9 +176,17 @@ def write_to_xlsm(excel_path: Path, sheet: str, buys: List[str], sells: List[str
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR), help="watchlist_*.csv のディレクトリ")
-    ap.add_argument("--excel", default=str(DEFAULT_EXCEL), help="rss_snapshot.xlsm のパス")
-    ap.add_argument("--sheet", default=DEFAULT_SHEET, help="書き込み先シート名（既定: index）")
+    ap.add_argument(
+        "--data-dir",
+        default=str(DEFAULT_DATA_DIR),
+        help="watchlist_*.csv のディレクトリ",
+    )
+    ap.add_argument(
+        "--excel", default=str(DEFAULT_EXCEL), help="rss_snapshot.xlsm のパス"
+    )
+    ap.add_argument(
+        "--sheet", default=DEFAULT_SHEET, help="書き込み先シート名（既定: index）"
+    )
     ap.add_argument("--max-buy", type=int, default=DEFAULT_MAX_BUY)
     ap.add_argument("--max-sell", type=int, default=DEFAULT_MAX_SELL)
     ap.add_argument("--log", help="ログファイル（未指定ならコンソールのみ）")
@@ -152,8 +202,11 @@ def main():
     logger.info("picked watchlist: %s", wl.name)
 
     buys, sells = read_codes_by_side(wl, args.max_buy, args.max_sell, logger)
-    write_to_xlsm(excel_path, args.sheet, buys, sells, args.max_buy, args.max_sell, logger)
+    write_to_xlsm(
+        excel_path, args.sheet, buys, sells, args.max_buy, args.max_sell, logger
+    )
     logger.info("DONE.")
+
 
 if __name__ == "__main__":
     main()

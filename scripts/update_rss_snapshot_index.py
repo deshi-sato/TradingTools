@@ -21,7 +21,7 @@ from openpyxl import load_workbook
 
 # 既定値
 DEFAULT_DATA_DIR = Path("./data")
-DEFAULT_EXCEL = DEFAULT_DATA_DIR / "株価データ.xlsm"
+DEFAULT_EXCEL = DEFAULT_DATA_DIR / "stock_data.xlsm"
 DEFAULT_SHEET = "index"
 DEFAULT_MAX_BUY = 15
 DEFAULT_MAX_SELL = 15

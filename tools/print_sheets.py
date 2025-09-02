@@ -2,7 +2,7 @@ from openpyxl import load_workbook
 from pathlib import Path
 import sys
 
-p = Path('株価データ.xlsm')
+p = Path('stock_data.xlsm')
 try:
     wb = load_workbook(filename=str(p), keep_vba=True, read_only=False, data_only=False)
     print('OK', p, wb.sheetnames)
@@ -10,4 +10,3 @@ try:
 except Exception as e:
     print('ERR', e)
     sys.exit(2)
-

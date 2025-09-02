@@ -11,7 +11,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 # ====== 設定 ======
 SCRIPT_DIR = Path(__file__).resolve().parent
-EXCEL_PATH = SCRIPT_DIR / "株価データ.xlsm"      # ← 固定：スナップショットExcel
+EXCEL_PATH = SCRIPT_DIR / "stock_data.xlsm"      # ← 固定：スナップショットExcel
 DB_PATH    = SCRIPT_DIR / "data" / "rss_snapshot.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 

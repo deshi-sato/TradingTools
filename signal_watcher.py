@@ -65,6 +65,62 @@ class Signal:
     notes: str
 
 
+def pick_fallback_signal(
+    base: pd.DataFrame,
+    ticker: str,
+    side: str,
+    window_end: pd.Timestamp,
+) -> Optional[Signal]:
+    """
+    締切時点のその銘柄の最新バー（<window_end）で、side向けのOCOを組んだフォールバックSignalを作る。
+    価格や指標は 9:00〜締切までのデータのみで算出。
+    """
+    df_t = base[(base["ticker"] == ticker) & (base["datetime"] < window_end)].copy()
+    if len(df_t) == 0:
+        return None
+    d = compute_indicators(df_t)
+    last = d.iloc[-1]
+    price = float(last["close"])
+    stop, t1, t2, R, note = propose_oco(side, price, d)
+    return Signal(
+        time=window_end,  # フォールバックであることが一目で分かるよう締切時刻を付与
+        ticker=str(ticker),
+        side=side,
+        strategy=f"{side}_FALLBACK_SCORE",
+        entry=price,
+        stop=stop,
+        target1=t1,
+        target2=t2,
+        R=R,
+        price=price,
+        vwap=float(last["vwap"]) if "vwap" in d.columns else np.nan,
+        ma5=(
+            float(last["ma5"])
+            if "ma5" in d.columns and pd.notna(last["ma5"])
+            else np.nan
+        ),
+        ma25=(
+            float(last["ma25"])
+            if "ma25" in d.columns and pd.notna(last["ma25"])
+            else np.nan
+        ),
+        vol=int(last["volume"]),
+        vol_sma20=(
+            float(last["vol_sma20"])
+            if "vol_sma20" in d.columns and pd.notna(last["vol_sma20"])
+            else np.nan
+        ),
+        atr1=(
+            float(last["atr1"])
+            if "atr1" in d.columns and pd.notna(last["atr1"])
+            else np.nan
+        ),
+        pre_score_buy=np.nan,  # 出力カラムは埋めるが、BUY/SELLでどちらかを主に参照
+        pre_score_sell=np.nan,
+        notes="フォールバック: スコア最大銘柄を締切時点で採用",
+    )
+
+
 def consec_true(series: pd.Series) -> pd.Series:
     """Trueが何本連続しているか（当該バーでの長さ）"""
     out = np.zeros(len(series), dtype=int)
@@ -576,6 +632,58 @@ def main():
                 sigs = [s for s in sigs if s.side.upper() == pref.upper()]
 
             all_sigs.extend(sigs)
+
+        # ====== フォールバック処理（締切時評価） ======
+        has_buy = any(s.side == "BUY" for s in all_sigs)
+        has_sell = any(s.side == "SELL" for s in all_sigs)
+
+        # スコア辞書（無い場合は空扱い）
+        # 既に上で作成済み: score_buy_map / score_sell_map
+
+        # SELL未成立 -> SELL_FALLBACK_SCORE を1件追加（pre_score_sell最大）
+        if not has_sell and len(score_sell_map) > 0:
+            # 対象は base に現れている銘柄 ∩ score_sell_map
+            sell_candidates = [
+                tk
+                for tk in sorted(base["ticker"].astype(str).unique())
+                if tk in score_sell_map
+            ]
+            if sell_candidates:
+                best_sell = max(
+                    sell_candidates, key=lambda tk: score_sell_map.get(tk, -np.inf)
+                )
+                fb = pick_fallback_signal(base, best_sell, "SELL", window_end)
+                if fb:
+                    fb.pre_score_sell = float(score_sell_map.get(best_sell, np.nan))
+                    all_sigs.append(fb)
+                    log(
+                        f"fallback SELL -> {best_sell} (score_sell={fb.pre_score_sell})",
+                        args.log,
+                    )
+            else:
+                log("fallback SELL skipped: no candidate ticker with score.", args.log)
+
+        # BUYは成立済みでも“見直し”として BUY_FALLBACK_SCORE を1件追加（pre_score_buy最大）
+        if len(score_buy_map) > 0:
+            buy_candidates = [
+                tk
+                for tk in sorted(base["ticker"].astype(str).unique())
+                if tk in score_buy_map
+            ]
+            if buy_candidates:
+                best_buy = max(
+                    buy_candidates, key=lambda tk: score_buy_map.get(tk, -np.inf)
+                )
+                fb = pick_fallback_signal(base, best_buy, "BUY", window_end)
+                if fb:
+                    fb.pre_score_buy = float(score_buy_map.get(best_buy, np.nan))
+                    all_sigs.append(fb)
+                    log(
+                        f"fallback BUY -> {best_buy} (score_buy={fb.pre_score_buy})",
+                        args.log,
+                    )
+            else:
+                log("fallback BUY skipped: no candidate ticker with score.", args.log)
 
         # 出力
         if len(all_sigs) == 0:

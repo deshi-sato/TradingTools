@@ -1,4 +1,3 @@
-
 param(
   [string]$Script = "scripts\summarize_wf_results.py",
   [string]$Start  = "2025-01-01",
@@ -64,11 +63,11 @@ try {
     }
 
     $req = Join-Path $Root "requirements.txt"
-    if (Test-Path $req) {
+    if ((Test-Path $req) -and ((Get-Content $req -ErrorAction SilentlyContinue) -join "" -ne "")) {
         Write-Host "[INFO] Installing requirements.txt ..."
         Invoke-Py -ArgList @("-m","pip","install","-r",$req)
     } else {
-        Write-Host "requirements.txt not found. Skipping dependency install."
+        Write-Host "requirements.txt not found or empty. Skipping dependency install."
     }
 
     if ($DryRun) {
@@ -82,7 +81,7 @@ try {
     $yf = Join-Path $Root "scripts\fetch_yf_daily.py"
     if (Test-Path $yf) {
         Write-Host "[INFO] Updating rss_daily.db via scripts\fetch_yf_daily.py ..."
-        Invoke-Py -ArgList @($yf)
+        Invoke-Py -ArgList @($yf, "--db", (Join-Path $Root "data\rss_daily.db"))
     } else {
         Write-Host "[INFO] scripts\fetch_yf_daily.py not found. Skipping daily DB update."
     }
@@ -104,16 +103,13 @@ try {
         $sumCsv = Join-Path $anaDir "compare_summary.csv"
         if (-not (Test-Path $sumCsv)) { throw "compare_summary.csv not found: $sumCsv" }
 
-        # 閾値（必要なら上で param に昇格させてください）
         $SharpeMin = 0.30
 
-        # 読み込み → Calmar代理（cum_end / |max_dd|）→ 下限フィルタ → 降順ソート
         $ranked = Import-Csv $sumCsv | ForEach-Object {
             $tag = $_.tag
             $sh  = [double]($_.sharpe)
             $cr  = [double]($_.cum_end)
             $dd  = [double]($_.max_dd)
-
             [pscustomobject]@{
                 tag          = $tag
                 sharpe       = $sh
@@ -124,7 +120,6 @@ try {
         } | Where-Object { $_.sharpe -ge $SharpeMin -and $_.cum_return -gt 0 -and $_.max_dd -lt 0 } |
             Sort-Object calmar_proxy -Descending
 
-        # 保存：ランキング
         $rankCsv = Join-Path $anaDir "ranked_strategies.csv"
         $ranked | Export-Csv $rankCsv -NoTypeInformation
 
@@ -132,7 +127,6 @@ try {
             $buy  = ($ranked | Select-Object -First 1).tag
             $sell = ($ranked | Select-Object -Last 1).tag
 
-            # 保存：当日の買い/売りピック（履歴として追記）
             $pickCsv = Join-Path $anaDir "daily_strategy_pick.csv"
             $row = [pscustomobject]@{ date = (Get-Date -Format 'yyyy-MM-dd'); buy = $buy; sell = $sell }
             if (Test-Path $pickCsv) { $row | Export-Csv $pickCsv -NoTypeInformation -Append }
@@ -149,14 +143,14 @@ try {
     }
 
     # =========================
-    # 銘柄抽出（pick_tickers.py）: daily_strategy_pick.csv の最新行に従い BUY/SELL を1銘柄ずつ選定
+    # 銘柄抽出（pick_tickers.py）
     # =========================
     try {
         $PyExe      = Join-Path $Root ".venv\Scripts\python.exe"
         $PickScript = Join-Path $Root "scripts\pick_tickers.py"
         $AnaDir     = Join-Path $Root "data\analysis"
         $PickList   = Join-Path $AnaDir "daily_strategy_pick.csv"
-        $DbPath     = Join-Path $Root "rss_daily.db"
+        $DbPath     = Join-Path $Root "data\rss_daily.db"   # ← 修正: data\ 配下
 
         if (-not (Test-Path $PickList)) { throw "daily_strategy_pick.csv not found: $PickList" }
         if (-not (Test-Path $PickScript)) { throw "pick_tickers.py not found: $PickScript" }
@@ -164,9 +158,7 @@ try {
         if (-not (Test-Path $DbPath)) { throw "DB not found: $DbPath" }
 
         Write-Host "[INFO] Picking tickers from $PickList ..."
-        # しきい値は必要に応じて調整: --min-vol-ma 0（出来高フィルタ無効）、--min-days 0（自動= max(T,V)+1）
 
-        # ① ウォッチリスト（各15・サイズ付き）
         & $PyExe $PickScript `
             --db $DbPath `
             --from-daily-pick $PickList `
@@ -176,7 +168,6 @@ try {
             --out (Join-Path $AnaDir ("watchlist_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd'))) `
             2>&1
 
-        # ② 最小ピック（各1・サイズ付き：強制発注デフォルト）
         & $PyExe $PickScript `
             --db $DbPath `
             --from-daily-pick $PickList `
@@ -185,7 +176,6 @@ try {
             --lot 100 --min-notional 100000 --max-notional 2000000 `
             2>&1
 
-        # 直近の picks_*.csv を表示（確認用）
         $lastPick = Get-ChildItem (Join-Path $AnaDir "picks_*.csv") -ErrorAction SilentlyContinue |
                     Sort-Object LastWriteTime -Desc | Select-Object -First 1
         if ($null -ne $lastPick) {
@@ -199,24 +189,28 @@ try {
     }
 
     # =========================
-    # 成果物の存在確認（data\analysis 内をチェック）
+    # Watchlist → index 反映（Excel）
     # =========================
-    $src = Join-Path $Root "data\analysis"
-    $mustExist = @(
-        "compare_summary.csv",
-        "compare_monthly_table.csv",
-        "compare_cum.png",
-        "compare_monthly_mean.png"
-    )
-    $missing = @()
-    foreach ($f in $mustExist) {
-        if (-not (Test-Path (Join-Path $src $f))) { $missing += $f }
+    try {
+        $Upd = Join-Path $Root "scripts\update_rss_snapshot_index.py"
+        if (-not (Test-Path $Upd)) { throw "update_rss_snapshot_index.py not found: $Upd" }
+
+        Write-Host "[INFO] Updating Excel index sheet ..."
+        Invoke-Py -ArgList @(
+            $Upd,
+            "--data-dir", (Join-Path $Root "data\analysis"),
+            "--excel",    (Join-Path $Root "株価データ.xlsm"),
+            "--sheet",    "index",
+            "--max-buy",  "15",
+            "--max-sell", "15",
+            "--log",      (Join-Path $Root "data\analysis\update_rss_snapshot_index.log")
+        )
     }
-    if ($missing.Count -gt 0) {
-        Write-Warning ("Missing outputs:`n - " + ($missing -join "`n - "))
-    } else {
-        Write-Host "Done."
+    catch {
+        Write-Warning "Excel index update skipped: $($_.Exception.Message)"
     }
+
+    Write-Host "Done."
 }
 catch {
     Write-Host "[ERROR] $($_.Exception.Message)"
@@ -227,11 +221,5 @@ finally {
     "== Finished: $(Get-Date -Format 'yyyyMMdd_HHmmss') ==" | Out-Host
     Stop-Transcript
 }
-# === Watchlist → index 反映 ===
-python .\scripts\update_rss_snapshot_index.py `
-    --data-dir ".\data\analysis" `
-    --excel ".\株価データ.xlsm" `
-    --sheet "index" `
-    --max-buy 15 `
-    --max-sell 15 `
-    --log ".\data\analysis\update_rss_snapshot_index.log"
+
+exit 0

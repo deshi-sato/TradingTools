@@ -6,9 +6,53 @@ param(
   [switch]$SkipPipUpgrade
 )
 
-# =========================
-# Logging / bootstrap
-# =========================
+function Get-InvalidCharRegex {
+  $bad = [IO.Path]::GetInvalidFileNameChars()
+  return ('[{0}]' -f ([regex]::Escape(($bad -join ''))))
+}
+
+function Normalize-PathComponent {
+  param([Parameter(Mandatory)][string]$Text)
+  $re = Get-InvalidCharRegex
+  return ($Text -replace $re, '_')
+}
+
+function Test-PathVerbose {
+  param(
+    [Parameter(Mandatory)][string]$Path,
+    [string]$Label = "path"
+  )
+  $reFile = Get-InvalidCharRegex
+  $rePath = ('[{0}]' -f ([regex]::Escape(([IO.Path]::GetInvalidPathChars() -join ''))))
+  Write-Host "[DEBUG] Test-Path <$Label>: $Path"
+  $check = $Path
+  if ($check -match '^[A-Za-z]:') { $check = $check.Substring(2) }
+  if ($check -match $rePath) {
+    $bad = $Matches[0]
+    throw "Invalid char '$bad' in <$Label>: $Path"
+  }
+  $parts = $check -split '[\\/]'
+  foreach ($part in $parts) {
+    if ([string]::IsNullOrEmpty($part)) { continue }
+    if ($part -match $reFile) {
+      $bad = $Matches[0]
+      throw "Invalid char '$bad' in <$Label>: $Path"
+    }
+  }
+  return (Test-Path -LiteralPath $Path)
+}
+
+function Test-FileLocked {
+  param([Parameter(Mandatory)][string]$Path)
+  try {
+    $fs = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    $fs.Close()
+    return $false
+  } catch {
+    return $true
+  }
+}
+
 $ErrorActionPreference = 'Stop'
 $Root    = $PSScriptRoot
 $logsDir = Join-Path $Root 'logs'
@@ -20,7 +64,6 @@ Start-Transcript -Path $logFile -Append
 "== Started: $stamp  User=$env:USERNAME  WD=$(Get-Location) ==" | Out-Host
 
 try {
-    # --- Console を UTF-8（化け対策） ---
     try {
         chcp 65001 | Out-Null
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -30,15 +73,12 @@ try {
     Set-Location $Root
     Write-Host "[INFO] Project root: $Root"
 
-    # =========================
-    # venv 準備
-    # =========================
     $PyExe = Join-Path $Root ".venv\Scripts\python.exe"
-    if (-not (Test-Path $PyExe)) {
+    if (-not (Test-PathVerbose -Path $PyExe -Label "venv python")) {
         Write-Host "[INFO] Creating venv at .venv ..."
         if (Get-Command py -ErrorAction SilentlyContinue) { py -3 -m venv .venv }
         else { python -m venv .venv }
-        if (-not (Test-Path $PyExe)) { throw "venv creation failed: $PyExe not found." }
+        if (-not (Test-PathVerbose -Path $PyExe -Label "venv python")) { throw "venv creation failed: $PyExe not found." }
     }
 
     function Invoke-Py {
@@ -48,9 +88,6 @@ try {
         if ($code -ne 0) { throw "Python exited with code $code." }
     }
 
-    # =========================
-    # 依存の最小アップグレード & requirements
-    # =========================
     if (-not $SkipPipUpgrade) {
         $env:PIP_DEFAULT_TIMEOUT = "60"
         Write-Host "Upgrading pip/setuptools/wheel ..."
@@ -63,7 +100,7 @@ try {
     }
 
     $req = Join-Path $Root "requirements.txt"
-    if ((Test-Path $req) -and ((Get-Content $req -ErrorAction SilentlyContinue) -join "" -ne "")) {
+    if ((Test-PathVerbose -Path $req -Label "requirements") -and ((Get-Content $req -ErrorAction SilentlyContinue) -join "" -ne "")) {
         Write-Host "[INFO] Installing requirements.txt ..."
         Invoke-Py -ArgList @("-m","pip","install","-r",$req)
     } else {
@@ -75,33 +112,36 @@ try {
         return
     }
 
-    # =========================
-    # 日足DBの更新（あれば実行）
-    # =========================
     $yf = Join-Path $Root "scripts\fetch_yf_daily.py"
-    if (Test-Path $yf) {
+    if (Test-PathVerbose -Path $yf -Label "fetch_yf_daily.py") {
         Write-Host "[INFO] Updating rss_daily.db via scripts\fetch_yf_daily.py ..."
         Invoke-Py -ArgList @($yf, "--db", (Join-Path $Root "data\rss_daily.db"))
     } else {
         Write-Host "[INFO] scripts\fetch_yf_daily.py not found. Skipping daily DB update."
     }
 
-    # =========================
-    # 集計レポート生成
-    # =========================
-    $pyScript = Join-Path $Root $Script
-    if (-not (Test-Path $pyScript)) { throw "Python script not found: $pyScript" }
+    $pyScriptOrig = Join-Path $Root $Script
+    $scriptDir    = Split-Path -Parent $Script
+    $scriptLeaf   = Split-Path -Leaf   $Script
+    $safeLeaf     = Normalize-PathComponent $scriptLeaf
+    $relScript    = if ([string]::IsNullOrEmpty($scriptDir)) { $safeLeaf } else { Join-Path $scriptDir $safeLeaf }
+    $pyScriptSafe = Join-Path $Root $relScript
+
+    if (Test-PathVerbose -Path $pyScriptOrig -Label "summary script (orig)") {
+        $pyScript = $pyScriptOrig
+    } elseif (Test-PathVerbose -Path $pyScriptSafe -Label "summary script (sanitized)") {
+        $pyScript = $pyScriptSafe
+    } else {
+        throw "Python script not found: $pyScriptSafe"
+    }
 
     Write-Host "Running: $pyScript --start $Start --end $End"
     Invoke-Py -ArgList @($pyScript,"--start",$Start,"--end",$End)
 
-    # =========================
-    # 戦略ランキング（Calmar代理＋Sharpe下限）と当日ピック
-    # =========================
     try {
         $anaDir = Join-Path $Root "data\analysis"
         $sumCsv = Join-Path $anaDir "compare_summary.csv"
-        if (-not (Test-Path $sumCsv)) { throw "compare_summary.csv not found: $sumCsv" }
+        if (-not (Test-PathVerbose -Path $sumCsv -Label "compare_summary.csv")) { throw "compare_summary.csv not found: $sumCsv" }
 
         $SharpeMin = 0.30
 
@@ -129,7 +169,7 @@ try {
 
             $pickCsv = Join-Path $anaDir "daily_strategy_pick.csv"
             $row = [pscustomobject]@{ date = (Get-Date -Format 'yyyy-MM-dd'); buy = $buy; sell = $sell }
-            if (Test-Path $pickCsv) { $row | Export-Csv $pickCsv -NoTypeInformation -Append }
+            if (Test-PathVerbose -Path $pickCsv -Label "daily_strategy_pick.csv (existing)") { $row | Export-Csv $pickCsv -NoTypeInformation -Append }
             else { $row | Export-Csv $pickCsv -NoTypeInformation }
 
             Write-Host "[INFO] Ranked $(($ranked).Count) strategies. BUY=$buy  SELL=$sell"
@@ -142,41 +182,42 @@ try {
         Write-Warning "Ranking step skipped: $($_.Exception.Message)"
     }
 
-    # =========================
-    # 銘柄抽出（pick_tickers.py）
-    # =========================
     try {
         $PyExe      = Join-Path $Root ".venv\Scripts\python.exe"
         $PickScript = Join-Path $Root "scripts\pick_tickers.py"
         $AnaDir     = Join-Path $Root "data\analysis"
         $PickList   = Join-Path $AnaDir "daily_strategy_pick.csv"
-        $DbPath     = Join-Path $Root "data\rss_daily.db"   # ← 修正: data\ 配下
+        $DbPath     = Join-Path $Root "data\rss_daily.db"
 
-        if (-not (Test-Path $PickList)) { throw "daily_strategy_pick.csv not found: $PickList" }
-        if (-not (Test-Path $PickScript)) { throw "pick_tickers.py not found: $PickScript" }
-        if (-not (Test-Path $PyExe)) { throw "Python not found: $PyExe" }
-        if (-not (Test-Path $DbPath)) { throw "DB not found: $DbPath" }
+        if (-not (Test-PathVerbose -Path $PickList -Label "daily_strategy_pick.csv")) { throw "daily_strategy_pick.csv not found: $PickList" }
+        if (-not (Test-PathVerbose -Path $PickScript -Label "pick_tickers.py")) { throw "pick_tickers.py not found: $PickScript" }
+        if (-not (Test-PathVerbose -Path $PyExe -Label "venv python")) { throw "Python not found: $PyExe" }
+        if (-not (Test-PathVerbose -Path $DbPath -Label "rss_daily.db")) { throw "DB not found: $DbPath" }
 
         Write-Host "[INFO] Picking tickers from $PickList ..."
 
+        $oldEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         & $PyExe $PickScript `
             --db $DbPath `
             --from-daily-pick $PickList `
             --top-long 15 --top-short 15 `
             --size-mode atr --capital 1000000 --risk-pct 0.005 --atr-window 14 --atr-mult 1.5 `
             --lot 100 --min-notional 100000 --max-notional 2000000 `
-            --out (Join-Path $AnaDir ("watchlist_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd'))) `
-            2>&1
+            --out (Join-Path $AnaDir ("watchlist_{0}.csv" -f (Get-Date -Format 'yyyy-MM-dd')))
+        $ErrorActionPreference = $oldEap
 
+        $oldEap = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         & $PyExe $PickScript `
             --db $DbPath `
             --from-daily-pick $PickList `
             --top-long 1 --top-short 1 `
             --size-mode atr --capital 1000000 --risk-pct 0.005 --atr-window 14 --atr-mult 1.5 `
-            --lot 100 --min-notional 100000 --max-notional 2000000 `
-            2>&1
+            --lot 100 --min-notional 100000 --max-notional 2000000
+        $ErrorActionPreference = $oldEap
 
-        $lastPick = Get-ChildItem (Join-Path $AnaDir "picks_*.csv") -ErrorAction SilentlyContinue |
+        $lastPick = Get-ChildItem -Path $AnaDir -Filter "picks_*.csv" -ErrorAction SilentlyContinue |
                     Sort-Object LastWriteTime -Desc | Select-Object -First 1
         if ($null -ne $lastPick) {
             Write-Host ("[INFO] Latest picks: {0} ({1})" -f $lastPick.Name, $lastPick.LastWriteTime)
@@ -188,18 +229,15 @@ try {
         Write-Warning "Pick step skipped: $($_.Exception.Message)"
     }
 
-    # =========================
-    # Watchlist → index 反映（Excel）
-    # =========================
     try {
         $Upd = Join-Path $Root "scripts\update_rss_snapshot_index.py"
-        if (-not (Test-Path $Upd)) { throw "update_rss_snapshot_index.py not found: $Upd" }
+        if (-not (Test-PathVerbose -Path $Upd -Label "update_rss_snapshot_index.py")) { throw "update_rss_snapshot_index.py not found: $Upd" }
 
         Write-Host "[INFO] Updating Excel index sheet ..."
         Invoke-Py -ArgList @(
             $Upd,
             "--data-dir", (Join-Path $Root "data\analysis"),
-            "--excel",    (Join-Path $Root "株価データ.xlsm"),
+            "--excel",    (Join-Path $Root "stock_data.xlsm"),
             "--sheet",    "index",
             "--max-buy",  "15",
             "--max-sell", "15",
@@ -208,6 +246,69 @@ try {
     }
     catch {
         Write-Warning "Excel index update skipped: $($_.Exception.Message)"
+    }
+
+    try {
+        $Upd = Join-Path $Root "scripts\update_rss_snapshot_index.py"
+        if (-not (Test-PathVerbose -Path $Upd -Label "update_rss_snapshot_index.py")) { throw "update_rss_snapshot_index.py not found: $Upd" }
+
+        Write-Host "[INFO] Updating Excel index sheet (fallback) ..."
+        Invoke-Py -ArgList @(
+            $Upd,
+            "--data-dir", (Join-Path $Root "data\analysis"),
+            "--excel",    (Join-Path $Root "stock_data.xlsm"),
+            "--sheet",    "index",
+            "--max-buy",  "15",
+            "--max-sell", "15",
+            "--log",      (Join-Path $Root "data\analysis\update_rss_snapshot_index.log")
+        )
+    }
+    catch {
+        Write-Warning "Excel index update (fallback) skipped: $($_.Exception.Message)"
+    }
+
+    try {
+        $Upd = Join-Path $Root "scripts\\update_rss_snapshot_index.py"
+        if (Test-PathVerbose -Path $Upd -Label "update_rss_snapshot_index.py") {
+            $excel = Join-Path $Root "stock_data.xlsm"
+            if (Test-PathVerbose -Path $excel -Label "excel workbook") {
+                $waited = 0
+                while ((Test-FileLocked -Path $excel) -and ($waited -lt 30)) {
+                    Write-Warning "Excel workbook locked by another process. Waiting 5s ..."
+                    Start-Sleep -Seconds 5
+                    $waited += 5
+                }
+                if (-not (Test-FileLocked -Path $excel)) {
+                    try {
+                        Write-Host "[INFO] Updating Excel index sheet (final retry) ..."
+                        Invoke-Py -ArgList @(
+                            $Upd,
+                            "--data-dir", (Join-Path $Root "data\\analysis"),
+                            "--excel",    $excel,
+                            "--sheet",    "index",
+                            "--max-buy",  "15",
+                            "--max-sell", "15",
+                            "--log",      (Join-Path $Root "data\\analysis\\update_rss_snapshot_index.log")
+                        )
+                    } catch {
+                        Write-Warning "Excel update final retry failed: $($_.Exception.Message)"
+                    }
+                } else {
+                    Write-Warning "Excel workbook still locked. Skipping final retry."
+                }
+            }
+        }
+    } catch {}
+
+    $src = Join-Path $Root "data\analysis"
+    $mustExist = @("compare_summary.csv","compare_monthly_table.csv","compare_cum.png","compare_monthly_mean.png")
+    $missing = @()
+    foreach ($f in $mustExist) {
+        $p = Join-Path $src $f
+        if (-not (Test-PathVerbose -Path $p -Label ("must-exist:{0}" -f $f))) { $missing += $f }
+    }
+    if ($missing.Count -gt 0) {
+        Write-Warning ("Missing expected outputs: {0}" -f ($missing -join ", "))
     }
 
     Write-Host "Done."
@@ -223,3 +324,4 @@ finally {
 }
 
 exit 0
+

@@ -1,0 +1,8 @@
+t @(
+            $Upd,
+            "--data-dir", (Join-Path $Root "data\analysis"),
+            "--excel",    (Join-Path $Root "株価チE�Eタ.xlsm"),
+            "--sheet",    "index",
+            "--max-buy",  "15",
+            "--max-sell", "15",
+            "--log",      (Join-Path $Root "data

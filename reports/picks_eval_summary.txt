@@ -1,0 +1,9 @@
+
+=== 評価サマリー（寄り→大引け） ===
+期間: 2025-02-01〜2025-08-31
+対象日: 142（有効ポート: 142）
+[BUY ] 件数:142 勝率:53.5% 合成収益率:39.40%
+[SELL] 件数:142 勝率:50.7% 合成収益率:26.16%
+[PORT] 日次平均:0.215% 合成収益率:34.19% 最大DD:-6.27%
+
+明細CSV: C:\Users\Owner\Documents\desshi_signal_viewer\reports\picks_eval_open_close.csv

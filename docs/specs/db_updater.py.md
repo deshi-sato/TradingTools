@@ -1,7 +1,7 @@
 # db_updater.py 仕様書
 
 ## 概要
-このスクリプトの高レベルな機能を記述してください。
+Auto-specs CI test: added module docstring.
 
 ## 目的
 業務/運用上の目的を簡潔に記述してください。

@@ -49,7 +49,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Tickers list file (CSV/TSV/newline, 1st column). If omitted, fall back to data/topix100_codes.txt",
     )
-    p.add_argument("--lookback-days", type=int, default=370, help="Initial backfill days for unseen tickers (default 370)")
+    p.add_argument(
+        "--lookback-days",
+        type=int,
+        default=740,
+        help="Initial backfill days for unseen tickers (default 740 for ~2 years)",
+    )
     p.add_argument("--max-workers", type=int, default=6, help="Concurrent fetch workers (default 6)")
     p.add_argument("--since", type=str, default=None, help="Force start date YYYY-MM-DD (overrides DB max)")
     p.add_argument("--dry-run", action="store_true", help="Fetch and compute only; do not write DB")
@@ -289,7 +294,8 @@ def main() -> None:
             else:
                 since = maxd + timedelta(days=1)
             if forced_since is not None:
-                since = max(since, forced_since)
+                # Allow backfilling earlier than DB max by honoring the earlier date
+                since = min(since, forced_since)
             if since > end_inclusive:
                 logging.info("%s up-to-date (since=%s > end=%s)", t, since, end_inclusive)
                 continue

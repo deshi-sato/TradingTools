@@ -95,6 +95,11 @@ def generate_picks(
     sell_oversold: float,
     upper_wick_ratio_thr: float,
     lower_wick_ratio_thr: float,
+    # Optional: weights-based scoring and single CSV output
+    w_trend=None,
+    w_volume=None,
+    w_momo=None,
+    single_out_csv=None,
 ):
     # ウォームアップを確保
     start_buf = start - timedelta(days=150)
@@ -128,6 +133,9 @@ def generate_picks(
     idx_df = None
     if index_ticker:
         idx_df = df[df["ticker"] == index_ticker].loc[:, ["date","close","ma5","ma25","ma75"]].copy()
+
+    # Aggregate rows across days if single_out_csv is specified
+    all_rows = []
 
     for d, daydf in df.groupby("date"):
         next_d = next_map.get(d)
@@ -168,26 +176,52 @@ def generate_picks(
         rows = []
 
         # BUY上位
-        buy_cands = cands[buy_mask].sort_values(
-            ["score_buy_prev","turnover_prev"], ascending=[False, False]
-        ).head(topn)
+        # Optional weighted ranking using linear combination of components
+        use_weighted = ((w_trend is not None) and (w_volume is not None) and (w_momo is not None))
+        if use_weighted:
+            # Component scores (prev day)
+            cands["trend_up_prev"] = ((cands["ma5"] > cands["ma25"]) & (cands["ma25"] > cands["ma75"])).astype(float)
+            cands["vol_comp_prev"] = (cands["vol_ratio"] / 2.0).clip(lower=0, upper=1)
+            cands["momo_buy_prev"] = ((cands["rsi3_prev"] - 50.0) / 50.0).clip(lower=0, upper=1)
+            cands["score_buy_weighted"] = (
+                (w_trend * cands["trend_up_prev"]) + (w_volume * cands["vol_comp_prev"]) + (w_momo * cands["momo_buy_prev"])
+            )
+            buy_cands = cands[buy_mask].sort_values(["score_buy_weighted","turnover_prev"], ascending=[False, False]).head(topn)
+        else:
+            buy_cands = cands[buy_mask].sort_values(["score_buy_prev","turnover_prev"], ascending=[False, False]).head(topn)
         for _, r in buy_cands.iterrows():
             if r["score_buy_prev"] > 0:
-                rows.append({"side":"BUY","code":r["ticker"],"score":round(float(r["score_buy_prev"]),3)})
+                score_val = (float(r["score_buy_weighted"]) if use_weighted else float(r["score_buy_prev"]))
+                rows.append({"date": pd.Timestamp(next_d).strftime('%Y-%m-%d'), "side":"BUY","code":r["ticker"],"score":round(score_val,6)})
 
         # SELL上位（許可された日だけ）
         if allow_sell:
-            sell_cands = cands[sell_mask].sort_values(
-                ["score_sell_prev","turnover_prev"], ascending=[False, False]
-            ).head(topn)
+            if use_weighted:
+                cands["trend_dn_prev"] = ((cands["ma5"] < cands["ma25"]) & (cands["ma25"] < cands["ma75"])).astype(float)
+                cands["momo_sell_prev"] = ((50.0 - cands["rsi3_prev"]) / 50.0).clip(lower=0, upper=1)
+                cands["score_sell_weighted"] = (
+                    (w_trend * cands["trend_dn_prev"]) + (w_volume * cands["vol_comp_prev"]) + (w_momo * cands["momo_sell_prev"])
+                )
+                sell_cands = cands[sell_mask].sort_values(["score_sell_weighted","turnover_prev"], ascending=[False, False]).head(topn)
+            else:
+                sell_cands = cands[sell_mask].sort_values(["score_sell_prev","turnover_prev"], ascending=[False, False]).head(topn)
             for _, r in sell_cands.iterrows():
                 if r["score_sell_prev"] > 0:
-                    rows.append({"side":"SELL","code":r["ticker"],"score":round(float(r["score_sell_prev"]),3)})
+                    score_val = (float(r["score_sell_weighted"]) if use_weighted else float(r["score_sell_prev"]))
+                    rows.append({"date": pd.Timestamp(next_d).strftime('%Y-%m-%d'), "side":"SELL","code":r["ticker"],"score":round(score_val,6)})
 
         if rows:
-            out_path = out_dir / f"picks_{pd.Timestamp(next_d).strftime('%Y-%m-%d')}.csv"
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            pd.DataFrame(rows, columns=["side","code","score"]).to_csv(out_path, index=False, encoding="utf-8-sig")
+            if single_out_csv is not None:
+                all_rows.extend(rows)
+            else:
+                out_path = out_dir / f"picks_{pd.Timestamp(next_d).strftime('%Y-%m-%d')}.csv"
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                pd.DataFrame(rows, columns=["side","code","score"]).to_csv(out_path, index=False, encoding="utf-8-sig")
+
+    # Write aggregated single CSV if requested
+    if single_out_csv is not None:
+        Path(single_out_csv).parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(all_rows, columns=["date","side","code","score"]).to_csv(single_out_csv, index=False, encoding="utf-8-sig")
 
 # ====== エントリーポイント ======
 def main():
@@ -205,6 +239,11 @@ def main():
     ap.add_argument("--sell-oversold",  type=float, default=10.0, help="SELL除外: 前日RSI(3)がこの値未満なら除外")
     ap.add_argument("--upper-wick-ratio", type=float, default=1.5, help="BUY除外: 前日の上ヒゲ/実体 比がこの値超で除外")
     ap.add_argument("--lower-wick-ratio", type=float, default=1.5, help="SELL除外: 前日の下ヒゲ/実体 比がこの値超で除外")
+    # Additional CLI for weighted scoring & single CSV output
+    ap.add_argument("--w-trend", type=float, default=None)
+    ap.add_argument("--w-volume", type=float, default=None)
+    ap.add_argument("--w-momo", type=float, default=None)
+    ap.add_argument("--out", type=str, default=None, help="単一のpicks CSV出力先。指定時は期間を通じた集約CSVを出力")
     args = ap.parse_args()
 
     start = datetime.strptime(args.start, "%Y-%m-%d").date()
@@ -220,6 +259,10 @@ def main():
         sell_oversold=args.sell_oversold,
         upper_wick_ratio_thr=args.upper_wick_ratio,
         lower_wick_ratio_thr=args.lower_wick_ratio,
+        w_trend=args.w_trend,
+        w_volume=args.w_volume,
+        w_momo=args.w_momo,
+        single_out_csv=(Path(args.out) if args.out else None),
     )
 
 if __name__ == "__main__":

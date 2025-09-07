@@ -1,0 +1,8 @@
+
+=== 評価サマリー（Open→Close, Stop対応） ===
+期間: 2025-02-01～2025-08-31
+[BUY ] 件数:142 勝率:51.4% 累積収益:26.13%
+[SELL] 件数:142 勝率:46.5% 累積収益:9.94%
+[PORT] 日次平均:0.130% 累積:19.08% 最大DD:-7.77%
+
+出力CSV: C:\Users\Owner\Documents\desshi_signal_viewer\reports\picks_eval_open_close_sl.csv

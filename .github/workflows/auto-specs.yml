@@ -12,10 +12,31 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  # PR 用：生成のみ。エラーでも落とさない
+  generate-on-pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate specs (PR dry-run)
+        # 生成スクリプトが git を叩いて 128 を返しても成功扱いにする
+        run: |
+          set -e
+          python tools/auto_spec.py || echo "Ignore failures on PR"
+
+  # master へ push 時：生成 → 差分があればコミット＆プッシュ
+  generate-and-commit-on-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

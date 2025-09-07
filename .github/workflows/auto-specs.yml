@@ -16,13 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 念のため履歴を取得
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Generate specs
         run: |
           python tools/auto_spec.py
+
+      # ▼ここに if を付ける（push のときだけ commit/push する）
       - name: Commit changes (if any)
+        if: github.event_name == 'push'
         run: |
           if git status --porcelain | grep -q 'docs/specs'; then
             git config user.name "github-actions[bot]"

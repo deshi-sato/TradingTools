@@ -11,5 +11,8 @@ __pycache__/
 *.xlsx
 *.json
 *.bak
+# Markdown はデフォルトで無視するが、仕様書は含める
 *.md
+!docs/specs/*.md
+!docs/specs/**/*.md
 templates/index.html.txt

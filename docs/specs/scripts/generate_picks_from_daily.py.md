@@ -30,7 +30,7 @@
 - score_sell_row(r: pd.Series) -> float: 説明なし
 - trend_up_idx(idx_row: pd.DataFrame) -> bool: 説明なし
 - trend_down_idx(idx_row: pd.DataFrame) -> bool: 説明なし
-- generate_picks(df: pd.DataFrame, start: date, end: date, out_dir: Path, min_turnover: float, topn: int, index_ticker: str|None, disable_sell_in_uptrend: bool, buy_overbought: float, sell_oversold: float, upper_wick_ratio_thr: float, lower_wick_ratio_thr: float, w_trend = None, w_volume = None, w_momo = None, single_out_csv = None) -> None: 説明なし
+- generate_picks(df: pd.DataFrame, start: date, end: date, out_dir: Path, min_turnover: float, topn: int, index_ticker: str|None, disable_sell_in_uptrend: bool, buy_overbought: float, sell_oversold: float, upper_wick_ratio_thr: float, lower_wick_ratio_thr: float) -> None: 説明なし
 - main() -> None: 説明なし
 
 ## 代表的なエラー

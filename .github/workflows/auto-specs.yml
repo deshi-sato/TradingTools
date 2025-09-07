@@ -11,8 +11,9 @@ permissions:
   contents: write
   pull-requests: write
 
+# PR と push を完全分離
 jobs:
-  # PR 用：生成のみ。エラーでも落とさない
+  # === PR用：生成だけ。失敗しても落とさない（|| true）
   generate-on-pr:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -24,12 +25,10 @@ jobs:
         with:
           python-version: '3.11'
       - name: Generate specs (PR dry-run)
-        # 生成スクリプトが git を叩いて 128 を返しても成功扱いにする
         run: |
-          set -e
-          python tools/auto_spec.py || echo "Ignore failures on PR"
+          python tools/auto_spec.py || true
 
-  # master へ push 時：生成 → 差分があればコミット＆プッシュ
+  # === masterへpush時：生成→差分があればコミット＆プッシュ
   generate-and-commit-on-push:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest

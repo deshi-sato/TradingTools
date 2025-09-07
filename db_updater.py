@@ -1,3 +1,4 @@
+"""Auto-specs CI test: added module docstring."""
 # db_updater.py 〔仕様固定版 + SNAPSHOT_MAP 対応〕
 from __future__ import annotations
 import re

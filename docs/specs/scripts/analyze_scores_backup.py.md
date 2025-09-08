@@ -2,4 +2,4 @@
 
 解析エラーにより自動生成できませんでした。
 
-- エラー: SyntaxError: invalid non-printable character U+FEFF (<unknown>, line 1)
+- エラー: SyntaxError: unexpected character after line continuation character (<unknown>, line 1)

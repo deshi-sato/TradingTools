@@ -11,18 +11,17 @@ permissions:
   contents: write
   pull-requests: write
 
-# PR と push を完全分離
 jobs:
-  # === PR用：生成だけ。失敗しても落とさない（|| true）
-  generate-on-pr:
-    if: github.event_name == 'pull_request'
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0  # 念のため履歴を取得
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Generate specs (PR safe)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then

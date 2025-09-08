@@ -1,3 +1,10 @@
+\"\"\"signal_scan.py : Auto-generated placeholder
+
+- file: scripts/signal_scan.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # scripts/signal_scan.py
 # -*- coding: utf-8 -*-
 import argparse

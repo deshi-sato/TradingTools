@@ -1,3 +1,10 @@
+\"\"\"fix_excel_formulas.py : Auto-generated placeholder
+
+- file: scripts/fix_excel_formulas.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import re
 import shutil
 import sys

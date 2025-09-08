@@ -1,3 +1,10 @@
+\"\"\"make_view_code.py : Auto-generated placeholder
+
+- file: scripts/make_view_code.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sqlite3, os
 
 DB = r"data/rss_daily.db"

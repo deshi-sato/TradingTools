@@ -1,3 +1,10 @@
+\"\"\"rename_sheets_from_a3.py : Auto-generated placeholder
+
+- file: scripts/rename_sheets_from_a3.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sys
 from pathlib import Path
 import re

@@ -1,3 +1,10 @@
+\"\"\"split_workbook.py : Auto-generated placeholder
+
+- file: scripts/split_workbook.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 from pathlib import Path
 from typing import Iterable, Set
 from openpyxl import load_workbook

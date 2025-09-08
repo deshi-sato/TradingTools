@@ -1,3 +1,10 @@
+\"\"\"show.py : Auto-generated placeholder
+
+- file: show.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sys
 from pathlib import Path
 path = sys.argv[1]

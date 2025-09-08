@@ -1,3 +1,10 @@
+\"\"\"inspect_db.py : Auto-generated placeholder
+
+- file: inspect_db.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 from pathlib import Path
 import sqlite3
 import sys, types

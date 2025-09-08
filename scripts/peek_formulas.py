@@ -1,3 +1,10 @@
+\"\"\"peek_formulas.py : Auto-generated placeholder
+
+- file: scripts/peek_formulas.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 from zipfile import ZipFile
 import xml.etree.ElementTree as ET
 import sys

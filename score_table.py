@@ -1,3 +1,10 @@
+\"\"\"score_table.py : Auto-generated placeholder
+
+- file: score_table.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import pandas as pd
 from datetime import datetime, timedelta
 import xlwings as xw

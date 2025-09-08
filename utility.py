@@ -1,3 +1,10 @@
+\"\"\"utility.py : Auto-generated placeholder
+
+- file: utility.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 from datetime import datetime, timedelta
 import pandas as pd
 

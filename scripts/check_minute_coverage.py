@@ -1,3 +1,10 @@
+\"\"\"check_minute_coverage.py : Auto-generated placeholder
+
+- file: scripts/check_minute_coverage.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # -*- coding: utf-8 -*-
 import argparse, sqlite3
 from pathlib import Path

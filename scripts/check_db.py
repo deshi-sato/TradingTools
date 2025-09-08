@@ -1,3 +1,10 @@
+\"\"\"check_db.py : Auto-generated placeholder
+
+- file: scripts/check_db.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # check_db.py
 # data/rss_daily.db を健全性チェックして要約を表示・CSV出力
 import os, sqlite3, csv

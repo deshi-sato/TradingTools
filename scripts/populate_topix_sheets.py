@@ -1,3 +1,10 @@
+\"\"\"populate_topix_sheets.py : Auto-generated placeholder
+
+- file: scripts/populate_topix_sheets.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sys
 from pathlib import Path
 from typing import List

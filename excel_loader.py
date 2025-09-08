@@ -1,3 +1,10 @@
+\"\"\"excel_loader.py : Auto-generated placeholder
+
+- file: excel_loader.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import openpyxl
 from score_table import create_score_table_long, create_score_table_short
 from tqdm import tqdm

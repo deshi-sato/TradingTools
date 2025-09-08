@@ -1,3 +1,10 @@
+\"\"\"generate_picks_from_daily.py : Auto-generated placeholder
+
+- file: scripts/generate_picks_from_daily.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import argparse
 import sqlite3
 from pathlib import Path

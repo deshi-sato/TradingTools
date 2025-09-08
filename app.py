@@ -1,3 +1,10 @@
+\"\"\"app.py : Auto-generated placeholder
+
+- file: app.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # app.py — DB直読でスナップショット一覧を表示
 # 起動:  python app.py
 from pathlib import Path

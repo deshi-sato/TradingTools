@@ -1,3 +1,10 @@
+\"\"\"check_db.py : Auto-generated placeholder
+
+- file: check_db.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import os, sqlite3, csv
 
 DB = r"data/rss_daily.db"

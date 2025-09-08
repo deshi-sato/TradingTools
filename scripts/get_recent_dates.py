@@ -1,3 +1,10 @@
+\"\"\"get_recent_dates.py : Auto-generated placeholder
+
+- file: scripts/get_recent_dates.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # prints "YYYY-MM-DD,YYYY-MM-DD" (oldest,newest) for the most recent two trading days
 import sqlite3, sys
 DB = r"data/rss_daily.db"

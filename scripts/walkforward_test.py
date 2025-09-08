@@ -1,3 +1,10 @@
+\"\"\"walkforward_test.py : Auto-generated placeholder
+
+- file: scripts/walkforward_test.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt

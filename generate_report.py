@@ -1,3 +1,10 @@
+\"\"\"generate_report.py : Auto-generated placeholder
+
+- file: generate_report.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import argparse
 import csv
 from dataclasses import dataclass

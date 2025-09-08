@@ -1,3 +1,10 @@
+\"\"\"verify_api.py : Auto-generated placeholder
+
+- file: verify_api.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sys, types
 
 # Lightweight stubs for heavy optional deps used by score_table

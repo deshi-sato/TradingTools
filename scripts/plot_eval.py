@@ -1,3 +1,10 @@
+\"\"\"plot_eval.py : Auto-generated placeholder
+
+- file: scripts/plot_eval.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import argparse
 from pathlib import Path
 import pandas as pd

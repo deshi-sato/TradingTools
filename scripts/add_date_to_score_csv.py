@@ -1,3 +1,10 @@
+\"\"\"add_date_to_score_csv.py : Auto-generated placeholder
+
+- file: scripts/add_date_to_score_csv.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # Add a "date" column to data/score_daily.csv if missing, using MAX(date) from DB
 import sqlite3, pandas as pd, os, sys
 DB  = r"data/rss_daily.db"

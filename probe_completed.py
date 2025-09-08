@@ -1,3 +1,10 @@
+\"\"\"probe_completed.py : Auto-generated placeholder
+
+- file: probe_completed.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import sqlite3
 from pathlib import Path
 

@@ -1,4 +1,11 @@
-﻿# -*- coding: utf-8 -*-
+\"\"\"analyze_scores_backup.py : Auto-generated placeholder
+
+- file: scripts/analyze_scores_backup.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
+# -*- coding: utf-8 -*-
 # 明細CSV (data/score_daily.codes.csv) を優先して解析。
 # フォールバック: data/score_daily.csv（旧フォーマット）
 # 出力: data/analysis/{summary.txt, ic_by_day.csv, topn_by_day.csv, ic_hist.png, top10_cum.png}

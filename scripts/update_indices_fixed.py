@@ -1,3 +1,10 @@
+\"\"\"update_indices_fixed.py : Auto-generated placeholder
+
+- file: scripts/update_indices_fixed.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # -*- coding: utf-8 -*-
 r"""
 固定セルの指標データを Excel(.xlsm) から読み、SQLite に書き込む。

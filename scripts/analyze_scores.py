@@ -1,3 +1,10 @@
+\"\"\"analyze_scores.py : Auto-generated placeholder
+
+- file: scripts/analyze_scores.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 # -*- coding: utf-8 -*-
 # 明細CSV (data/score_daily.codes.csv) を優先して解析。
 # フォールバック: data/score_daily.csv（旧フォーマット）

@@ -1,3 +1,10 @@
+\"\"\"eval_picks_open_close_sl.py : Auto-generated placeholder
+
+- file: scripts/eval_picks_open_close_sl.py
+- updated: 2025-09-08
+
+TODO: このモジュールの概要をここに書いてください。
+\"\"\"
 import argparse, sys, re, sqlite3
 from pathlib import Path
 from datetime import datetime, date

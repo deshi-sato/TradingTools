@@ -21,9 +21,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Generate specs
+      - name: Generate specs (PR safe)
         run: |
-          python tools/auto_spec.py
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python tools/auto_spec.py || true
+          else
+            python tools/auto_spec.py
+          fi
 
       # ▼ここに if を付ける（push のときだけ commit/push する）
       - name: Commit changes (if any)

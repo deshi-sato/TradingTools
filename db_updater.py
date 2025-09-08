@@ -1,4 +1,6 @@
-""" Auto-specs CI test: added module docstring."""
+<<<<<<< HEAD
+"""Auto-specs CI test: added module docstring. (v2)"""
+>>>>>>> f2d8c83b58040bce68b714e6606579b43f4b4dad
 # db_updater.py 〔仕様固定版 + SNAPSHOT_MAP 対応〕
 from __future__ import annotations
 import re

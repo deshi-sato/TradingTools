@@ -1,4 +1,4 @@
-# scripts/naut_runner.py
+# scripts/naut_runner.py  （完全版・上書き用）
 
 import argparse
 import json
@@ -8,58 +8,32 @@ import sys
 import time
 from datetime import datetime, time as dtime
 from typing import Dict, List, Optional
-
 from scripts.burst_helper import burst_bonus
 
-
-# ------------------------ base score / logging helpers ------------------------
-
-def compute_base_score(side: str, f: dict, cfg: dict, vol_min_by_code: dict) -> float:
-    vol_min = max(1, int(vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])))
-    vol_over = max(0.0, (f["vol_sum"] / vol_min) - 1.0)
-    if side == "BUY":
-        u = float(f.get("uptick_ratio", 0.0))
-        i = max(0.0, float(f.get("depth_imbalance", 0.0)))
-        return min(1.0, 0.80 * u + 0.15 * i + 0.05 * vol_over)
-    else:  # SELL
-        u_rev = 1.0 - float(f.get("uptick_ratio", 1.0))
-        i = max(0.0, -float(f.get("depth_imbalance", 0.0)))
-        return min(1.0, 0.80 * u_rev + 0.15 * i + 0.05 * vol_over)
-
-
-def log_side(side: str, f: dict, r: dict) -> None:
-    spr = f["spread_bp"]
-    spr_txt = (None if spr is None else f"{spr:.1f}")
-    logging.info(
-        f"[{side}] {f['ticker']} ts={f['ts']} "
-        f"uptick={f['uptick_ratio']:.2f} imb={f['depth_imbalance']:.2f} "
-        f"spr={spr_txt} vol={f['vol_sum']:.0f} | "
-        f"base={r['base']:.3f} adj={r['adjusted']:.3f} bonus={r['bonus']:.3f} thr={r['threshold']:.2f}"
-    )
-
-
-def apply_burst_and_decide(conn, ticker: str, base_score: float, threshold: float = 0.60):
+# scripts/naut_runner.py の先頭付近
+def apply_burst_and_decide(conn, ticker: str, base_score: float,
+                           threshold: float = 0.60):
+    # バースト加点（本番パラメータ）
     adjusted, bonus, ts = burst_bonus(
         conn, ticker, base_score,
         k=0.30, tau_sec=12.0,
-        lookback_sec=8.0,
-        min_gate=0.20,
+        lookback_sec=8.0,    # ★運用はリアルタイム想定
+        min_gate=0.20
     )
 
+    # クールダウン（任意・安全運転用）
+    # 直近で強制発火が続いたら一拍置く：例 5秒
     cooldown_sec = 5.0
     cur = conn.cursor()
-    cur.execute(
-        """SELECT ts FROM features_stream
-           WHERE ticker=? AND (burst_buy=1 OR burst_sell=1)
-           ORDER BY ts DESC LIMIT 1""",
-        (ticker,),
-    )
+    cur.execute("""SELECT ts FROM features_stream
+                   WHERE ticker=? AND (burst_buy=1 OR burst_sell=1)
+                   ORDER BY ts DESC LIMIT 1""", (ticker,))
     last = cur.fetchone()
     cooled = True
     if last:
-        from datetime import timezone
-        dt = datetime.fromisoformat(last[0].replace("Z", ""))
-        if dt.tzinfo:
+        from datetime import datetime, timezone
+        dt = datetime.fromisoformat(last[0].replace("Z",""))
+        if dt.tzinfo: 
             dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
         age = (datetime.now(timezone.utc).replace(tzinfo=None) - dt).total_seconds()
         cooled = (age >= cooldown_sec)
@@ -75,19 +49,17 @@ def apply_burst_and_decide(conn, ticker: str, base_score: float, threshold: floa
         "decision": bool(take),
         "cooled": cooled,
     }
-
-
-def log_decision(r: dict) -> None:
-    logging.debug(
+def log_decision(logger, r):
+    # r は apply_burst_and_decide の戻り値
+    logger.info(
         "burst_decision | %(ticker)s | base=%(base).3f -> adj=%(adjusted).3f (+%(bonus).3f) "
-        "thr=%(threshold).2f cooled=%(cooled)s decision=%(decision)s ts=%(burst_ts)s",
-        r,
+        "thr=%(threshold).2f cooled=%(cooled)s decision=%(decision)s ts=%(burst_ts)s", r
     )
 
-
-# ----------------------------- utility functions ------------------------------
+# ------------ ユーティリティ ------------
 
 def within_window(spec: Optional[str]) -> bool:
+    """設定の 'HH:MM-HH:MM' を見て現在時刻が窓内か判定。None/空なら常時True。"""
     if not spec:
         return True
     try:
@@ -99,9 +71,9 @@ def within_window(spec: Optional[str]) -> bool:
     except Exception:
         return True
 
+# ------------ プロファイル（閾値） ------------
 
-# --------------------------------- profiles -----------------------------------
-
+# 本番想定（板・厚みも使う。spread None は不許可）
 PROD = dict(
     BUY=dict(uptick=0.62, imb=0.15, spread=3.0),
     SELL=dict(uptick=0.38, imb=-0.15, spread=3.0),
@@ -110,26 +82,29 @@ PROD = dict(
     ALLOW_SPREAD_NONE=False,
 )
 
+# 検証用ゆるめ（確認専用）
 DEMO = dict(
     BUY=dict(uptick=0.40, imb=-1.0, spread=9999.0),
-    SELL=dict(uptick=0.60, imb=1.0, spread=9999.0),
+    SELL=dict(uptick=0.60, imb= 1.0, spread=9999.0),
     VOL_MIN=0,
     WINDOW=1,
     ALLOW_SPREAD_NONE=True,
 )
 
+# 本番寄り：出すぎ抑制のため少し厳しめ＋板欠落は原則NG
 PRODLITE = dict(
     BUY=dict(uptick=0.65, imb=0.00, spread=5.0),
     SELL=dict(uptick=0.35, imb=-0.00, spread=5.0),
     VOL_MIN=1200,
-    WINDOW=1,  # ←検証用。運用では4に戻す
-    ALLOW_SPREAD_NONE=False,
+    WINDOW= 1,
+    ALLOW_SPREAD_NONE=False,  # spread=None は通さない
 )
 
+# 直近N行を審査：どれかが条件を満たしたら方向バッファに+1/-1を積む
 RECENT_LIMIT = 40
+MAX_SLIPPAGE_BP = 4.0  # いまは未使用（将来の発注前チェック用）
 
-
-# ------------------------------- db poller ------------------------------------
+# ------------ DB ポーラ ------------
 
 class FeaturePoller:
     def __init__(self, db_path: str):
@@ -155,15 +130,15 @@ class FeaturePoller:
         if len(buf) < window_count:
             return False
         agree = sum(1 for v in buf if v == want)
+        # 多数決（半分超え）
         return agree >= (window_count // 2 + 1)
 
-# ------------------------------- signal checks -------------------------------
+# ------------ 判定ロジック ------------
 
 def spread_ok(x: Optional[float], limit: float, allow_none: bool) -> bool:
     if x is None:
         return allow_none
     return x <= limit
-
 
 def is_buy_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
     vol_min = vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])
@@ -177,7 +152,6 @@ def is_buy_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
         return False
     return True
 
-
 def is_sell_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
     vol_min = vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])
     if f["vol_sum"] < vol_min:
@@ -190,7 +164,7 @@ def is_sell_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
         return False
     return True
 
-# ------------------------------- main loop ------------------------------------
+# ------------ メイン ------------
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -199,6 +173,7 @@ def main() -> None:
     ap.add_argument("--profile", choices=["prod", "prodlite", "demo"], default="prod")
     args = ap.parse_args()
 
+    # 設定読込（BOMありでもOK）
     with open(args.Config, "r", encoding="utf-8-sig") as f:
         conf = json.load(f)
 
@@ -207,20 +182,26 @@ def main() -> None:
     market_window: Optional[str] = conf.get("market_window")
     vol_min_by_code: Dict[str, int] = conf.get("vol_min_by_code", {})
 
+    # プロファイル選択
     profiles = {"prod": PROD, "prodlite": PRODLITE, "demo": DEMO}
     cfg = profiles[args.profile]
 
+    # ログ設定（絵文字なし／UTF-8）
     log_path = "logs/naut_runner.log"
     logging.basicConfig(
         level=logging.INFO if args.Verbose else logging.WARNING,
         format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[logging.FileHandler(log_path, encoding="utf-8"),
-                  logging.StreamHandler(sys.stdout)],
+        handlers=[
+            logging.FileHandler(log_path, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
         force=True,
     )
     logging.info("naut_runner start (profile=%s, window=%s)", args.profile, market_window)
 
     poll = FeaturePoller(db_path)
+
+    # ★ 連発抑制：銘柄ごとクールダウン（秒）
     COOLDOWN_SEC = 5
     last_fire_ts: Dict[str, float] = {s: 0.0 for s in symbols}
 
@@ -236,45 +217,84 @@ def main() -> None:
                     poll.record_direction(s, 0, cfg["WINDOW"])
                     continue
 
+                # 直近行を走査して buy/sell どちらかが成立したら方向バッファに積む
                 for f in reversed(rows):
                     buyish = is_buy_signal(f, cfg, vol_min_by_code)
+                    logging.info(f"DBG buyish={buyish} ts={f['ts']} u={f['uptick_ratio']:.2f} "
+                         f"imb={f['depth_imbalance']:.2f} vol={f['vol_sum']:.0f} spr={f['spread_bp']}")
                     sellish = is_sell_signal(f, cfg, vol_min_by_code)
 
                     if buyish:
                         poll.record_direction(s, +1, cfg["WINDOW"])
                         if poll.consistent(s, +1, cfg["WINDOW"]):
-                            base_score = compute_base_score("BUY", f, cfg, vol_min_by_code)
+                            # --- base_score を簡易算出（0〜1にクリップ） ---
+                            # しきい値を超えた分だけ加点：uptick, imbalance, volume を均等重み
+                            import math
+                            thr_u = cfg["BUY"]["uptick"]
+                            thr_i = cfg["BUY"]["imb"]
+                            vol_min = vol_min_by_code.get(s, cfg["VOL_MIN"])
+                            u = max(0.0, min(1.0, (f["uptick_ratio"] - thr_u) / max(1e-9, 1.0 - thr_u)))
+                            i = max(0.0, min(1.0, (f["depth_imbalance"] - thr_i) / max(1e-9, 0.30)))  # 0.30は上限目安
+                            v = max(0.0, min(1.0, (f["vol_sum"] / max(vol_min, 1)) - 1.0))            # vol_min を超えた余剰分
+                            base_score = 0.5 * u + 0.3 * i + 0.2 * v
+                            base_score = f["uptick_ratio"]
+
+                            # --- バースト加点で最終判定 ---
                             r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60)
-                            log_decision(r)
+                            log_decision(logging, r)
+
                             if not r["decision"]:
-                                continue
+                                continue  # 最終判定で見送り
+
+                            # ここに来たら「最終採用」。連発抑制だけ適用
                             now = time.time()
                             if now - last_fire_ts[s] < COOLDOWN_SEC:
                                 continue
                             last_fire_ts[s] = now
-                            log_side("BUY", f, r)
+
+                            logging.info(
+                                "[BUY] %s ts=%s uptick=%.2f imb=%.2f spr=%s vol=%.0f  | base=%.3f adj=%.3f bonus=%.3f",
+                                s, f["ts"], f["uptick_ratio"], f["depth_imbalance"],
+                                (None if f['spread_bp'] is None else f"{f['spread_bp']:.1f}"),
+                                f["vol_sum"], r["base"], r["adjusted"], r["bonus"]
+                            )
                             break
 
                     elif sellish:
                         poll.record_direction(s, -1, cfg["WINDOW"])
                         if poll.consistent(s, -1, cfg["WINDOW"]):
-                            base_score = compute_base_score("SELL", f, cfg, vol_min_by_code)
+                            import math
+                            thr_u = cfg["SELL"]["uptick"]      # 低いほど良いので逆指標
+                            thr_i = cfg["SELL"]["imb"]         # マイナス側が望ましい
+                            vol_min = vol_min_by_code.get(s, cfg["VOL_MIN"])
+                            u = max(0.0, min(1.0, ((thr_u - f["uptick_ratio"]) / max(1e-9, thr_u))))  # 下振れ分
+                            i = max(0.0, min(1.0, ((thr_i - f["depth_imbalance"]) / max(1e-9, 0.30)))) # 負側への振れ
+                            v = max(0.0, min(1.0, (f["vol_sum"] / max(vol_min, 1)) - 1.0))
+                            base_score = 0.5 * u + 0.3 * i + 0.2 * v
+                            base_score = 1.0 - f["uptick_ratio"]
+
                             r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60)
-                            log_decision(r)
+                            log_decision(logging, r)
+
                             if not r["decision"]:
                                 continue
+
                             now = time.time()
                             if now - last_fire_ts[s] < COOLDOWN_SEC:
                                 continue
                             last_fire_ts[s] = now
-                            log_side("SELL", f, r)
-                            break
 
+                            logging.info(
+                                "[SELL] %s ts=%s uptick=%.2f imb=%.2f spr=%s vol=%.0f  | base=%.3f adj=%.3f bonus=%.3f",
+                                s, f["ts"], f["uptick_ratio"], f["depth_imbalance"],
+                                (None if f['spread_bp'] is None else f"{f['spread_bp']:.1f}"),
+                                f["vol_sum"], r["base"], r["adjusted"], r["bonus"]
+                            )
+                            break
                     else:
                         poll.record_direction(s, 0, cfg["WINDOW"])
 
             time.sleep(0.25)
-
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt")
     finally:
@@ -283,3 +303,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

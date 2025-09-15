@@ -114,7 +114,7 @@ DEMO = dict(
     BUY=dict(uptick=0.40, imb=-1.0, spread=9999.0),
     SELL=dict(uptick=0.60, imb=1.0, spread=9999.0),
     VOL_MIN=0,
-    WINDOW=1,
+    WINDOW=4,
     ALLOW_SPREAD_NONE=True,
 )
 
@@ -122,7 +122,7 @@ PRODLITE = dict(
     BUY=dict(uptick=0.65, imb=0.00, spread=5.0),
     SELL=dict(uptick=0.35, imb=-0.00, spread=5.0),
     VOL_MIN=1200,
-    WINDOW=1,  # ←検証用。運用では4に戻す
+    WINDOW=4,  # ←検証用。運用では4に戻す
     ALLOW_SPREAD_NONE=False,
 )
 
@@ -236,7 +236,7 @@ def main() -> None:
                     poll.record_direction(s, 0, cfg["WINDOW"])
                     continue
 
-                for f in reversed(rows):
+                for f in rows:
                     buyish = is_buy_signal(f, cfg, vol_min_by_code)
                     sellish = is_sell_signal(f, cfg, vol_min_by_code)
 

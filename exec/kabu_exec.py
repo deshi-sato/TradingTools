@@ -159,7 +159,7 @@ def place_ifdoco(
         _log({**record_base, "phase": "deny", "reason": "outside_window"})
         return ExecResult(False, None, "outside trading window (09:00-10:15 JST)")
 
-    notion = _estimate_notional(symbol, qty, entry, ref_price)
+    notion = _estimate_notional(symbol, qty, entry)
     if notion > MAX_NOTIONAL:
         _log(
             {**record_base, "phase": "deny", "reason": "notional_exceeded", "est": notion}
@@ -213,3 +213,70 @@ def place_ifdoco(
     except Exception as e:
         _log({**record_base, "phase": "error", "error": str(e)})
         return ExecResult(False, None, f"error: {e}")
+# ==== closeout 連携用: 注文/建玉 操作用の薄ラッパ =============================
+
+def list_open_orders() -> list[dict]:
+    """
+    未約定(working/open等)の注文一覧を返す。
+    現状は LIVE 未実装のため空リスト。LIVE移行時は既存実装に接続してください。
+    """
+    if MODE != "LIVE":
+        return []
+    # TODO: kabuステーションAPIや既存クライアントに接続して返す
+    return []
+
+def cancel_order(order_id: str) -> tuple[bool, str]:
+    """
+    注文取消。PAPER/DRYRUNはnoop（True, 'noop'）。
+    LIVE時は /kabusapi/cancelorder にフォールバック。
+    """
+    if MODE != "LIVE":
+        return True, "noop (MODE != LIVE)"
+    try:
+        import json as _json, requests
+        base = os.environ.get("KABU_BASE_URL", "http://localhost:18080").rstrip("/")
+        headers = {"Content-Type": "application/json"}
+        tok = os.environ.get("KABU_TOKEN") or os.environ.get("KABU_API_KEY")
+        if tok:
+            headers["X-API-KEY"] = tok
+        resp = requests.put(f"{base}/kabusapi/cancelorder",
+                            headers=headers,
+                            data=_json.dumps({"OrderId": order_id}),
+                            timeout=8)
+        ok = (resp.status_code == 200)
+        try:
+            body = resp.json()
+        except Exception:
+            body = resp.text
+        return ok, f"{resp.status_code} {body}"
+    except Exception as e:
+        return False, f"cancel error: {e}"
+
+def list_positions() -> list[dict]:
+    """
+    建玉一覧。現状は LIVE 未実装のため空リスト。
+    LIVE移行時に既存実装へ接続してください。
+    """
+    if MODE != "LIVE":
+        return []
+    # TODO: kabuステーションAPIや既存クライアントに接続して返す
+    return []
+
+def close_position_market(pos: dict, qty: int) -> tuple[bool, str]:
+    """
+    建玉成行クローズ。PAPER/DRYRUNはnoop。
+    LIVE時は既存の send_order で逆サイド成行を発注。
+    """
+    if MODE != "LIVE":
+        return True, "noop (MODE != LIVE)"
+    side0 = str(pos.get("Side", "")).upper()
+    symbol = pos.get("Symbol") or pos.get("symbol") or pos.get("Code")
+    if not symbol:
+        return False, "missing symbol"
+    side = "SELL" if side0 == "BUY" else "BUY"
+    try:
+        payload = {"Symbol": symbol, "Side": side, "Qty": int(qty), "OrderType": "MARKET", "Price": 0}
+        r = send_order(payload)  # 既存api_clientの送信ルートを利用
+        return True, str(r)
+    except Exception as e:
+        return False, f"close error: {e}"

@@ -1,0 +1,4 @@
+{"t": "2025-09-19T21:52:17.301811+09:00", "phase": "start", "mode": "PAPER", "deadline": "09:25", "force": true, "exec": true}
+{"t": "2025-09-19T21:52:17.302678+09:00", "phase": "cancel_all_orders", "ok": true, "msg": "no native list_open_orders(); skipped listing"}
+{"t": "2025-09-19T21:52:17.303346+09:00", "phase": "close_all_positions", "ok": true, "msg": "no native close_position_market(); skipped"}
+{"t": "2025-09-19T21:52:17.303806+09:00", "phase": "done", "canceled": 0, "cancel_err": 0, "flattened": 0, "flat_err": 0}

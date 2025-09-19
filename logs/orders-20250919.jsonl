@@ -1,0 +1,666 @@
+{"timestamp": "2025-09-19T11:20:08.439271+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:08.439271+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:08.845230+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:08.845230+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:08.850110+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:08.850110+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:09.053675+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:09.053675+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:09.458375+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:09.458375+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:09.864869+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:09.864869+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:09.868877+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:09.868877+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:10.073822+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:10.073822+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:10.076117+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:10.076117+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:10.478930+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:10.478930+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:10.884971+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:10.884971+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:10.890834+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:10.890834+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:11.295291+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:11.295291+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:11.496673+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:11.496673+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:11.500145+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:11.500145+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:12.104514+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:12.104514+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:12.108805+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:12.108805+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:12.312414+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:12.312414+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:12.716418+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:12.716418+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:12.919620+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:12.919620+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:13.121492+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:13.121492+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:13.325162+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:13.325162+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:13.529141+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:13.529141+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:13.731633+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:13.731633+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:14.337816+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:14.337816+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:14.741054+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:14.741054+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:15.547392+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:15.547392+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:15.550911+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:15.550911+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:15.757902+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:15.757902+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:16.162568+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:16.162568+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:16.364309+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:16.364309+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:16.567610+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:16.567610+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:16.771138+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:16.771138+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:16.973777+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:16.973777+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.177710+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.177710+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.379947+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.379947+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.585090+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.585090+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.789666+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.789666+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.791462+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.791462+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:17.994390+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:17.994390+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:18.197256+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:18.197256+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:18.400810+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:18.400810+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:18.602958+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:18.602958+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:18.806307+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:18.806307+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.008901+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.008901+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.012970+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.012970+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.217497+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.217497+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.220637+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.220637+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.423758+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.423758+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.628036+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.628036+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:19.832043+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:19.832043+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.033199+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.033199+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.035175+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.035175+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.237695+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.237695+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.439639+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.439639+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.644364+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.644364+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:20.849302+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:20.849302+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:21.050516+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:21.050516+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:21.255227+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:21.255227+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:21.659636+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:21.659636+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:21.864984+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:21.864984+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:22.067256+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:22.067256+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:22.271764+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:22.271764+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:22.474724+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:22.474724+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:22.679068+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:22.679068+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:22.883311+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:22.883311+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:23.088053+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:23.088053+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:23.091334+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:23.091334+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:23.495130+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:23.495130+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:23.700081+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:23.700081+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:23.906319+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:23.906319+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.107891+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.107891+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.311769+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.311769+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.315221+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.315221+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.518633+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.518633+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.723216+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.723216+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.726568+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.726568+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:24.930048+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:24.930048+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:25.338617+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:25.338617+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:25.343457+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:25.343457+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:25.548466+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:25.548466+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:25.750215+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:25.750215+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:26.152234+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:26.152234+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:26.755931+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:26.755931+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:26.958291+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:26.958291+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:27.161971+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:27.161971+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:27.566539+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:27.566539+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:27.770564+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:27.770564+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:27.973029+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:27.973029+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:28.177326+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:28.177326+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:28.381758+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:28.381758+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:28.784125+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:28.784125+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:28.787928+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:28.787928+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.192940+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.192940+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.197054+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.197054+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.401216+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.401216+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.404709+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.404709+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.608173+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.608173+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.611426+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.611426+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:29.814807+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:29.814807+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:30.020209+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:30.020209+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:30.425012+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:30.425012+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:30.629106+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:30.629106+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:31.034081+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:31.034081+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:31.036222+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:31.036222+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:31.439452+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:31.439452+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:31.844666+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:31.844666+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:32.047699+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:32.047699+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:32.652060+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:32.652060+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:32.659198+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:32.659198+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:32.863850+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:32.863850+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:32.869179+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:32.869179+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:33.273661+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:33.273661+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:33.478121+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:33.478121+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:33.479300+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:33.479300+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:33.681080+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:33.681080+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:33.884261+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:33.884261+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:34.287235+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:34.287235+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:34.691837+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:34.691837+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:34.695252+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:34.695252+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:35.301922+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:35.301922+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:35.303774+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:35.303774+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:35.706739+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:35.706739+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.110867+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.110867+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.112942+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.112942+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.315325+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.315325+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.719890+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.719890+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.724075+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.724075+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:36.928304+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:36.928304+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:37.333233+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:37.333233+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:37.539874+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:37.539874+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:37.744204+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:37.744204+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:37.947960+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:37.947960+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:37.951372+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:37.951372+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.156369+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.156369+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.160062+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.160062+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.564116+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.564116+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.568214+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.568214+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.773887+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.773887+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.777091+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.777091+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.981114+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.981114+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:38.984597+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:38.984597+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:39.388731+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:39.388731+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:39.390722+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:39.390722+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:39.794205+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:39.794205+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:39.998375+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:39.998375+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.203080+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.203080+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.206747+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.206747+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.409871+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.409871+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.612204+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.612204+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.815010+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.815010+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:40.818873+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:40.818873+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.022792+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.022792+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.225019+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.225019+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.228417+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.228417+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.431825+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.431825+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.435613+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.435613+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:41.839806+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:41.839806+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:42.244285+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:42.244285+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:42.449703+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:42.449703+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:42.453120+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:42.453120+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:42.858331+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:42.858331+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:43.062796+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:43.062796+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:43.066147+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:43.066147+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:43.270391+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:43.270391+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:43.672871+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:43.672871+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:43.876944+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:43.876944+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:44.080382+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:44.080382+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:44.284739+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:44.284739+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:44.488504+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:44.488504+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:44.492209+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:44.492209+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:44.695439+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:44.695439+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:45.100428+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:45.100428+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:45.306231+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:45.306231+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:45.911416+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:45.911416+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:46.314900+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:46.314900+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:46.318138+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:46.318138+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:46.522855+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:46.522855+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:46.726884+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:46.726884+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.131394+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.131394+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.336742+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.336742+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.541372+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.541372+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.745444+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.745444+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.949636+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.949636+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:47.952829+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:47.952829+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:48.357678+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:48.357678+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:48.762580+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:48.762580+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:48.764742+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:48.764742+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:48.966718+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:48.966718+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:49.172228+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:49.172228+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:49.374898+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:49.374898+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:49.578686+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:49.578686+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:49.582092+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:49.582092+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:50.002881+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:50.002881+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:50.208685+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:50.208685+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:50.410748+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:50.410748+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:50.615483+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:50.615483+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:50.619309+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:50.619309+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:51.023212+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:51.023212+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:51.227706+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:51.227706+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:51.429612+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:51.429612+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:51.834023+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:51.834023+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:51.835587+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:51.835587+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:52.037002+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:52.037002+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:52.238228+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:52.238228+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:52.440164+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:52.440164+09:00", "symbol": "7011", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:52.443435+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:52.443435+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:52.646963+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:52.646963+09:00", "symbol": "7203", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:53.052361+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:53.052361+09:00", "symbol": "7203", "side": "BUY", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakout", "phase": "rejected", "msg": "outside trading window"}
+{"timestamp": "2025-09-19T11:20:53.457934+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "init"}
+{"timestamp": "2025-09-19T11:20:53.457934+09:00", "symbol": "7011", "side": "SELL", "qty": 100, "mode": "DRYRUN", "reason": "avg_breakdown", "phase": "rejected", "msg": "outside trading window"}
+{"ts": "2025-09-19 11:33:39", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:39", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:39", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:39", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:40", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100200}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100300}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100200}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100200}
+{"ts": "2025-09-19 11:33:41", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1002.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:42", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:43", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:44", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:45", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:46", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:47", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:33:48", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100300}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:49", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:50", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:50", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:50", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:50", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:51", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:52", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:52", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:52", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:52", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:53", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:54", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:33:54", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:54", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:54", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:55", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:56", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:33:57", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:58", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100300}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:33:59", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100300}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:34:00", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:01", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100300}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1003.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:02", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99700}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 997.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99600}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 996.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:03", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100400}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": 1004.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "precheck", "ok": true, "est_notional": 99500}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": 995.0, "stop": null, "take": null, "reason": "avg_breakdown", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "precheck", "ok": true, "est_notional": 100500}
+{"ts": "2025-09-19 11:34:04", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": 1005.0, "stop": null, "take": null, "reason": "avg_breakout", "phase": "dryrun", "ok": true}
+{"ts": "2025-09-19 12:08:12", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:13", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:14", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:14", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:15", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:16", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:16", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:16", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1002, "take": 990, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:16", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 999, "take": 1011, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:17", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 999, "take": 1011, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:17", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:17", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:17", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:18", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 999, "take": 1011, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:19", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 998, "take": 1010, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:19", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:19", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 999, "take": 1011, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:19", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:19", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:20", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:20", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:20", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7011", "side": "BUY", "qty": 100, "entry": null, "stop": 1000, "take": 1012, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:20", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1001, "take": 989, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}
+{"ts": "2025-09-19 12:08:20", "mode": "DRYRUN", "action": "IFDOCO", "symbol": "7203", "side": "SELL", "qty": 100, "entry": null, "stop": 1002, "take": 990, "reason": "notional_exceeded", "phase": "deny", "est": 999999999}

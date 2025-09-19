@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\Users\Owner\Documents\desshi_signal_viewer\scripts\naut_runner.py", line 12, in <module>
+    from scripts.burst_helper import burst_bonus
+ModuleNotFoundError: No module named 'scripts'

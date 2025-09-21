@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import time
 from dataclasses import dataclass
 from typing import Literal, Set
 from datetime import datetime, time as dtime
@@ -40,13 +41,6 @@ def _now_jst() -> datetime:
 
 
 def _in_time_window() -> bool:
-    """
-    取引時間ガード。
-    - ALLOW_ANYTIME=1/true/on なら常に許可（テスト用）
-    - TW_START 'HH:MM', TW_END 'HH:MM' で任意の時間帯に変更可能
-    - 日跨ぎ（例: 23:00-01:00）も許容
-    既定は 09:00-10:15
-    """
     if os.environ.get("ALLOW_ANYTIME", "0").lower() in ("1", "true", "yes", "on"):
         return True
 
@@ -61,14 +55,11 @@ def _in_time_window() -> bool:
 
     now = _now_jst().time()
     if start <= end:
-        # 通常（同日内）ウィンドウ
         return start <= now <= end
-    # 日跨ぎウィンドウ（例: 23:00-01:00）
     return now >= start or now <= end
 
 
 def _load_allow_symbols() -> Set[str]:
-    """watchlist_today.csv の code/symbol/ticker カラムから許可銘柄を読み込む"""
     path = ALLOW_SYMBOLS_FILE
     if not os.path.exists(path):
         return set()
@@ -100,11 +91,9 @@ class ExecResult:
 
 
 def _estimate_notional(symbol: str, qty: int, px: float | None, ref_price: float | None = None) -> int:
-    # 指定価格があればそれで
     if px and px > 0:
         return int(px * qty)
-    # DRYRUN は API に触らない（板が取れず 999_999_999 になるのを防ぐ）
-    if MODE == "DRYRUN":
+    if MODE == "DRYRUN" or MODE == "PAPER":
         base = ref_price if (ref_price and ref_price > 0) else 1000
         return int(base * qty)
 
@@ -116,7 +105,7 @@ def _estimate_notional(symbol: str, qty: int, px: float | None, ref_price: float
         return 999_999_999
 
 
-# ===== 発注ラッパ（唯一のAPI接点） =====
+# ===== 発注ラッパ =====
 def place_ifdoco(
     symbol: str,
     side: Side,
@@ -126,12 +115,6 @@ def place_ifdoco(
     take: float,
     reason: str | None = None,
 ) -> ExecResult:
-    """
-    IFDOCO 相当の発注を行うラッパ。
-    - 許可銘柄 / 時間帯 / 上限金額 / 数量 を事前チェック
-    - MODE=DRYRUN の場合は送信せず検証のみ
-    - 実装簡略化のためエントリー→STOP→TAKE の順に個別送信（本番はIFDOCO APIに差し替え）
-    """
     record_base = {
         "ts": f"{_now_jst():%F %T}",
         "mode": MODE,
@@ -145,7 +128,6 @@ def place_ifdoco(
         "reason": reason,
     }
 
-    # ---- 事前チェック（NGは deny ログを残して終了）----
     allow = _load_allow_symbols()
     if symbol not in allow:
         _log({**record_base, "phase": "deny", "reason": "symbol_not_allowed"})
@@ -157,24 +139,36 @@ def place_ifdoco(
 
     if not _in_time_window():
         _log({**record_base, "phase": "deny", "reason": "outside_window"})
-        return ExecResult(False, None, "outside trading window (09:00-10:15 JST)")
+        return ExecResult(False, None, "outside trading window")
 
     notion = _estimate_notional(symbol, qty, entry)
     if notion > MAX_NOTIONAL:
-        _log(
-            {**record_base, "phase": "deny", "reason": "notional_exceeded", "est": notion}
-        )
+        _log({**record_base, "phase": "deny", "reason": "notional_exceeded", "est": notion})
         return ExecResult(False, None, f"DENY notional {notion} > {MAX_NOTIONAL}")
 
-    # ---- ここから送信準備 ----
     _log({**record_base, "phase": "precheck", "ok": True, "est_notional": notion})
 
-    if MODE == "DRYRUN":
-        # 検証のみ
-        _log({**record_base, "phase": "dryrun", "ok": True})
-        return ExecResult(True, "dryrun", "skipped sending order (DRYRUN)")
+    # ==== 擬似発注モード（DRYRUN/PAPER/環境変数で指定時） ====
+    if MODE in ("DRYRUN", "PAPER") or os.environ.get("SIMULATE_EXEC") == "1":
+        last = None
+        try:
+            b = get_board(symbol)
+            last = b.get("CurrentPrice") or b.get("AskPrice") or b.get("BidPrice")
+        except Exception:
+            pass
+        bps = float(os.environ.get("SIM_SLIPPAGE_BPS", "5"))
+        if last:
+            slip = (bps/10000.0) * float(last)
+            sim_fill_price = float(last) + slip if side == "BUY" else float(last) - slip
+        else:
+            sim_fill_price = None
+        _log({**record_base, "phase": "simulated", "ok": True,
+              "order_id": f"SIM-{int(time.time()*1000)}",
+              "sim_fill_price": sim_fill_price,
+              "sim_slippage_bps": bps})
+        return ExecResult(True, "simulated", "skipped sending order (SIMULATED)")
 
-    # NOTE: PAPER / LIVE は送信（接続先は環境変数で切替）
+    # ==== LIVE のみ実注文 ====
     payload_entry = {
         "Symbol": symbol,
         "Side": side.upper(),
@@ -213,23 +207,15 @@ def place_ifdoco(
     except Exception as e:
         _log({**record_base, "phase": "error", "error": str(e)})
         return ExecResult(False, None, f"error: {e}")
-# ==== closeout 連携用: 注文/建玉 操作用の薄ラッパ =============================
 
+
+# ==== closeout 連携用: 注文/建玉 操作用の薄ラッパ =============================
 def list_open_orders() -> list[dict]:
-    """
-    未約定(working/open等)の注文一覧を返す。
-    現状は LIVE 未実装のため空リスト。LIVE移行時は既存実装に接続してください。
-    """
     if MODE != "LIVE":
         return []
-    # TODO: kabuステーションAPIや既存クライアントに接続して返す
     return []
 
 def cancel_order(order_id: str) -> tuple[bool, str]:
-    """
-    注文取消。PAPER/DRYRUNはnoop（True, 'noop'）。
-    LIVE時は /kabusapi/cancelorder にフォールバック。
-    """
     if MODE != "LIVE":
         return True, "noop (MODE != LIVE)"
     try:
@@ -253,20 +239,11 @@ def cancel_order(order_id: str) -> tuple[bool, str]:
         return False, f"cancel error: {e}"
 
 def list_positions() -> list[dict]:
-    """
-    建玉一覧。現状は LIVE 未実装のため空リスト。
-    LIVE移行時に既存実装へ接続してください。
-    """
     if MODE != "LIVE":
         return []
-    # TODO: kabuステーションAPIや既存クライアントに接続して返す
     return []
 
 def close_position_market(pos: dict, qty: int) -> tuple[bool, str]:
-    """
-    建玉成行クローズ。PAPER/DRYRUNはnoop。
-    LIVE時は既存の send_order で逆サイド成行を発注。
-    """
     if MODE != "LIVE":
         return True, "noop (MODE != LIVE)"
     side0 = str(pos.get("Side", "")).upper()
@@ -276,7 +253,7 @@ def close_position_market(pos: dict, qty: int) -> tuple[bool, str]:
     side = "SELL" if side0 == "BUY" else "BUY"
     try:
         payload = {"Symbol": symbol, "Side": side, "Qty": int(qty), "OrderType": "MARKET", "Price": 0}
-        r = send_order(payload)  # 既存api_clientの送信ルートを利用
+        r = send_order(payload)
         return True, str(r)
     except Exception as e:
         return False, f"close error: {e}"

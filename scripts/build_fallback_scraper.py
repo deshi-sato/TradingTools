@@ -1,4 +1,4 @@
-import time, csv, argparse, os, sys, json, re, subprocess
+import time, csv, argparse, os, sys, json, re, subprocess, glob
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -50,6 +50,31 @@ def to_int(s: str) -> int:
     s = s.translate(str.maketrans("０１２３４５６７８９，", "0123456789,"))
     m = re.search(r"[\d,]+", s)
     return int(m.group(0).replace(",", "")) if m else 0
+
+def parse_yymmddhhmm(text: str):
+    """
+    例: '2025/09/22 15:30' -> '202509221530'
+    フォーマットが取れない場合は None を返す
+    """
+    if not text:
+        return None
+    text = text.strip()
+    m = re.search(r"(\d{4})/(\d{2})/(\d{2})\s+(\d{2}):(\d{2})", text)
+    if not m:
+        return None
+    y, mo, d, h, mi = m.groups()
+    return f"{y}{mo}{d}{h}{mi}"
+
+def ensure_dir(path: str):
+    d = path if os.path.splitext(path)[1] == "" else os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+
+def latest_fallback_csv(outdir: str) -> str | None:
+    # 直近の fallback_daytrade_*.csv を探す
+    pattern = os.path.join(outdir, "fallback_daytrade_*.csv")
+    cand = sorted(glob.glob(pattern))
+    return cand[-1] if cand else None
 
 # =============== Selenium route (optional) ===============
 def setup_driver(headless=True):
@@ -116,6 +141,17 @@ def parse_listing_rows_selenium(driver):
             rows.append({"code": code, "href": href, "price": price})
     return rows
 
+def extract_timestamp_from_dom_selenium(driver) -> str | None:
+    """
+    右上の更新時刻: div.m-table-utils-right > div.m-table-utils-refresh > p
+    を拾って YYYYMMDDHHMM に整形
+    """
+    try:
+        el = driver.find_element(By.CSS_SELECTOR, "div.m-table-utils-right div.m-table-utils-refresh p")
+        return parse_yymmddhhmm(el.text)
+    except Exception:
+        return None
+
 # =============== Requests route (no-browser) ===============
 def fetch_listing_html(page: int) -> str:
     url = URL.format(page)
@@ -150,6 +186,14 @@ def parse_listing_rows_from_html(html: str):
         if code and href:
             rows.append({"code": code, "href": href, "price": price})
     return rows
+
+def extract_timestamp_from_html(html: str) -> str | None:
+    """
+    HTMLから更新時刻の<p>を拾って YYYYMMDDHHMM に整形
+    """
+    soup = BeautifulSoup(html, "lxml")
+    p = soup.select_one("div.m-table-utils-right div.m-table-utils-refresh p")
+    return parse_yymmddhhmm(p.get_text(" ").strip() if p else "")
 
 # =============== name resolving ===============
 def fetch_with_retry(url: str, timeout=10, max_retry=3):
@@ -192,8 +236,8 @@ def worker_resolve(row):
 # =============== main ===============
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output",   default="data/fallback_daytrade_core.csv")
-    parser.add_argument("--fixed",    default="config/fallback_daytrade_core_fixed.csv")
+    # ★ fixed 機能は撤去。出力は「日付入りファイル名」を data/ に残す
+    parser.add_argument("--outdir",   default="data", help="出力ディレクトリ")
     parser.add_argument("--filter",   default="config/fallback_filter.json")
     parser.add_argument("--encoding", default="utf-8-sig",  # Excel対策: UTF-8(BOM)
                         help="CSV encoding (utf-8-sig 推奨 / cp932 も可)")
@@ -205,6 +249,8 @@ def main():
     t0 = time.time()
     fetched, fallback_used = 0, False
     driver = None
+    ts_from_site = None
+    out_csv_path = None
 
     try:
         filters = load_filter(args.filter)
@@ -213,9 +259,13 @@ def main():
         listing = []
         pages = (1, 2)
         if args.no_browser:
+            html_all = []
             for p in pages:
                 html = fetch_listing_html(p)
+                html_all.append(html)
                 listing.extend(parse_listing_rows_from_html(html))
+            # 1ページ目のHTMLから更新時刻を拾う（無ければ None）
+            ts_from_site = extract_timestamp_from_html(html_all[0]) if html_all else None
         else:
             driver = setup_driver(headless=True)  # 画面は出ない
             for p in pages:
@@ -225,6 +275,7 @@ def main():
                 driver.execute_script("window.scrollTo(0, 600);")
                 time.sleep(0.3)
                 listing.extend(parse_listing_rows_selenium(driver))
+            ts_from_site = extract_timestamp_from_dom_selenium(driver)
 
         # --- 銘柄名解決を並列化 ---
         results = []
@@ -243,25 +294,35 @@ def main():
         if fetched == 0:
             raise RuntimeError("No rows fetched")
 
-        os.makedirs(os.path.dirname(args.output), exist_ok=True)
-        with open(args.output, "w", newline="", encoding=args.encoding) as f:
+        # ---- 出力ファイル名を決定（サイトの更新時刻が取れなければ現在時刻で代用） ----
+        ts = ts_from_site or time.strftime("%Y%m%d%H%M")  # e.g. 202509221530
+        ensure_dir(args.outdir)
+        out_csv_path = os.path.join(args.outdir, f"fallback_daytrade_{ts}.csv")
+
+        # CSV書き込み（履歴は消さない）
+        with open(out_csv_path, "w", newline="", encoding=args.encoding) as f:
             w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
             w.writerow(["code", "name", "reason"])
             w.writerows(results)
 
     except Exception as e:
-        print(f"[WARN] Fallback list used (reason=fetch_error) {e}", file=sys.stderr)
+        print(f"[WARN] Using latest existing fallback (reason=fetch_error) {e}", file=sys.stderr)
         fallback_used = True
-        os.makedirs(os.path.dirname(args.output), exist_ok=True)
-        if os.path.exists(args.fixed):
-            with open(args.fixed, "r", encoding=args.encoding) as src, open(args.output, "w", encoding=args.encoding) as dst:
-                dst.write(src.read())
+        ensure_dir(args.outdir)
+        last = latest_fallback_csv(args.outdir)
+        if last:
+            out_csv_path = last
+        else:
+            # 履歴ゼロで取得も失敗した場合は空運用を避けるためエラー終了
+            print("[ERROR] No fallback_daytrade_*.csv found to fall back to.", file=sys.stderr)
+            sys.exit(2)
     finally:
         if driver:
             driver.quit()
 
     elapsed_ms = int((time.time() - t0) * 1000)
-    print(f"summary fetched={fetched} fallback_used={fallback_used} elapsed_ms={elapsed_ms}")
+    # 採用ファイル（新規作成or既存最新）のパスを明示
+    print(f"summary fetched={fetched} fallback_used={fallback_used} path={out_csv_path} elapsed_ms={elapsed_ms}")
 
 if __name__ == "__main__":
     main()

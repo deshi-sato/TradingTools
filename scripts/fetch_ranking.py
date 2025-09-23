@@ -1,5 +1,5 @@
 from __future__ import annotations
-import os, sys, csv, json, time
+import os, sys, csv, json, time, re
 from pathlib import Path
 from collections import defaultdict
 from typing import Iterable, Tuple, List
@@ -17,7 +17,6 @@ import requests  # pip install requests
 BASE = os.environ.get("KABU_BASE_URL", "http://localhost:18080").rstrip("/")
 TIMEOUT = float(os.environ.get("KABU_HTTP_TIMEOUT_POST", "8"))
 
-OUT = Path("data/perma_regulars.csv")
 # 既定：東証の「売買代金20 / 出来高20 / 値上がり10 / 値下がり10」
 RANK_PLAN = [
     ("trading_value", 1, 20, 1),  # (reasonタグ, Type, 件数, ExchangeDivision)
@@ -47,8 +46,8 @@ def _get_ranking_direct(rtype: int, exchange_division: int, count: int):
     if tok:
         headers["X-API-KEY"] = tok
 
-    # ★ ここを文字列コードに
-    exch = os.environ.get("RANK_EXCHANGE", "ALL")  # 既定: 全市場。T/T1/TM... なども可
+    # 取引所は文字列指定（ALL/T/T1/T2 等）。既定=ALL
+    exch = os.environ.get("RANK_EXCHANGE", "ALL")
     params = {"Type": int(rtype), "ExchangeDivision": exch}
 
     r = requests.get(url, headers=headers, params=params, timeout=TIMEOUT)
@@ -82,6 +81,7 @@ def dedup_rankings(items: Iterable[Tuple[str,int,str]]):
     tags = defaultdict(set)
     for sym, ex, why in items:
         tags[(sym, ex)].add(why)
+    # 出現理由が多い順→銘柄コード順
     order = sorted(tags.items(), key=lambda kv: (-len(kv[1]), kv[0][0]))
     for (sym, ex), reasons in order:
         yield sym, ex, ";".join(sorted(reasons))
@@ -98,18 +98,35 @@ def fetch_plan():
             rows.append((sym, ex, tag))
     return rows
 
+def _now_ts12() -> str:
+    """YYYYMMDDHHMM（ローカルタイム）"""
+    return time.strftime("%Y%m%d%H%M")
+
 def main():
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+    import argparse
+    ap = argparse.ArgumentParser(description="Fetch ranking and write perma_regulars_YYYYMMDDHHMM.csv")
+    ap.add_argument("--outdir",   default="data", help="出力ディレクトリ（CSVは履歴として蓄積）")
+    ap.add_argument("--encoding", default="utf-8-sig", help="CSVエンコーディング")
+    args = ap.parse_args()
+
+    outdir = Path(args.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
     rows = fetch_plan()
     if not rows:
-        print("[fetch_ranking] no data; leaving file untouched", file=sys.stderr)
-        sys.exit(2)  # 失敗扱い→ビルダー側でfallback
+        print("[fetch_ranking] no data; nothing written", file=sys.stderr)
+        sys.exit(2)  # 失敗扱い→watchlist 側で fallback
+
     uniq = list(dedup_rankings(rows))
-    with OUT.open("w", encoding="utf-8-sig", newline="") as f:
+    ts = _now_ts12()  # APIに更新時刻は無いので現在時刻で付番
+    out_csv = outdir / f"perma_regulars_{ts}.csv"
+
+    with out_csv.open("w", encoding=args.encoding, newline="") as f:
         w = csv.writer(f)
         w.writerow(["symbol", "exchange", "reason"])
         w.writerows(uniq)
-    print(f"wrote {OUT} ({len(uniq)} symbols)")
+
+    print(f"wrote {out_csv} ({len(uniq)} symbols)")
 
 if __name__ == "__main__":
     try:

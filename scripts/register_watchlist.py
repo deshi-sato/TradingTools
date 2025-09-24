@@ -32,25 +32,52 @@ def load_config(path: Path) -> dict:
 def load_codes(csv_path: Path) -> List[str]:
     if not csv_path.exists():
         raise FileNotFoundError(f"CSV not found: {csv_path}")
-    codes: List[str] = []
-    with csv_path.open("r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
-        if reader.fieldnames is None:
-            raise RuntimeError("CSVヘッダが見つかりません")
-        # 許容カラム名
-        candidates = [
-            name
-            for name in reader.fieldnames
-            if name.lower() in ("code", "銘柄コード", "ticker")
-        ]
-        if not candidates:
-            raise RuntimeError(f"code列が見つかりません。ヘッダ: {reader.fieldnames}")
-        code_col = candidates[0]
-        for row in reader:
-            code = (row.get(code_col) or "").strip()
-            if code:
-                codes.append(code)
-    return codes
+
+    # まずは試すエンコード候補
+    encodings = ["utf-8-sig", "cp932", "utf-8", "latin-1"]
+
+    last_err = None
+    for enc in encodings:
+        try:
+            with csv_path.open("r", encoding=enc, newline="") as f:
+                # 区切り文字推定（, / ; / \t など）
+                sample = f.read(4096)
+                f.seek(0)
+                try:
+                    dialect = csv.Sniffer().sniff(sample, delimiters=",;\t")
+                except Exception:
+                    # 失敗したらカンマ前提
+                    dialect = csv.excel
+                reader = csv.DictReader(f, dialect=dialect)
+
+                if reader.fieldnames is None:
+                    raise RuntimeError("CSVヘッダが見つかりません")
+
+                # 許容カラム名
+                cols_lower = [c.lower() for c in reader.fieldnames]
+                if "code" in cols_lower:
+                    code_col = reader.fieldnames[cols_lower.index("code")]
+                elif "ticker" in cols_lower:
+                    code_col = reader.fieldnames[cols_lower.index("ticker")]
+                elif "銘柄コード" in reader.fieldnames:
+                    code_col = "銘柄コード"
+                else:
+                    raise RuntimeError(f"code列が見つかりません。ヘッダ: {reader.fieldnames}")
+
+                codes: List[str] = []
+                for row in reader:
+                    code = (row.get(code_col) or "").strip()
+                    if code:
+                        codes.append(code)
+                if not codes:
+                    raise RuntimeError("CSVにcodeが1件もありません")
+                return codes
+        except Exception as e:
+            last_err = e
+            continue
+
+    # すべて失敗
+    raise last_err or RuntimeError("CSV読込に失敗しました")
 
 
 def build_symbols(codes: List[str], exchange: int = 1) -> List[Dict[str, str]]:
@@ -82,7 +109,7 @@ def main():
     ap.add_argument("-Max", type=int, default=50, help="登録上限（既定50）")
     ap.add_argument("-Exchange", type=int, default=1, help="取引所コード（東証=1）")
     ap.add_argument("-Verbose", type=int, default=1, help="冗長ログ 0/1")
-    ap.add_argument("-DryRun", action="storeTrue", help="送信せずに内容だけ表示")
+    ap.add_argument("-DryRun", action="store_true", help="送信せずに内容だけ表示")
     args = ap.parse_args()
 
     config = load_config(Path(args.Config))

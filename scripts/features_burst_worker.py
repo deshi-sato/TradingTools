@@ -16,7 +16,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    cfg = json.load(open(args.Config, "r", encoding="utf-8"))
+    with open(args.Config, "r", encoding="utf-8-sig") as fp:
+        cfg = json.load(fp)
     db_path = cfg["db_path"]
     B = cfg["burst"]
     K = int(B["window_count"])

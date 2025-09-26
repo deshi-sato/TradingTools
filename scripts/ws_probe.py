@@ -1,5 +1,6 @@
 ﻿# scripts/ws_probe.py
-import argparse, json, time
+import argparse, time
+from scripts.common_config import load_json_utf8
 from pathlib import Path
 import websocket  # websocket-client
 
@@ -10,7 +11,7 @@ def main():
     ap.add_argument("-Verbose", type=int, default=1)
     args = ap.parse_args()
 
-    cfg = json.load(open(args.Config, "r", encoding="utf-8-sig"))
+    cfg = load_json_utf8(args.Config)
     port  = int(cfg.get("port", 18080))
     token = (cfg.get("token") or "").strip()
     if not token:

@@ -15,7 +15,8 @@ r"""
     append : 既存保持＋差分だけ追記（重複なし）
 """
 
-import argparse, json, sqlite3, sys, time, os, random, re
+import argparse, sqlite3, sys, time, os, random, re
+from scripts.common_config import load_json_utf8
 from io import BytesIO
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -374,8 +375,7 @@ def main():
 
     mapping = DEFAULT_MAPPING
     if args.config:
-        with open(args.config, "r", encoding="utf-8") as f:
-            mapping = json.load(f)
+        mapping = load_json_utf8(args.config)
 
     # 単発
     if args.once or not args.interval:

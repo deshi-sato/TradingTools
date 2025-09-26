@@ -1,6 +1,5 @@
 import argparse
 import csv
-import json
 import logging
 import os
 import re
@@ -9,6 +8,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 import random
+from scripts.common_config import load_json_utf8
 
 
 @dataclass
@@ -58,21 +58,18 @@ DEFAULT_CONFIG = {
 def load_config(path: str) -> Config:
     cfg_data = DEFAULT_CONFIG
     if path and os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            try:
-                loaded = json.load(f)
-                # shallow-merge onto defaults
-                cfg_data = {
-                    **cfg_data,
-                    **{k: (loaded.get(k, v)) for k, v in cfg_data.items()},
-                }
-                # nested for paths/limits/weights
-                for section in ("paths", "limits", "weights", "thresholds", "format"):
-                    if section in loaded and isinstance(loaded[section], dict):
-                        cfg_data[section] = {**DEFAULT_CONFIG[section], **loaded[section]}
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse config JSON: {e}", file=sys.stderr)
-                sys.exit(1)
+        try:
+            loaded = load_json_utf8(path)
+        except RuntimeError as e:
+            print(f"Failed to parse config JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        cfg_data = {
+            **cfg_data,
+            **{k: (loaded.get(k, v)) for k, v in cfg_data.items()},
+        }
+        for section in ("paths", "limits", "weights", "thresholds", "format"):
+            if section in loaded and isinstance(loaded[section], dict):
+                cfg_data[section] = {**DEFAULT_CONFIG[section], **loaded[section]}
 
     paths = cfg_data.get("paths", {})
     limits = cfg_data.get("limits", {})

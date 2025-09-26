@@ -7,8 +7,8 @@
 
 import argparse
 import csv
-import json
 from pathlib import Path
+from scripts.common_config import load_json_utf8
 import sys
 import time
 from typing import List, Dict
@@ -26,7 +26,7 @@ except ImportError:
 def load_config(path: Path) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Config not found: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_json_utf8(path)
 
 
 def load_codes(csv_path: Path) -> List[str]:

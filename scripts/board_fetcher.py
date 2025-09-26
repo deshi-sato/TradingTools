@@ -1,5 +1,10 @@
+﻿import logging
 import time
 from typing import Dict, List, Tuple, Optional
+
+
+logger = logging.getLogger(__name__)
+_LAST_REST_TS: Dict[str, float] = {}
 
 
 class BoardFetcher:
@@ -14,8 +19,7 @@ class BoardFetcher:
     def __init__(self, mode: str = "auto", rest_poll_ms: int = 500) -> None:
         self.mode = mode
         self.rest_poll_ms = rest_poll_ms
-        self._last_rest_ts = 0.0
-
+        
     # 実運用：ここにPUSH購読セットアップを組み込む
     def start_push(self) -> None:
         pass
@@ -29,9 +33,10 @@ class BoardFetcher:
         }
         """
         now = time.monotonic() * 1000
+        last_ts = _LAST_REST_TS.get(symbol, 0.0)
+        logger.info("[THROTTLE?] symbol=%s last_rest_ts=%s now=%s interval=%s", symbol, last_ts, now, self.rest_poll_ms)
         if self.mode in ("auto", "rest"):
-            if now - self._last_rest_ts >= self.rest_poll_ms:
-                self._last_rest_ts = now
+            if now - last_ts >= self.rest_poll_ms:
                 # --- ダミー：実際はRESTで板取得 ---
                 bid1 = 1000.0
                 ask1 = 1000.5
@@ -45,6 +50,9 @@ class BoardFetcher:
                     (1000.6, 800),
                     (1000.7, 600),
                 ]
+                _LAST_REST_TS[symbol] = now
+                logger.info("[REST] symbol=%s fetch=board", symbol)
                 return {"bid1": bid1, "ask1": ask1, "bids": bids, "asks": asks}
+            logger.info("[FALLBACK] symbol=%s reason=REST_GUARD", symbol)
         # フォールバック
         return {"bid1": None, "ask1": None, "bids": [], "asks": []}

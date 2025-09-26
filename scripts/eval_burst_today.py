@@ -1,4 +1,5 @@
-import sqlite3, json, argparse
+import sqlite3, argparse
+from scripts.common_config import load_json_utf8
 from datetime import datetime
 
 
@@ -12,7 +13,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    cfg = json.load(open(args.Config, "r", encoding="utf-8"))
+    cfg = load_json_utf8(args.Config)
     conn = sqlite3.connect(cfg["db_path"])
     c = conn.cursor()
 

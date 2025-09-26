@@ -1,7 +1,6 @@
 # scripts/naut_runner.py  （完全版・上書き用）
 
 import argparse
-import json
 import logging
 import sqlite3
 import sys
@@ -9,6 +8,7 @@ import time
 from datetime import datetime, time as dtime
 from typing import Dict, List, Optional
 from scripts.burst_helper import burst_bonus
+from scripts.common_config import load_json_utf8
 
 # scripts/naut_runner.py の先頭付近
 def apply_burst_and_decide(conn, ticker: str, base_score: float,
@@ -174,8 +174,7 @@ def main() -> None:
     args = ap.parse_args()
 
     # 設定読込（BOMありでもOK）
-    with open(args.Config, "r", encoding="utf-8-sig") as f:
-        conf = json.load(f)
+    conf = load_json_utf8(args.Config)
 
     db_path: str = conf.get("db_path", "rss_snapshot.db")
     symbols: List[str] = conf.get("symbols", [])

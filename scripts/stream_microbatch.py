@@ -1,5 +1,4 @@
 ﻿import argparse
-import json
 import logging
 import queue
 import sqlite3
@@ -7,14 +6,17 @@ import sys
 import threading
 import time
 from datetime import datetime, time as dtime
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Mapping, Sequence
 
 from .feature_calc import top3_sum, spread_bp, depth_imbalance, uptick_ratio
 from .board_fetcher import BoardFetcher
+from scripts.common_config import load_json_utf8
 
 from pathlib import Path
 from urllib.request import Request, urlopen
 import urllib.error
+
+logger = logging.getLogger(__name__)
 
 # =========================
 # DB helpers
@@ -71,11 +73,62 @@ def insert_orderbook(conn: sqlite3.Connection, rows: List[Tuple]) -> None:
     conn.executemany("INSERT INTO orderbook_snapshot VALUES (?,?,?,?,?,?,?)", rows)
 
 
-def insert_features(conn: sqlite3.Connection, rows: List[Tuple]) -> None:
-    conn.executemany("INSERT INTO features_stream VALUES (?,?,?,?,?,?,?,?)", rows)
+def insert_features(conn, feat_rows):
+    """
+    Insert feature rows into features_stream (14 columns).
+    Missing keys default to None. Uses executemany.
+    """
+    columns = [
+        "ticker",
+        "ts",
+        "uptick_ratio",
+        "vol_sum",
+        "spread_bp",
+        "buy_top3",
+        "sell_top3",
+        "depth_imbalance",
+        "burst_buy",
+        "burst_sell",
+        "burst_score",
+        "streak_len",
+        "surge_vol_ratio",
+        "last_signal_ts",
+    ]
+
+    rows = []
+    for f in feat_rows:
+        if isinstance(f, Mapping):
+            rows.append(tuple(f.get(col) for col in columns))
+        elif isinstance(f, Sequence) and not isinstance(f, (str, bytes, bytearray)):
+            logger.warning(
+                '[WARN] insert_features tuple len=%s -> padding None for burst fields; sample=%s',
+                len(f),
+                list(f)[:4],
+            )
+            if len(f) >= len(columns):
+                rows.append(tuple(f[: len(columns)]))
+            else:
+                padded = list(f) + [None] * (len(columns) - len(f))
+                rows.append(tuple(padded))
+        else:
+            rows.append(tuple(None for _ in columns))
+
+    if not rows:
+        return
+
+    sql = (
+        "INSERT INTO features_stream "
+        "(ticker, ts, uptick_ratio, vol_sum, spread_bp, buy_top3, sell_top3, "
+        "depth_imbalance, burst_buy, burst_sell, burst_score, streak_len, "
+        "surge_vol_ratio, last_signal_ts) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    )
+    cur = conn.cursor()
+    cur.executemany(sql, rows)
+    conn.commit()
 
 
-# =========================
+
 # Tick receiver (擬似ティック発生器: WS未接続時の埋め草)
 # =========================
 class TickReceiver(threading.Thread):
@@ -152,7 +205,7 @@ def main() -> None:
     args = ap.parse_args()
 
     # 設定は BOM 許容で読む
-    cfg = json.load(open(args.Config, "r", encoding="utf-8-sig"))
+    cfg = load_json_utf8(args.Config)
 
     # --- symbols の決定: CLI > config ---
     symbols_cli = (
@@ -189,6 +242,7 @@ def main() -> None:
         ],
     )
     logging.info("stream_microbatch start")
+    logging.info("[RULE] features emit=DICT(14) with safe defaults on cold start")
     logging.info(
         "config: window_ms=%s symbols=%s db=%s board_mode=%s",
         window_ms,
@@ -263,13 +317,20 @@ def main() -> None:
             ts_start_iso = datetime.now().isoformat(timespec="milliseconds")
             tick_rows: List[Tuple] = []
             ob_rows: List[Tuple] = []
-            feat_rows: List[Tuple] = []
+            feat_rows: List[Dict[str, Any]] = []
 
             for s in symbols_final:
                 arr = ticks_buf[s]
                 if not arr:
                     # ティックが無い場合も板は保存
                     ob = board.get_board(s)
+                    if ob.get("bid1") is not None or ob.get("bids"):
+                        source = "REST"
+                    elif ob.get("bid1") is None and not ob.get("bids"):
+                        source = "FALLBACK"
+                    else:
+                        source = "UNKNOWN"
+                    logging.info("[BOARD] symbol=%s source=%s", s, source)
                     b1, a1 = ob.get("bid1"), ob.get("ask1")
                     spr = spread_bp(b1, a1)
                     buy3 = top3_sum(ob.get("bids"))
@@ -298,6 +359,13 @@ def main() -> None:
 
                 # 板
                 ob = board.get_board(s)
+                if ob.get("bid1") is not None or ob.get("bids"):
+                    source = "REST"
+                elif ob.get("bid1") is None and not ob.get("bids"):
+                    source = "FALLBACK"
+                else:
+                    source = "UNKNOWN"
+                logging.info("[BOARD] symbol=%s source=%s", s, source)
                 b1, a1 = ob.get("bid1"), ob.get("ask1")
                 spr = spread_bp(b1, a1)
                 buy3 = top3_sum(ob.get("bids"))
@@ -305,18 +373,23 @@ def main() -> None:
                 ob_rows.append((s, ts_end_iso, b1, a1, spr, buy3, sell3))
 
                 # 特徴量
-                feat_rows.append(
-                    (
-                        s,
-                        ts_end_iso,
-                        uptick_ratio(upt, dwn),
-                        vol_sum,
-                        spr,
-                        buy3,
-                        sell3,
-                        depth_imbalance(buy3, sell3),
-                    )
-                )
+                feature_row = {
+                    "ticker": s,
+                    "ts": ts_end_iso,
+                    "uptick_ratio": uptick_ratio(upt, dwn),
+                    "vol_sum": vol_sum,
+                    "spread_bp": spr,
+                    "buy_top3": buy3,
+                    "sell_top3": sell3,
+                    "depth_imbalance": depth_imbalance(buy3, sell3),
+                    "burst_buy": 0,
+                    "burst_sell": 0,
+                    "burst_score": 0.0,
+                    "streak_len": 0,
+                    "surge_vol_ratio": 1.0,
+                    "last_signal_ts": "",
+                }
+                feat_rows.append(feature_row)
 
             # DB 書き込み
             with conn:

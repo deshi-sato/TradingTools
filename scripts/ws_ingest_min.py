@@ -1,4 +1,5 @@
-﻿import argparse, json, sqlite3, datetime, time
+﻿import argparse, sqlite3, datetime, time
+from scripts.common_config import load_json_utf8
 from pathlib import Path
 import websocket
 
@@ -8,7 +9,7 @@ def main():
     ap.add_argument("-Seconds", type=int, default=600)
     args = ap.parse_args()
 
-    cfg = json.load(open(args.Config, "r", encoding="utf-8-sig"))
+    cfg = load_json_utf8(args.Config)
     port  = int(cfg.get("port", 18080))
     token = (cfg.get("token") or "").strip()
     db    = cfg["db_path"]

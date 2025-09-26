@@ -3,6 +3,7 @@ import json
 import time
 import requests
 from pathlib import Path
+from scripts.common_config import load_json_utf8
 
 
 def main():
@@ -11,7 +12,7 @@ def main():
     args = parser.parse_args()
 
     config_path = Path(args.Config)
-    conf = json.loads(config_path.read_text(encoding="utf-8"))
+    conf = load_json_utf8(config_path)
 
     port = conf.get("port", 18080)
     api_password = conf.get("api_password")

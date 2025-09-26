@@ -1,4 +1,5 @@
-import time, csv, argparse, os, sys, json, re, subprocess, glob
+import time, csv, argparse, os, sys, re, subprocess, glob
+from scripts.common_config import load_json_utf8
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -24,8 +25,7 @@ HREF_CODE_RE = re.compile(r"/stock/([0-9A-Za-z]{4})/index")
 # =============== utils ===============
 def load_filter(path: str):
     if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        return load_json_utf8(path)
     return {}
 
 def pass_filter(row, filters):

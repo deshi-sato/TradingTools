@@ -1,4 +1,5 @@
-import argparse, json, sqlite3, time
+import argparse, sqlite3, time
+from scripts.common_config import load_json_utf8
 from collections import deque, defaultdict
 from datetime import datetime, timedelta
 
@@ -16,8 +17,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    with open(args.Config, "r", encoding="utf-8-sig") as fp:
-        cfg = json.load(fp)
+    cfg = load_json_utf8(args.Config)
     db_path = cfg["db_path"]
     B = cfg["burst"]
     K = int(B["window_count"])

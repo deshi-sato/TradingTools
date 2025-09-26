@@ -3,6 +3,7 @@ import json
 import requests
 import sys
 from pathlib import Path
+from scripts.common_config import load_json_utf8
 
 
 def main():
@@ -21,8 +22,8 @@ def main():
 
     # 設定読み込み
     try:
-        cfg = json.loads(config_path.read_text(encoding="utf-8"))
-    except Exception as e:
+        cfg = load_json_utf8(config_path)
+    except RuntimeError as e:
         print(f"Failed to load config: {e}")
         return 1
 

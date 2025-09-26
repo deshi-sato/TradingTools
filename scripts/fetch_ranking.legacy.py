@@ -1,9 +1,9 @@
 import argparse
 import csv
-import json
 import logging
 import os
 import sys
+from scripts.common_config import load_json_utf8
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 try:
@@ -56,8 +56,7 @@ def setup_logging(debug: bool) -> None:
 
 
 def load_config(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return load_json_utf8(path)
 
 
 def ensure_parent_dir(path: str) -> None:

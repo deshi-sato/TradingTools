@@ -1,16 +1,18 @@
 # scripts/naut_runner.py
 
 import argparse
-import json
 import logging
 import sqlite3
 import sys
 import time
-from datetime import datetime, time as dtime
+from collections import defaultdict
+from datetime import datetime, time as dtime, timedelta
 from typing import Dict, List, Optional
 
 from scripts.burst_helper import burst_bonus
+from scripts.common_config import load_json_utf8
 
+logger = logging.getLogger(__name__)
 
 # ------------------------ base score / logging helpers ------------------------
 
@@ -26,19 +28,25 @@ def compute_base_score(side: str, f: dict, cfg: dict, vol_min_by_code: dict) -> 
         i = max(0.0, -float(f.get("depth_imbalance", 0.0)))
         return min(1.0, 0.80 * u_rev + 0.15 * i + 0.05 * vol_over)
 
-
 def log_side(side: str, f: dict, r: dict) -> None:
     spr = f["spread_bp"]
     spr_txt = (None if spr is None else f"{spr:.1f}")
-    logging.info(
+    logger.info(
         f"[{side}] {f['ticker']} ts={f['ts']} "
         f"uptick={f['uptick_ratio']:.2f} imb={f['depth_imbalance']:.2f} "
         f"spr={spr_txt} vol={f['vol_sum']:.0f} | "
         f"base={r['base']:.3f} adj={r['adjusted']:.3f} bonus={r['bonus']:.3f} thr={r['threshold']:.2f}"
     )
 
-
-def apply_burst_and_decide(conn, ticker: str, base_score: float, threshold: float = 0.60):
+def apply_burst_and_decide(
+    conn,
+    ticker: str,
+    base_score: float,
+    threshold: float = 0.60,
+    *,
+    since: str,
+    until: str,
+):
     adjusted, bonus, ts = burst_bonus(
         conn, ticker, base_score,
         k=0.30, tau_sec=12.0,
@@ -50,9 +58,9 @@ def apply_burst_and_decide(conn, ticker: str, base_score: float, threshold: floa
     cur = conn.cursor()
     cur.execute(
         """SELECT ts FROM features_stream
-           WHERE ticker=? AND (burst_buy=1 OR burst_sell=1)
+           WHERE ticker=? AND ts >= ? AND ts <= ? AND (burst_buy=1 OR burst_sell=1)
            ORDER BY ts DESC LIMIT 1""",
-        (ticker,),
+        (ticker, since, until),
     )
     last = cur.fetchone()
     cooled = True
@@ -76,14 +84,26 @@ def apply_burst_and_decide(conn, ticker: str, base_score: float, threshold: floa
         "cooled": cooled,
     }
 
-
 def log_decision(r: dict) -> None:
-    logging.debug(
+    logger.debug(
         "burst_decision | %(ticker)s | base=%(base).3f -> adj=%(adjusted).3f (+%(bonus).3f) "
         "thr=%(threshold).2f cooled=%(cooled)s decision=%(decision)s ts=%(burst_ts)s",
         r,
     )
 
+def _summarize_counts(per: Dict[str, Dict[str, int]]) -> Dict[str, Dict[str, int]]:
+    summary: Dict[str, Dict[str, int]] = {}
+    for symbol, counts in per.items():
+        filtered = {side: value for side, value in counts.items() if value}
+        if filtered:
+            summary[symbol] = filtered
+    return summary
+
+def _debug_print_counts(label: str, total: int, per: Dict[str, Dict[str, int]], enabled: bool) -> None:
+    if not enabled:
+        return
+    summary = _summarize_counts(per)
+    print(f"[DBG] {label}: total={total}  per={summary}", flush=True)
 
 # ----------------------------- utility functions ------------------------------
 
@@ -98,7 +118,6 @@ def within_window(spec: Optional[str]) -> bool:
         return dtime(sh, sm) <= now <= dtime(eh, em)
     except Exception:
         return True
-
 
 # --------------------------------- profiles -----------------------------------
 
@@ -128,7 +147,6 @@ PRODLITE = dict(
 
 RECENT_LIMIT = 40
 
-
 # ------------------------------- db poller ------------------------------------
 
 class FeaturePoller:
@@ -137,10 +155,10 @@ class FeaturePoller:
         self.conn.row_factory = sqlite3.Row
         self.recent_dirbuf: Dict[str, List[int]] = {}
 
-    def fetch_recent(self, symbol: str) -> List[Dict]:
+    def fetch_recent(self, symbol: str, since: str, until: str) -> List[Dict]:
         cur = self.conn.execute(
-            "SELECT * FROM features_stream WHERE ticker=? ORDER BY ts DESC LIMIT ?",
-            (symbol, RECENT_LIMIT),
+            "SELECT * FROM features_stream WHERE ticker=? AND ts >= ? AND ts <= ? ORDER BY ts DESC LIMIT ?",
+            (symbol, since, until, RECENT_LIMIT),
         )
         return [dict(r) for r in cur.fetchall()]
 
@@ -164,30 +182,85 @@ def spread_ok(x: Optional[float], limit: float, allow_none: bool) -> bool:
         return allow_none
     return x <= limit
 
+def is_buy_signal(
+    f: Dict,
+    vol_min_by_code: Dict[str, int],
+    *,
+    buy_uptick_thr: float,
+    buy_require_imb: bool,
+    buy_vol_min: int,
+    buy_spread_max: float,
+) -> bool:
+    ticker = f.get("ticker")
 
-def is_buy_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
-    vol_min = vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])
-    if f["vol_sum"] < vol_min:
+    vol_override = vol_min_by_code.get(ticker)
+    try:
+        vol_override_int = int(vol_override) if vol_override is not None else None
+    except (TypeError, ValueError):
+        vol_override_int = None
+    effective_vol_min = max(0, buy_vol_min)
+    if vol_override_int is not None:
+        effective_vol_min = max(effective_vol_min, vol_override_int)
+
+    vol_sum_raw = f.get("vol_sum")
+    try:
+        vol_sum_val = float(vol_sum_raw)
+    except (TypeError, ValueError):
+        vol_sum_val = None
+
+    spread_raw = f.get("spread_bp")
+    try:
+        spread_val = float(spread_raw) if spread_raw is not None else None
+    except (TypeError, ValueError):
+        spread_val = None
+
+    uptick_raw = f.get("uptick_ratio")
+    try:
+        uptick_val = float(uptick_raw)
+    except (TypeError, ValueError):
+        uptick_val = None
+
+    imb_raw = f.get("depth_imbalance")
+    try:
+        imb_val = float(imb_raw)
+    except (TypeError, ValueError):
+        imb_val = None
+
+    cond_uptick = (uptick_val is not None) and (uptick_val >= buy_uptick_thr)
+    cond_vol = (vol_sum_val is not None) and (vol_sum_val > effective_vol_min)
+    cond_spread = (spread_val is not None) and (spread_val <= buy_spread_max)
+    cond_imb = (imb_val is not None) and (imb_val > 0.0)
+
+    if not (cond_uptick and cond_vol and cond_spread):
         return False
-    if not spread_ok(f["spread_bp"], cfg["BUY"]["spread"], cfg["ALLOW_SPREAD_NONE"]):
+    if buy_require_imb and not cond_imb:
         return False
-    if f["uptick_ratio"] < cfg["BUY"]["uptick"]:
-        return False
-    if f["depth_imbalance"] < cfg["BUY"]["imb"]:
-        return False
+
     return True
 
-
-def is_sell_signal(f: Dict, cfg: Dict, vol_min_by_code: Dict[str, int]) -> bool:
+def is_sell_signal(
+    f: Dict,
+    cfg: Dict,
+    vol_min_by_code: Dict[str, int],
+    *,
+    sell_uptick_thr: float,
+    sell_require_imb: bool,
+) -> bool:
     vol_min = vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])
     if f["vol_sum"] < vol_min:
         return False
     if not spread_ok(f["spread_bp"], cfg["SELL"]["spread"], cfg["ALLOW_SPREAD_NONE"]):
         return False
-    if f["uptick_ratio"] > cfg["SELL"]["uptick"]:
+
+    uptick = f.get("uptick_ratio")
+    imb = f.get("depth_imbalance")
+
+    cond_uptick = (uptick is not None) and (uptick <= sell_uptick_thr)
+    cond_imb = (imb is not None) and (imb < 0)
+    cond_core = (cond_uptick and cond_imb) if sell_require_imb else cond_uptick
+    if not cond_core:
         return False
-    if f["depth_imbalance"] > cfg["SELL"]["imb"]:
-        return False
+
     return True
 
 # ------------------------------- main loop ------------------------------------
@@ -199,8 +272,67 @@ def main() -> None:
     ap.add_argument("--profile", choices=["prod", "prodlite", "demo"], default="prod")
     args = ap.parse_args()
 
-    with open(args.Config, "r", encoding="utf-8-sig") as f:
-        conf = json.load(f)
+    conf = load_json_utf8(args.Config)
+    settings_naut = {}
+    settings_root = conf.get("settings")
+    if isinstance(settings_root, dict):
+        candidate = settings_root.get("naut")
+        if isinstance(candidate, dict):
+            settings_naut = candidate
+
+    sell_uptick_raw = settings_naut.get("SELL_UPTICK_THR", 0.50)
+    try:
+        sell_uptick_thr = float(sell_uptick_raw)
+    except (TypeError, ValueError):
+        sell_uptick_thr = 0.50
+
+    sell_require_raw = settings_naut.get("SELL_REQUIRE_IMB", True)
+    if sell_require_raw is None:
+        sell_require_imb = True
+    elif isinstance(sell_require_raw, str):
+        sell_require_imb = sell_require_raw.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        sell_require_imb = bool(sell_require_raw)
+
+    buy_uptick_raw = settings_naut.get("BUY_UPTICK_THR", 0.65)
+    try:
+        buy_uptick_thr = float(buy_uptick_raw)
+    except (TypeError, ValueError):
+        buy_uptick_thr = 0.65
+
+    buy_require_raw = settings_naut.get("BUY_REQUIRE_IMB", False)
+    if buy_require_raw is None:
+        buy_require_imb = False
+    elif isinstance(buy_require_raw, str):
+        buy_require_imb = buy_require_raw.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        buy_require_imb = bool(buy_require_raw)
+
+    buy_vol_min_raw = settings_naut.get("BUY_VOL_MIN", 1200)
+    try:
+        buy_vol_min = max(0, int(buy_vol_min_raw))
+    except (TypeError, ValueError):
+        buy_vol_min = 1200
+
+    buy_spread_raw = settings_naut.get("BUY_SPREAD_MAX", 5.0)
+    try:
+        buy_spread_max = float(buy_spread_raw)
+    except (TypeError, ValueError):
+        buy_spread_max = 5.0
+
+    debug_raw = settings_naut.get("debug", False)
+    if debug_raw is None:
+        debug_enabled = False
+    elif isinstance(debug_raw, str):
+        debug_enabled = debug_raw.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        debug_enabled = bool(debug_raw)
+
+    read_window_raw = settings_naut.get("read_window_sec", 180)
+    try:
+        read_window_sec = max(1, int(read_window_raw))
+    except (TypeError, ValueError):
+        read_window_sec = 180
 
     db_path: str = conf.get("db_path", "rss_snapshot.db")
     symbols: List[str] = conf.get("symbols", [])
@@ -218,7 +350,15 @@ def main() -> None:
                   logging.StreamHandler(sys.stdout)],
         force=True,
     )
-    logging.info("naut_runner start (profile=%s, window=%s)", args.profile, market_window)
+    logger.info("naut_runner start (profile=%s, window=%s)", args.profile, market_window)
+    logger.info(f"[RULE] SELL require_imb={sell_require_imb} thr={sell_uptick_thr}")
+    logger.info(f"[RULE] BUY require_imb={buy_require_imb} thr={buy_uptick_thr} vol_min={buy_vol_min} spread_max={buy_spread_max}")
+
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    since = f"{today} 00:00:00"
+    until = f"{today} 23:59:59"
+    logger.info(f"[RULE] read_window since={since} until={until}")
 
     poll = FeaturePoller(db_path)
     COOLDOWN_SEC = 5
@@ -231,20 +371,34 @@ def main() -> None:
                 continue
 
             for s in symbols:
-                rows = poll.fetch_recent(s)
+                print("DBG start query")
+                rows = poll.fetch_recent(s, since, until)
                 if not rows:
                     poll.record_direction(s, 0, cfg["WINDOW"])
                     continue
 
                 for f in rows:
-                    buyish = is_buy_signal(f, cfg, vol_min_by_code)
-                    sellish = is_sell_signal(f, cfg, vol_min_by_code)
+                    buyish = is_buy_signal(
+                        f,
+                        vol_min_by_code,
+                        buy_uptick_thr=buy_uptick_thr,
+                        buy_require_imb=buy_require_imb,
+                        buy_vol_min=buy_vol_min,
+                        buy_spread_max=buy_spread_max,
+                    )
+                    sellish = is_sell_signal(
+                        f,
+                        cfg,
+                        vol_min_by_code,
+                        sell_uptick_thr=sell_uptick_thr,
+                        sell_require_imb=sell_require_imb,
+                    )
 
                     if buyish:
                         poll.record_direction(s, +1, cfg["WINDOW"])
                         if poll.consistent(s, +1, cfg["WINDOW"]):
                             base_score = compute_base_score("BUY", f, cfg, vol_min_by_code)
-                            r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60)
+                            r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60, since=since, until=until)
                             log_decision(r)
                             if not r["decision"]:
                                 continue
@@ -259,7 +413,7 @@ def main() -> None:
                         poll.record_direction(s, -1, cfg["WINDOW"])
                         if poll.consistent(s, -1, cfg["WINDOW"]):
                             base_score = compute_base_score("SELL", f, cfg, vol_min_by_code)
-                            r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60)
+                            r = apply_burst_and_decide(poll.conn, s, base_score, threshold=0.60, since=since, until=until)
                             log_decision(r)
                             if not r["decision"]:
                                 continue
@@ -276,10 +430,9 @@ def main() -> None:
             time.sleep(0.25)
 
     except KeyboardInterrupt:
-        logging.info("KeyboardInterrupt")
+        logger.info("KeyboardInterrupt")
     finally:
-        logging.info("naut_runner stop")
-
+        logger.info("naut_runner stop")
 
 if __name__ == "__main__":
     main()

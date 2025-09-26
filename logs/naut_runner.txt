@@ -1,0 +1,1098 @@
+2025-09-24 13:54:19,292 INFO naut_runner start (profile=prodlite, window=None)
+2025-09-24 13:54:23,577 INFO [BUY] 7203 ts=2025-09-24T13:54:23.142 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-24 13:55:24,596 INFO [BUY] 7203 ts=2025-09-24T13:55:23.760 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.657 adj=0.657 bonus=0.000 thr=0.60
+2025-09-24 13:55:35,901 INFO [BUY] 7203 ts=2025-09-24T13:55:35.763 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-24 13:56:09,532 INFO [BUY] 7203 ts=2025-09-24T13:56:09.351 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 13:56:16,230 INFO [BUY] 7203 ts=2025-09-24T13:56:15.359 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 13:56:40,256 INFO [BUY] 7203 ts=2025-09-24T13:56:39.368 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-24 13:56:51,739 INFO [BUY] 7203 ts=2025-09-24T13:56:51.394 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 13:57:16,202 INFO [BUY] 7203 ts=2025-09-24T13:57:15.344 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 13:57:25,952 INFO [BUY] 7203 ts=2025-09-24T13:57:24.992 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 13:57:36,509 INFO [BUY] 7203 ts=2025-09-24T13:57:36.360 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 13:58:12,495 INFO [BUY] 7203 ts=2025-09-24T13:58:12.346 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 13:58:29,952 INFO [BUY] 7203 ts=2025-09-24T13:58:29.156 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 13:58:42,642 INFO [BUY] 7203 ts=2025-09-24T13:58:42.359 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 13:59:58,840 INFO [BUY] 7203 ts=2025-09-24T13:59:57.977 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-24 14:00:10,090 INFO [BUY] 7203 ts=2025-09-24T14:00:09.972 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 14:00:32,268 INFO [BUY] 7203 ts=2025-09-24T14:00:32.157 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-24 14:00:50,396 INFO [BUY] 7203 ts=2025-09-24T14:00:50.171 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:00:56,421 INFO [BUY] 7203 ts=2025-09-24T14:00:56.178 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-24 14:01:02,442 INFO [BUY] 7203 ts=2025-09-24T14:01:02.165 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.669 adj=0.669 bonus=0.000 thr=0.60
+2025-09-24 14:01:16,770 INFO [BUY] 7203 ts=2025-09-24T14:01:15.976 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-24 14:01:23,911 INFO [BUY] 7203 ts=2025-09-24T14:01:23.143 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-24 14:01:57,526 INFO [BUY] 7203 ts=2025-09-24T14:01:57.384 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 14:02:04,352 INFO [BUY] 7203 ts=2025-09-24T14:02:03.996 uptick=0.80 imb=0.06 spr=5.0 vol=2600 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-24 14:02:20,471 INFO [BUY] 7203 ts=2025-09-24T14:02:20.166 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-24 14:02:34,329 INFO [BUY] 7203 ts=2025-09-24T14:02:33.990 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 14:03:12,088 INFO [BUY] 7203 ts=2025-09-24T14:03:11.158 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 14:04:00,560 INFO [BUY] 7203 ts=2025-09-24T14:03:59.782 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-24 14:04:12,063 INFO [BUY] 7203 ts=2025-09-24T14:04:11.756 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:05:22,362 INFO [BUY] 7203 ts=2025-09-24T14:05:21.394 uptick=0.75 imb=0.06 spr=5.0 vol=2500 | base=0.663 adj=0.663 bonus=0.000 thr=0.60
+2025-09-24 14:06:00,006 INFO [BUY] 7203 ts=2025-09-24T14:05:59.193 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:07:07,675 INFO [BUY] 7203 ts=2025-09-24T14:07:06.999 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 14:08:02,325 INFO [BUY] 7203 ts=2025-09-24T14:08:01.569 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 14:08:13,685 INFO [BUY] 7203 ts=2025-09-24T14:08:13.589 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-24 14:08:25,898 INFO [BUY] 7203 ts=2025-09-24T14:08:25.590 uptick=0.80 imb=0.06 spr=5.0 vol=2200 | base=0.690 adj=0.690 bonus=0.000 thr=0.60
+2025-09-24 14:08:35,917 INFO [BUY] 7203 ts=2025-09-24T14:08:35.156 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-24 14:08:47,915 INFO [BUY] 7203 ts=2025-09-24T14:08:47.775 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.661 adj=0.661 bonus=0.000 thr=0.60
+2025-09-24 14:09:14,930 INFO [BUY] 7203 ts=2025-09-24T14:09:14.795 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.665 adj=0.665 bonus=0.000 thr=0.60
+2025-09-24 14:09:59,471 INFO [BUY] 7203 ts=2025-09-24T14:09:59.184 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:10:05,478 INFO [BUY] 7203 ts=2025-09-24T14:10:05.148 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 14:10:11,425 INFO [BUY] 7203 ts=2025-09-24T14:10:11.163 uptick=0.80 imb=0.06 spr=5.0 vol=2600 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-24 14:10:23,456 INFO [BUY] 7203 ts=2025-09-24T14:10:22.592 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.808 adj=0.808 bonus=0.000 thr=0.60
+2025-09-24 14:10:34,254 INFO [BUY] 7203 ts=2025-09-24T14:10:33.962 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:10:55,204 INFO [BUY] 7203 ts=2025-09-24T14:10:54.957 uptick=0.80 imb=0.06 spr=5.0 vol=2500 | base=0.703 adj=0.703 bonus=0.000 thr=0.60
+2025-09-24 14:12:20,461 INFO [BUY] 7203 ts=2025-09-24T14:12:20.184 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:12:49,133 INFO [BUY] 7203 ts=2025-09-24T14:12:48.344 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 14:12:57,591 INFO [BUY] 7203 ts=2025-09-24T14:12:56.792 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:13:34,670 INFO [BUY] 7203 ts=2025-09-24T14:13:34.595 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:14:03,083 INFO [BUY] 7203 ts=2025-09-24T14:14:02.164 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-24 14:14:16,771 INFO [BUY] 7203 ts=2025-09-24T14:14:15.967 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 14:15:03,719 INFO [BUY] 7203 ts=2025-09-24T14:15:02.799 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 14:17:04,891 INFO [BUY] 7203 ts=2025-09-24T14:17:04.555 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.629 adj=0.629 bonus=0.000 thr=0.60
+2025-09-24 14:17:47,349 INFO [BUY] 7203 ts=2025-09-24T14:17:47.187 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 14:18:38,547 INFO [BUY] 7203 ts=2025-09-24T14:18:38.178 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:20:46,155 INFO [BUY] 7203 ts=2025-09-24T14:20:45.988 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 14:21:35,400 INFO [BUY] 7203 ts=2025-09-24T14:21:34.585 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.646 adj=0.646 bonus=0.000 thr=0.60
+2025-09-24 14:22:19,346 INFO [BUY] 7203 ts=2025-09-24T14:22:18.979 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:22:54,565 INFO [BUY] 7203 ts=2025-09-24T14:22:54.390 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 14:23:41,292 INFO [BUY] 7203 ts=2025-09-24T14:23:40.573 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 14:23:55,852 INFO [BUY] 7203 ts=2025-09-24T14:23:55.543 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.665 adj=0.665 bonus=0.000 thr=0.60
+2025-09-24 14:24:05,313 INFO [BUY] 7203 ts=2025-09-24T14:24:05.179 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 14:24:20,469 INFO [BUY] 7203 ts=2025-09-24T14:24:20.166 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.813 adj=0.813 bonus=0.000 thr=0.60
+2025-09-24 14:24:48,038 INFO [BUY] 7203 ts=2025-09-24T14:24:47.181 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 14:24:59,497 INFO [BUY] 7203 ts=2025-09-24T14:24:59.156 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-24 14:25:16,696 INFO [BUY] 7203 ts=2025-09-24T14:25:16.563 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 14:26:01,330 INFO [BUY] 7203 ts=2025-09-24T14:26:00.392 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-24 14:26:12,526 INFO [BUY] 7203 ts=2025-09-24T14:26:12.381 uptick=1.00 imb=0.06 spr=5.0 vol=2500 | base=0.863 adj=0.863 bonus=0.000 thr=0.60
+2025-09-24 14:26:23,317 INFO [BUY] 7203 ts=2025-09-24T14:26:23.182 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:26:34,223 INFO [BUY] 7203 ts=2025-09-24T14:26:33.976 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 14:27:04,222 INFO [BUY] 7203 ts=2025-09-24T14:27:03.390 uptick=1.00 imb=0.06 spr=5.0 vol=2600 | base=0.867 adj=0.867 bonus=0.000 thr=0.60
+2025-09-24 14:27:15,718 INFO [BUY] 7203 ts=2025-09-24T14:27:14.783 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-24 14:27:26,959 INFO [BUY] 7203 ts=2025-09-24T14:27:26.781 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:28:04,769 INFO [BUY] 7203 ts=2025-09-24T14:28:04.570 uptick=0.83 imb=0.06 spr=5.0 vol=1700 | base=0.696 adj=0.696 bonus=0.000 thr=0.60
+2025-09-24 14:28:20,921 INFO [BUY] 7203 ts=2025-09-24T14:28:20.797 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.646 adj=0.646 bonus=0.000 thr=0.60
+2025-09-24 14:28:51,102 INFO [BUY] 7203 ts=2025-09-24T14:28:50.777 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-24 14:29:38,417 INFO [BUY] 7203 ts=2025-09-24T14:29:38.151 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.657 adj=0.657 bonus=0.000 thr=0.60
+2025-09-24 14:29:52,273 INFO [BUY] 7203 ts=2025-09-24T14:29:51.384 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 14:30:24,121 INFO [BUY] 7203 ts=2025-09-24T14:30:23.174 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 14:30:41,519 INFO [BUY] 7203 ts=2025-09-24T14:30:41.166 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:31:08,612 INFO [BUY] 7203 ts=2025-09-24T14:31:07.559 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 14:33:08,450 INFO [BUY] 7203 ts=2025-09-24T14:33:08.160 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 14:33:20,439 INFO [BUY] 7203 ts=2025-09-24T14:33:20.179 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:33:38,489 INFO [BUY] 7203 ts=2025-09-24T14:33:38.185 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 14:35:02,498 INFO [BUY] 7203 ts=2025-09-24T14:35:01.566 uptick=0.80 imb=0.06 spr=5.0 vol=1200 | base=0.648 adj=0.648 bonus=0.000 thr=0.60
+2025-09-24 14:35:13,925 INFO [BUY] 7203 ts=2025-09-24T14:35:13.555 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.654 adj=0.654 bonus=0.000 thr=0.60
+2025-09-24 14:35:37,811 INFO [BUY] 7203 ts=2025-09-24T14:35:37.557 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.808 adj=0.808 bonus=0.000 thr=0.60
+2025-09-24 14:35:53,510 INFO [BUY] 7203 ts=2025-09-24T14:35:53.182 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:36:41,450 INFO [BUY] 7203 ts=2025-09-24T14:36:40.596 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:37:04,256 INFO [BUY] 7203 ts=2025-09-24T14:37:03.958 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:38:26,540 INFO [BUY] 7203 ts=2025-09-24T14:38:25.549 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:38:57,665 INFO [BUY] 7203 ts=2025-09-24T14:38:56.785 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 14:39:22,817 INFO [BUY] 7203 ts=2025-09-24T14:39:22.002 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.654 adj=0.654 bonus=0.000 thr=0.60
+2025-09-24 14:39:34,346 INFO [BUY] 7203 ts=2025-09-24T14:39:33.375 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 14:39:43,373 INFO [BUY] 7203 ts=2025-09-24T14:39:42.987 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-24 14:39:49,189 INFO [BUY] 7203 ts=2025-09-24T14:39:48.985 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.854 adj=0.854 bonus=0.000 thr=0.60
+2025-09-24 14:40:44,972 INFO [BUY] 7203 ts=2025-09-24T14:40:44.759 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 14:40:55,347 INFO [BUY] 7203 ts=2025-09-24T14:40:54.369 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 14:41:01,864 INFO [BUY] 7203 ts=2025-09-24T14:41:01.597 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 14:41:30,718 INFO [BUY] 7203 ts=2025-09-24T14:41:30.374 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 14:42:04,201 INFO [BUY] 7203 ts=2025-09-24T14:42:03.365 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.665 adj=0.665 bonus=0.000 thr=0.60
+2025-09-24 14:42:41,988 INFO [BUY] 7203 ts=2025-09-24T14:42:41.144 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 14:43:13,402 INFO [BUY] 7203 ts=2025-09-24T14:43:12.384 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:43:45,050 INFO [BUY] 7203 ts=2025-09-24T14:43:44.162 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:43:50,509 INFO [BUY] 7203 ts=2025-09-24T14:43:50.175 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-24 14:44:15,644 INFO [BUY] 7203 ts=2025-09-24T14:44:14.741 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-24 14:44:24,093 INFO [BUY] 7203 ts=2025-09-24T14:44:23.798 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:44:54,090 INFO [BUY] 7203 ts=2025-09-24T14:44:53.152 uptick=0.80 imb=0.06 spr=5.0 vol=1300 | base=0.653 adj=0.653 bonus=0.000 thr=0.60
+2025-09-24 14:45:08,522 INFO [BUY] 7203 ts=2025-09-24T14:45:08.155 uptick=0.83 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-24 14:45:24,765 INFO [BUY] 7203 ts=2025-09-24T14:45:24.394 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.661 adj=0.661 bonus=0.000 thr=0.60
+2025-09-24 14:45:40,351 INFO [BUY] 7203 ts=2025-09-24T14:45:39.971 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 14:46:10,865 INFO [BUY] 7203 ts=2025-09-24T14:46:10.561 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:46:17,550 INFO [BUY] 7203 ts=2025-09-24T14:46:16.571 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:47:36,579 INFO [BUY] 7203 ts=2025-09-24T14:47:36.367 uptick=0.75 imb=0.06 spr=5.0 vol=2700 | base=0.671 adj=0.671 bonus=0.000 thr=0.60
+2025-09-24 14:47:50,499 INFO [BUY] 7203 ts=2025-09-24T14:47:49.574 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 14:48:19,178 INFO [BUY] 7203 ts=2025-09-24T14:48:18.995 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.646 adj=0.646 bonus=0.000 thr=0.60
+2025-09-24 14:48:27,635 INFO [BUY] 7203 ts=2025-09-24T14:48:27.371 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 14:49:12,636 INFO [BUY] 7203 ts=2025-09-24T14:49:11.750 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 14:49:26,315 INFO [BUY] 7203 ts=2025-09-24T14:49:26.182 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-24 14:49:52,829 INFO [BUY] 7203 ts=2025-09-24T14:49:52.572 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 14:50:42,637 INFO [BUY] 7203 ts=2025-09-24T14:50:42.348 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 14:51:09,128 INFO [BUY] 7203 ts=2025-09-24T14:51:08.771 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:51:25,862 INFO [BUY] 7203 ts=2025-09-24T14:51:25.591 uptick=0.67 imb=0.06 spr=5.0 vol=2700 | base=0.604 adj=0.604 bonus=0.000 thr=0.60
+2025-09-24 14:51:37,721 INFO [BUY] 7203 ts=2025-09-24T14:51:37.582 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 14:52:30,575 INFO [BUY] 7203 ts=2025-09-24T14:52:30.353 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 14:53:20,531 INFO [BUY] 7203 ts=2025-09-24T14:53:19.583 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 14:53:36,639 INFO [BUY] 7203 ts=2025-09-24T14:53:36.361 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 14:53:51,598 INFO [BUY] 7203 ts=2025-09-24T14:53:50.801 uptick=0.75 imb=0.06 spr=5.0 vol=2800 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-24 14:54:15,018 INFO [BUY] 7203 ts=2025-09-24T14:54:14.789 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.813 adj=0.813 bonus=0.000 thr=0.60
+2025-09-24 14:54:48,747 INFO [BUY] 7203 ts=2025-09-24T14:54:48.352 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 14:55:17,444 INFO [BUY] 7203 ts=2025-09-24T14:55:17.163 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.665 adj=0.665 bonus=0.000 thr=0.60
+2025-09-24 14:55:29,490 INFO [BUY] 7203 ts=2025-09-24T14:55:28.572 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.669 adj=0.669 bonus=0.000 thr=0.60
+2025-09-24 14:55:40,880 INFO [BUY] 7203 ts=2025-09-24T14:55:40.582 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 14:55:57,687 INFO [BUY] 7203 ts=2025-09-24T14:55:57.404 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-24 14:56:35,462 INFO [BUY] 7203 ts=2025-09-24T14:56:34.563 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.646 adj=0.646 bonus=0.000 thr=0.60
+2025-09-24 14:56:47,418 INFO [BUY] 7203 ts=2025-09-24T14:56:47.177 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.661 adj=0.661 bonus=0.000 thr=0.60
+2025-09-24 14:56:59,516 INFO [BUY] 7203 ts=2025-09-24T14:56:59.149 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 14:57:21,117 INFO [BUY] 7203 ts=2025-09-24T14:57:20.176 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-24 14:58:09,662 INFO [BUY] 7203 ts=2025-09-24T14:58:08.770 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 14:58:41,367 INFO [BUY] 7203 ts=2025-09-24T14:58:41.145 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 14:59:06,667 INFO [BUY] 7203 ts=2025-09-24T14:59:06.344 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 14:59:19,926 INFO [BUY] 7203 ts=2025-09-24T14:59:18.993 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 15:00:48,749 INFO [BUY] 7203 ts=2025-09-24T15:00:47.779 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-24 15:01:21,015 INFO [BUY] 7203 ts=2025-09-24T15:01:20.773 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 15:02:13,323 INFO [BUY] 7203 ts=2025-09-24T15:02:12.955 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.846 adj=0.846 bonus=0.000 thr=0.60
+2025-09-24 15:02:25,423 INFO [BUY] 7203 ts=2025-09-24T15:02:24.977 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-24 15:03:16,288 INFO [BUY] 7203 ts=2025-09-24T15:03:15.399 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-24 15:03:36,183 INFO [BUY] 7203 ts=2025-09-24T15:03:35.766 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 15:03:48,020 INFO [BUY] 7203 ts=2025-09-24T15:03:47.168 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 15:04:23,399 INFO [BUY] 7203 ts=2025-09-24T15:04:22.567 uptick=0.80 imb=0.06 spr=5.0 vol=2300 | base=0.694 adj=0.694 bonus=0.000 thr=0.60
+2025-09-24 15:04:34,975 INFO [BUY] 7203 ts=2025-09-24T15:04:34.541 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.808 adj=0.808 bonus=0.000 thr=0.60
+2025-09-24 15:05:39,695 INFO [BUY] 7203 ts=2025-09-24T15:05:39.368 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 15:05:49,386 INFO [BUY] 7203 ts=2025-09-24T15:05:48.969 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.854 adj=0.854 bonus=0.000 thr=0.60
+2025-09-24 15:06:15,593 INFO [BUY] 7203 ts=2025-09-24T15:06:15.357 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:06:28,317 INFO [BUY] 7203 ts=2025-09-24T15:06:27.968 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 15:06:36,656 INFO [BUY] 7203 ts=2025-09-24T15:06:35.788 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 15:06:43,933 INFO [BUY] 7203 ts=2025-09-24T15:06:43.583 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 15:07:22,945 INFO [BUY] 7203 ts=2025-09-24T15:07:22.574 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 15:08:14,402 INFO [BUY] 7203 ts=2025-09-24T15:08:14.159 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 15:08:20,525 INFO [BUY] 7203 ts=2025-09-24T15:08:19.561 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 15:08:48,784 INFO [BUY] 7203 ts=2025-09-24T15:08:48.385 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 15:09:05,476 INFO [BUY] 7203 ts=2025-09-24T15:09:04.552 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 15:09:20,423 INFO [BUY] 7203 ts=2025-09-24T15:09:20.169 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-24 15:09:31,910 INFO [BUY] 7203 ts=2025-09-24T15:09:31.565 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 15:09:45,002 INFO [BUY] 7203 ts=2025-09-24T15:09:44.757 uptick=0.75 imb=0.06 spr=5.0 vol=2600 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-24 15:10:04,420 INFO [BUY] 7203 ts=2025-09-24T15:10:03.350 uptick=0.80 imb=0.06 spr=5.0 vol=1300 | base=0.653 adj=0.653 bonus=0.000 thr=0.60
+2025-09-24 15:10:15,646 INFO [BUY] 7203 ts=2025-09-24T15:10:15.346 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 15:10:25,819 INFO [BUY] 7203 ts=2025-09-24T15:10:24.957 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.821 adj=0.821 bonus=0.000 thr=0.60
+2025-09-24 15:11:10,953 INFO [BUY] 7203 ts=2025-09-24T15:11:10.555 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 15:11:16,831 INFO [BUY] 7203 ts=2025-09-24T15:11:15.959 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.629 adj=0.629 bonus=0.000 thr=0.60
+2025-09-24 15:11:22,861 INFO [BUY] 7203 ts=2025-09-24T15:11:21.969 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 15:11:34,342 INFO [BUY] 7203 ts=2025-09-24T15:11:33.996 uptick=0.80 imb=0.06 spr=5.0 vol=2300 | base=0.694 adj=0.694 bonus=0.000 thr=0.60
+2025-09-24 15:11:48,732 INFO [BUY] 7203 ts=2025-09-24T15:11:47.776 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-24 15:12:06,052 INFO [BUY] 7203 ts=2025-09-24T15:12:05.143 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 15:12:41,416 INFO [BUY] 7203 ts=2025-09-24T15:12:41.182 uptick=0.83 imb=0.06 spr=5.0 vol=1800 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-24 15:12:48,141 INFO [BUY] 7203 ts=2025-09-24T15:12:47.801 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.854 adj=0.854 bonus=0.000 thr=0.60
+2025-09-24 15:12:59,472 INFO [BUY] 7203 ts=2025-09-24T15:12:59.168 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-24 15:13:19,429 INFO [BUY] 7203 ts=2025-09-24T15:13:18.372 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:14:19,309 INFO [BUY] 7203 ts=2025-09-24T15:14:18.395 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-24 15:15:11,329 INFO [BUY] 7203 ts=2025-09-24T15:15:10.563 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.813 adj=0.813 bonus=0.000 thr=0.60
+2025-09-24 15:15:30,125 INFO [BUY] 7203 ts=2025-09-24T15:15:29.772 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:17:33,019 INFO [BUY] 7203 ts=2025-09-24T15:17:32.777 uptick=0.83 imb=0.06 spr=5.0 vol=1700 | base=0.696 adj=0.696 bonus=0.000 thr=0.60
+2025-09-24 15:17:38,586 INFO [BUY] 7203 ts=2025-09-24T15:17:37.590 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-24 15:17:46,858 INFO [BUY] 7203 ts=2025-09-24T15:17:46.567 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 15:18:00,062 INFO [BUY] 7203 ts=2025-09-24T15:17:59.184 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-24 15:18:34,813 INFO [BUY] 7203 ts=2025-09-24T15:18:34.579 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:18:40,247 INFO [BUY] 7203 ts=2025-09-24T15:18:39.366 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-24 15:18:58,816 INFO [BUY] 7203 ts=2025-09-24T15:18:58.590 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.813 adj=0.813 bonus=0.000 thr=0.60
+2025-09-24 15:19:09,696 INFO [BUY] 7203 ts=2025-09-24T15:19:09.347 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 15:19:19,289 INFO [BUY] 7203 ts=2025-09-24T15:19:18.344 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 15:19:30,730 INFO [BUY] 7203 ts=2025-09-24T15:19:30.371 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 15:19:37,252 INFO [BUY] 7203 ts=2025-09-24T15:19:36.994 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 15:21:04,239 INFO [BUY] 7203 ts=2025-09-24T15:21:03.381 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:21:58,288 INFO [BUY] 7203 ts=2025-09-24T15:21:57.980 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 15:22:18,619 INFO [BUY] 7203 ts=2025-09-24T15:22:18.378 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.661 adj=0.661 bonus=0.000 thr=0.60
+2025-09-24 15:22:30,757 INFO [BUY] 7203 ts=2025-09-24T15:22:29.786 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.629 adj=0.629 bonus=0.000 thr=0.60
+2025-09-24 15:23:15,644 INFO [BUY] 7203 ts=2025-09-24T15:23:15.365 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.678 adj=0.678 bonus=0.000 thr=0.60
+2025-09-24 15:23:39,029 INFO [BUY] 7203 ts=2025-09-24T15:23:38.144 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.621 adj=0.621 bonus=0.000 thr=0.60
+2025-09-24 15:24:22,865 INFO [BUY] 7203 ts=2025-09-24T15:24:21.987 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.629 adj=0.629 bonus=0.000 thr=0.60
+2025-09-24 15:24:29,966 INFO [BUY] 7203 ts=2025-09-24T15:24:29.784 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-24 15:25:42,560 INFO [BUY] 7203 ts=2025-09-24T15:25:41.743 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.825 adj=0.825 bonus=0.000 thr=0.60
+2025-09-24 15:27:40,277 INFO [BUY] 7203 ts=2025-09-24T15:27:39.954 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-24 15:29:34,213 INFO [BUY] 7203 ts=2025-09-24T15:29:34.004 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-24 15:29:40,985 INFO [BUY] 7203 ts=2025-09-24T15:29:39.967 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.829 adj=0.829 bonus=0.000 thr=0.60
+2025-09-24 15:29:52,977 INFO [BUY] 7203 ts=2025-09-24T15:29:52.598 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.669 adj=0.669 bonus=0.000 thr=0.60
+2025-09-24 15:30:04,949 INFO [BUY] 7203 ts=2025-09-24T15:30:04.541 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.838 adj=0.838 bonus=0.000 thr=0.60
+2025-09-24 15:30:21,326 INFO KeyboardInterrupt
+2025-09-24 15:30:21,326 INFO naut_runner stop
+2025-09-25 08:54:05,313 INFO naut_runner start (profile=prod, window=None)
+2025-09-25 08:54:05,314 INFO [RULE] SELL require_imb=False thr=0.5
+2025-09-25 08:55:32,626 INFO KeyboardInterrupt
+2025-09-25 08:55:32,627 INFO naut_runner stop
+2025-09-25 08:55:57,091 INFO naut_runner start (profile=prod, window=None)
+2025-09-25 08:55:57,091 INFO [RULE] SELL require_imb=False thr=0.55
+2025-09-25 09:07:41,114 INFO naut_runner start (profile=prod, window=None)
+2025-09-25 09:07:41,114 INFO [RULE] SELL require_imb=False thr=0.55
+2025-09-26 08:30:09,449 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 08:30:09,449 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 08:30:09,449 INFO [RULE] BUY require_imb=False thr=0.65 vol_min=1200 spread_max=5.0
+2025-09-26 08:30:09,449 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 08:30:27,624 INFO KeyboardInterrupt
+2025-09-26 08:30:27,624 INFO naut_runner stop
+2025-09-26 09:20:46,533 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 09:20:46,534 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 09:20:46,534 INFO [RULE] BUY require_imb=False thr=0.65 vol_min=1200 spread_max=5.0
+2025-09-26 09:20:46,534 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 09:47:12,763 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 09:47:12,763 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 09:47:12,764 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 09:47:12,764 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 09:52:38,122 INFO KeyboardInterrupt
+2025-09-26 09:52:38,123 INFO naut_runner stop
+2025-09-26 10:39:28,328 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 10:39:28,329 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 10:39:28,329 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 10:39:28,329 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 10:40:22,626 INFO KeyboardInterrupt
+2025-09-26 10:40:22,627 INFO naut_runner stop
+2025-09-26 10:43:08,009 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 10:43:08,009 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 10:43:08,009 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 10:43:08,009 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 10:47:57,762 INFO KeyboardInterrupt
+2025-09-26 10:47:57,763 INFO naut_runner stop
+2025-09-26 10:53:29,751 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 10:53:29,751 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 10:53:29,751 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 10:53:29,751 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 10:53:29,834 INFO naut_runner stop
+2025-09-26 10:58:30,620 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 10:58:30,621 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 10:58:30,621 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 10:58:30,621 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 10:58:30,700 INFO naut_runner stop
+2025-09-26 11:10:45,604 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 11:10:45,604 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 11:10:45,604 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 11:10:45,604 INFO [RULE] read_window since=2025-09-26 00:00:00 until=2025-09-26 23:59:59
+2025-09-26 11:10:45,689 INFO naut_runner stop
+2025-09-26 11:15:14,740 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 11:15:14,740 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 11:15:14,740 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 11:15:14,740 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 11:15:14,892 INFO [BUY] 7203 ts=2025-09-26T11:15:08.574 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 11:15:15,020 INFO [BUY] 8306 ts=2025-09-26T11:15:08.827 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 11:15:15,020 INFO naut_runner stop
+2025-09-26 11:34:09,731 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 11:34:09,731 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 11:34:09,731 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 11:34:09,731 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 11:34:09,840 INFO [BUY] 7203 ts=2025-09-26T11:34:03.783 uptick=0.60 imb=0.06 spr=5.0 vol=2400 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-26 11:34:09,988 INFO [BUY] 9984 ts=2025-09-26T11:34:03.733 uptick=0.60 imb=0.06 spr=5.0 vol=2400 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-26 11:34:10,082 INFO naut_runner stop
+2025-09-26 11:47:40,780 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 11:47:40,780 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 11:47:40,780 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=10.0
+2025-09-26 11:47:40,780 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 11:47:40,949 INFO [BUY] 7203 ts=2025-09-26T11:47:38.582 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 11:47:41,053 INFO [BUY] 9984 ts=2025-09-26T11:47:29.575 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 11:47:41,204 INFO [BUY] 8306 ts=2025-09-26T11:47:32.864 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 11:47:41,204 INFO naut_runner stop
+2025-09-26 12:39:40,877 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 12:39:40,877 INFO [RULE] SELL require_imb=False thr=0.45
+2025-09-26 12:39:40,878 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 12:39:40,878 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 12:39:41,013 INFO [BUY] 7203 ts=2025-09-26T12:39:30.178 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 12:39:41,135 INFO [BUY] 9984 ts=2025-09-26T12:39:37.039 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 12:39:41,191 INFO naut_runner stop
+2025-09-26 12:41:09,778 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 12:41:09,778 INFO [RULE] SELL require_imb=False thr=0.4
+2025-09-26 12:41:09,778 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 12:41:09,778 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 12:41:09,912 INFO [BUY] 7203 ts=2025-09-26T12:41:07.939 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 12:41:10,034 INFO [BUY] 9984 ts=2025-09-26T12:41:03.445 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 12:41:10,155 INFO [BUY] 8306 ts=2025-09-26T12:41:02.841 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 12:41:10,155 INFO naut_runner stop
+2025-09-26 12:42:57,803 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 12:42:57,803 INFO [RULE] SELL require_imb=False thr=0.35
+2025-09-26 12:42:57,803 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 12:42:57,804 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 12:42:58,001 INFO [BUY] 7203 ts=2025-09-26T12:42:55.985 uptick=0.83 imb=0.06 spr=5.0 vol=2000 | base=0.792 adj=0.792 bonus=0.000 thr=0.60
+2025-09-26 12:42:58,123 INFO [BUY] 9984 ts=2025-09-26T12:42:48.461 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.867 adj=0.867 bonus=0.000 thr=0.60
+2025-09-26 12:42:58,367 INFO [BUY] 8306 ts=2025-09-26T12:42:53.865 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 12:42:58,367 INFO naut_runner stop
+2025-09-26 12:52:58,267 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 12:52:58,268 INFO [RULE] SELL require_imb=False thr=0.35
+2025-09-26 12:52:58,268 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 12:52:58,268 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 12:52:58,444 INFO [BUY] 7203 ts=2025-09-26T12:52:54.769 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 12:52:58,603 INFO [BUY] 9984 ts=2025-09-26T12:52:56.238 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 12:52:58,762 INFO [BUY] 8306 ts=2025-09-26T12:52:53.857 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 12:52:58,763 INFO naut_runner stop
+2025-09-26 12:53:27,103 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 12:53:27,103 INFO [RULE] SELL require_imb=False thr=0.3
+2025-09-26 12:53:27,103 INFO [RULE] BUY require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 12:53:27,103 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 12:53:27,280 INFO [BUY] 7203 ts=2025-09-26T12:53:22.367 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 12:53:27,573 INFO [BUY] 9984 ts=2025-09-26T12:53:20.243 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 12:53:27,730 INFO [BUY] 8306 ts=2025-09-26T12:53:26.254 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 12:53:27,730 INFO naut_runner stop
+2025-09-26 13:37:13,525 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 13:37:13,525 INFO [RULE] SELL require_imb=False thr=0.3
+2025-09-26 13:37:13,526 INFO [RULE] BUY  require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 13:37:13,526 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 13:37:14,588 INFO [BUY] 7203 ts=2025-09-26T13:37:06.431 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 13:37:14,797 INFO [BUY] 9984 ts=2025-09-26T13:37:09.757 uptick=0.80 imb=0.06 spr=5.0 vol=1200 | base=0.698 adj=0.698 bonus=0.000 thr=0.60
+2025-09-26 13:37:15,015 INFO [BUY] 8306 ts=2025-09-26T13:37:09.757 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 13:37:15,015 INFO naut_runner stop
+2025-09-26 13:45:09,417 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 13:45:09,418 INFO [RULE] SELL require_imb=False thr=0.3
+2025-09-26 13:45:09,418 INFO [RULE] BUY  require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 13:45:09,418 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 13:45:10,286 INFO [BUY] 7203 ts=2025-09-26T13:45:03.434 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 13:45:10,490 INFO [BUY] 9984 ts=2025-09-26T13:45:04.341 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 13:45:10,689 INFO [BUY] 8306 ts=2025-09-26T13:44:56.226 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 13:45:10,689 INFO naut_runner stop
+2025-09-26 13:49:41,697 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 13:49:41,697 INFO [RULE] SELL require_imb=False thr=0.4
+2025-09-26 13:49:41,697 INFO [RULE] BUY  require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 13:49:41,697 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 13:49:41,917 INFO [BUY] 7203 ts=2025-09-26T13:49:32.852 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 13:49:42,126 INFO [BUY] 9984 ts=2025-09-26T13:49:31.946 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 13:49:42,332 INFO [BUY] 8306 ts=2025-09-26T13:49:37.022 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 13:49:42,332 INFO naut_runner stop
+2025-09-26 13:51:47,721 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 13:51:47,721 INFO [RULE] SELL require_imb=False thr=0.3
+2025-09-26 13:51:47,721 INFO [RULE] BUY  require_imb=False thr=0.5 vol_min=600 spread_max=15.0
+2025-09-26 13:51:47,721 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 13:51:47,943 INFO [BUY] 7203 ts=2025-09-26T13:51:41.864 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 13:51:48,151 INFO [BUY] 9984 ts=2025-09-26T13:51:42.166 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 13:51:48,355 INFO [BUY] 8306 ts=2025-09-26T13:51:41.260 uptick=1.00 imb=0.06 spr=5.0 vol=2400 | base=0.958 adj=0.958 bonus=0.000 thr=0.60
+2025-09-26 13:51:48,355 INFO naut_runner stop
+2025-09-26 14:01:01,109 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:01:01,139 INFO [RULE] SELL require_imb=False thr=0.2 spread_max=20.0
+2025-09-26 14:01:01,139 INFO [RULE] BUY  require_imb=False thr=0.5 vol_min=400 spread_max=20.0
+2025-09-26 14:01:01,140 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:01:03,412 INFO [SELL] 7203 ts=2025-09-26T14:00:59.857 uptick=0.40 imb=0.06 spr=5.0 vol=2100 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:01:03,866 INFO [SELL] 9984 ts=2025-09-26T14:01:01.949 uptick=0.20 imb=0.06 spr=5.0 vol=1300 | base=0.698 adj=0.698 bonus=0.000 thr=0.60
+2025-09-26 14:01:04,193 INFO [SELL] 8306 ts=2025-09-26T14:01:02.860 uptick=0.33 imb=0.06 spr=5.0 vol=1900 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:01:04,194 INFO naut_runner stop
+2025-09-26 14:08:27,887 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:08:27,887 INFO [RULE] SELL require_imb=False thr=0.4 spread_max=20.0
+2025-09-26 14:08:27,887 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:08:27,887 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:08:28,797 INFO [BUY] 7203 ts=2025-09-26T14:08:27.468 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:08:29,021 INFO [BUY] 9984 ts=2025-09-26T14:08:28.627 uptick=0.80 imb=0.06 spr=5.0 vol=2200 | base=0.782 adj=0.782 bonus=0.000 thr=0.60
+2025-09-26 14:08:29,240 INFO [SELL] 8306 ts=2025-09-26T14:08:28.627 uptick=0.33 imb=0.06 spr=5.0 vol=1900 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:08:29,240 INFO naut_runner stop
+2025-09-26 14:13:41,483 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:13:41,483 INFO [RULE] SELL require_imb=False thr=0.5 spread_max=20.0
+2025-09-26 14:13:41,483 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:13:41,483 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:13:41,723 INFO [BUY] 7203 ts=2025-09-26T14:13:41.236 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:13:42,038 INFO [SELL] 9984 ts=2025-09-26T14:13:40.632 uptick=0.00 imb=0.06 spr=5.0 vol=2300 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:13:42,265 INFO [SELL] 8306 ts=2025-09-26T14:13:41.544 uptick=0.17 imb=0.06 spr=5.0 vol=1900 | base=0.775 adj=0.775 bonus=0.000 thr=0.60
+2025-09-26 14:13:42,265 INFO naut_runner stop
+2025-09-26 14:15:48,148 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:15:48,149 INFO [RULE] SELL require_imb=False thr=0.55 spread_max=20.0
+2025-09-26 14:15:48,149 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:15:48,149 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:15:48,390 INFO [BUY] 7203 ts=2025-09-26T14:15:47.874 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:15:48,622 INFO [BUY] 9984 ts=2025-09-26T14:15:47.823 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:15:48,851 INFO [SELL] 8306 ts=2025-09-26T14:15:48.427 uptick=0.25 imb=0.06 spr=5.0 vol=1500 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:15:48,851 INFO naut_runner stop
+2025-09-26 14:16:37,534 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:16:37,534 INFO [RULE] SELL require_imb=False thr=0.6 spread_max=20.0
+2025-09-26 14:16:37,534 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:16:37,534 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:16:37,859 INFO [BUY] 7203 ts=2025-09-26T14:16:36.465 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:16:38,179 INFO [BUY] 9984 ts=2025-09-26T14:16:37.070 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:16:38,404 INFO [SELL] 8306 ts=2025-09-26T14:16:37.624 uptick=0.00 imb=0.06 spr=5.0 vol=1800 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:16:38,404 INFO naut_runner stop
+2025-09-26 14:19:20,420 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:19:20,421 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 14:19:20,421 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:19:20,421 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:19:21,016 INFO [SELL] 7203 ts=2025-09-26T14:19:17.858 uptick=0.20 imb=0.06 spr=5.0 vol=2300 | base=0.782 adj=0.782 bonus=0.000 thr=0.60
+2025-09-26 14:19:21,245 INFO [SELL] 9984 ts=2025-09-26T14:19:20.825 uptick=0.00 imb=0.06 spr=5.0 vol=1800 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:19:21,470 INFO [BUY] 8306 ts=2025-09-26T14:19:20.825 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 14:19:21,471 INFO naut_runner stop
+2025-09-26 14:29:56,968 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:29:56,968 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 14:29:56,968 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:29:56,968 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:29:57,219 INFO [SELL] 7203 ts=2025-09-26T14:29:56.841 uptick=0.00 imb=0.06 spr=5.0 vol=2600 | base=0.967 adj=0.967 bonus=0.000 thr=0.60
+2025-09-26 14:29:57,455 INFO [BUY] 9984 ts=2025-09-26T14:29:56.841 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 14:29:57,775 INFO [BUY] 8306 ts=2025-09-26T14:29:56.538 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:29:57,775 INFO naut_runner stop
+2025-09-26 14:34:34,405 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 14:34:34,405 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 14:34:34,405 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 14:34:34,405 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 14:34:34,588 INFO [BUY] 7203 ts=2025-09-26T14:34:31.639 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:34:35,124 INFO [BUY] 9984 ts=2025-09-26T14:34:29.223 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 14:34:35,392 INFO [BUY] 8306 ts=2025-09-26T14:34:31.035 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:34:40,440 INFO [BUY] 8306 ts=2025-09-26T14:34:26.855 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:34:40,958 INFO [BUY] 7203 ts=2025-09-26T14:34:40.056 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:34:41,408 INFO [BUY] 9984 ts=2025-09-26T14:34:38.846 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:34:46,581 INFO [BUY] 8306 ts=2025-09-26T14:34:46.053 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:34:47,011 INFO [BUY] 7203 ts=2025-09-26T14:34:46.658 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:34:47,186 INFO [BUY] 9984 ts=2025-09-26T14:34:46.053 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:34:52,268 INFO [BUY] 8306 ts=2025-09-26T14:34:49.629 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:34:52,787 INFO [BUY] 7203 ts=2025-09-26T14:34:51.443 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:34:53,240 INFO [SELL] 9984 ts=2025-09-26T14:34:49.629 uptick=0.25 imb=0.06 spr=5.0 vol=1300 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:34:57,992 INFO [SELL] 8306 ts=2025-09-26T14:34:57.454 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:34:58,425 INFO [BUY] 7203 ts=2025-09-26T14:34:58.058 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:34:58,955 INFO [BUY] 9984 ts=2025-09-26T14:34:55.626 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:35:04,093 INFO [BUY] 8306 ts=2025-09-26T14:35:03.456 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:35:05,075 INFO [BUY] 7203 ts=2025-09-26T14:34:59.268 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:35:05,343 INFO [BUY] 9984 ts=2025-09-26T14:35:04.060 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:35:11,195 INFO [BUY] 8306 ts=2025-09-26T14:35:07.033 uptick=0.60 imb=0.06 spr=5.0 vol=2500 | base=0.647 adj=0.647 bonus=0.000 thr=0.60
+2025-09-26 14:35:11,624 INFO [SELL] 7203 ts=2025-09-26T14:35:10.624 uptick=0.00 imb=0.06 spr=5.0 vol=1300 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:35:11,891 INFO [BUY] 9984 ts=2025-09-26T14:35:10.927 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:35:17,065 INFO [BUY] 8306 ts=2025-09-26T14:35:15.722 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:35:17,854 INFO [BUY] 7203 ts=2025-09-26T14:35:14.253 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:35:18,144 INFO [BUY] 9984 ts=2025-09-26T14:35:16.931 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:35:23,472 INFO [BUY] 8306 ts=2025-09-26T14:35:21.165 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:35:24,021 INFO [SELL] 7203 ts=2025-09-26T14:35:22.628 uptick=0.00 imb=0.06 spr=5.0 vol=1300 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:35:24,209 INFO [BUY] 9984 ts=2025-09-26T14:35:23.541 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:35:29,564 INFO [BUY] 9984 ts=2025-09-26T14:35:16.931 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:35:29,734 INFO [BUY] 8306 ts=2025-09-26T14:35:28.967 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:35:30,185 INFO [BUY] 7203 ts=2025-09-26T14:35:29.269 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:35:35,327 INFO [BUY] 9984 ts=2025-09-26T14:35:34.942 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:35:35,565 INFO [BUY] 8306 ts=2025-09-26T14:35:34.942 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:35:36,174 INFO [SELL] 7203 ts=2025-09-26T14:35:35.240 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:35:41,249 INFO [BUY] 9984 ts=2025-09-26T14:35:39.763 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:35:41,435 INFO [BUY] 8306 ts=2025-09-26T14:35:40.930 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:35:42,162 INFO [SELL] 7203 ts=2025-09-26T14:35:38.256 uptick=0.00 imb=0.06 spr=5.0 vol=2100 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:35:47,512 INFO [BUY] 9984 ts=2025-09-26T14:35:45.163 uptick=1.00 imb=0.06 spr=5.0 vol=2500 | base=0.967 adj=0.967 bonus=0.000 thr=0.60
+2025-09-26 14:35:47,870 INFO [SELL] 8306 ts=2025-09-26T14:35:44.558 uptick=0.17 imb=0.06 spr=5.0 vol=1600 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:35:48,500 INFO [BUY] 7203 ts=2025-09-26T14:35:45.466 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:35:53,819 INFO [BUY] 9984 ts=2025-09-26T14:35:51.770 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:35:54,001 INFO [BUY] 8306 ts=2025-09-26T14:35:53.537 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 14:35:54,434 INFO [SELL] 7203 ts=2025-09-26T14:35:53.840 uptick=0.25 imb=0.06 spr=5.0 vol=1300 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:35:59,859 INFO [BUY] 7203 ts=2025-09-26T14:35:49.652 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:36:00,072 INFO [BUY] 9984 ts=2025-09-26T14:35:59.546 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:36:00,292 INFO [BUY] 8306 ts=2025-09-26T14:35:58.970 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:36:05,417 INFO [BUY] 8306 ts=2025-09-26T14:36:01.967 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:36:06,076 INFO [SELL] 7203 ts=2025-09-26T14:36:03.442 uptick=0.25 imb=0.06 spr=5.0 vol=1700 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:36:06,303 INFO [BUY] 9984 ts=2025-09-26T14:36:05.534 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:36:11,347 INFO [BUY] 9984 ts=2025-09-26T14:36:06.748 uptick=0.83 imb=0.06 spr=5.0 vol=2100 | base=0.800 adj=0.800 bonus=0.000 thr=0.60
+2025-09-26 14:36:12,251 INFO [BUY] 8306 ts=2025-09-26T14:36:06.440 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:36:12,893 INFO [BUY] 7203 ts=2025-09-26T14:36:10.690 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:36:17,967 INFO [SELL] 9984 ts=2025-09-26T14:36:15.432 uptick=0.20 imb=0.06 spr=5.0 vol=1300 | base=0.698 adj=0.698 bonus=0.000 thr=0.60
+2025-09-26 14:36:18,151 INFO [BUY] 8306 ts=2025-09-26T14:36:17.847 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:36:18,582 INFO [BUY] 7203 ts=2025-09-26T14:36:17.847 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 14:36:23,704 INFO [BUY] 9984 ts=2025-09-26T14:36:23.246 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:36:24,152 INFO [BUY] 8306 ts=2025-09-26T14:36:20.826 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:36:24,628 INFO [BUY] 7203 ts=2025-09-26T14:36:23.850 uptick=0.75 imb=0.06 spr=5.0 vol=1000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:36:29,973 INFO [BUY] 9984 ts=2025-09-26T14:36:26.840 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:36:30,251 INFO [BUY] 8306 ts=2025-09-26T14:36:29.216 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:36:30,771 INFO [BUY] 7203 ts=2025-09-26T14:36:29.270 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:36:35,831 INFO [BUY] 7203 ts=2025-09-26T14:36:24.457 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:36:36,197 INFO [BUY] 9984 ts=2025-09-26T14:36:33.424 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 14:36:36,463 INFO [BUY] 8306 ts=2025-09-26T14:36:35.239 uptick=1.00 imb=0.06 spr=5.0 vol=2700 | base=0.983 adj=0.983 bonus=0.000 thr=0.60
+2025-09-26 14:36:41,880 INFO [BUY] 7203 ts=2025-09-26T14:36:41.241 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:36:42,060 INFO [BUY] 9984 ts=2025-09-26T14:36:41.847 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:36:42,590 INFO [BUY] 8306 ts=2025-09-26T14:36:38.264 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:36:47,751 INFO [BUY] 7203 ts=2025-09-26T14:36:47.238 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:36:48,200 INFO [BUY] 9984 ts=2025-09-26T14:36:44.870 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:36:48,376 INFO [BUY] 8306 ts=2025-09-26T14:36:47.842 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:36:53,535 INFO [BUY] 7203 ts=2025-09-26T14:36:53.236 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 14:36:53,719 INFO [SELL] 9984 ts=2025-09-26T14:36:53.236 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:36:53,894 INFO [BUY] 8306 ts=2025-09-26T14:36:53.236 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:36:59,296 INFO [BUY] 7203 ts=2025-09-26T14:36:58.073 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:36:59,473 INFO [BUY] 9984 ts=2025-09-26T14:36:59.231 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:36:59,691 INFO [BUY] 8306 ts=2025-09-26T14:36:59.231 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:37:04,696 INFO [BUY] 8306 ts=2025-09-26T14:36:53.236 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:37:05,130 INFO [SELL] 7203 ts=2025-09-26T14:37:04.626 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:37:05,307 INFO [SELL] 9984 ts=2025-09-26T14:37:04.022 uptick=0.20 imb=0.06 spr=5.0 vol=1000 | base=0.673 adj=0.673 bonus=0.000 thr=0.60
+2025-09-26 14:37:10,627 INFO [BUY] 8306 ts=2025-09-26T14:37:07.349 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:37:11,385 INFO [BUY] 7203 ts=2025-09-26T14:37:08.860 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.867 adj=0.867 bonus=0.000 thr=0.60
+2025-09-26 14:37:11,562 INFO [BUY] 9984 ts=2025-09-26T14:37:11.229 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:37:16,328 INFO [BUY] 8306 ts=2025-09-26T14:37:15.127 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:37:17,240 INFO [BUY] 7203 ts=2025-09-26T14:37:13.060 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:37:17,551 INFO [SELL] 9984 ts=2025-09-26T14:37:16.034 uptick=0.25 imb=0.06 spr=5.0 vol=2100 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:37:22,604 INFO [SELL] 9984 ts=2025-09-26T14:37:10.068 uptick=0.20 imb=0.06 spr=5.0 vol=1800 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:37:23,050 INFO [BUY] 8306 ts=2025-09-26T14:37:19.945 uptick=0.80 imb=0.06 spr=5.0 vol=1300 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-26 14:37:23,755 INFO [BUY] 7203 ts=2025-09-26T14:37:21.463 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:37:28,866 INFO [BUY] 9984 ts=2025-09-26T14:37:28.664 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:37:29,833 INFO [SELL] 8306 ts=2025-09-26T14:37:22.923 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:37:30,264 INFO [BUY] 7203 ts=2025-09-26T14:37:29.269 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:37:35,424 INFO [BUY] 9984 ts=2025-09-26T14:37:34.620 uptick=1.00 imb=0.06 spr=5.0 vol=600 | base=0.808 adj=0.808 bonus=0.000 thr=0.60
+2025-09-26 14:37:35,601 INFO [BUY] 8306 ts=2025-09-26T14:37:34.923 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:37:36,585 INFO [BUY] 7203 ts=2025-09-26T14:37:29.269 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:37:41,945 INFO [BUY] 7203 ts=2025-09-26T14:37:29.269 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:37:42,139 INFO [BUY] 9984 ts=2025-09-26T14:37:41.855 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:37:42,325 INFO [BUY] 8306 ts=2025-09-26T14:37:40.330 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:37:47,387 INFO [BUY] 8306 ts=2025-09-26T14:37:36.753 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.715 adj=0.715 bonus=0.000 thr=0.60
+2025-09-26 14:37:48,121 INFO [BUY] 7203 ts=2025-09-26T14:37:44.825 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:37:48,316 INFO [BUY] 9984 ts=2025-09-26T14:37:47.222 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:37:53,353 INFO [SELL] 9984 ts=2025-09-26T14:37:41.251 uptick=0.20 imb=0.06 spr=5.0 vol=1600 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 14:37:53,634 INFO [BUY] 8306 ts=2025-09-26T14:37:52.633 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:37:54,186 INFO [BUY] 7203 ts=2025-09-26T14:37:52.633 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:37:59,213 INFO [BUY] 9984 ts=2025-09-26T14:37:58.655 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:37:59,488 INFO [BUY] 8306 ts=2025-09-26T14:37:57.447 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 14:37:59,927 INFO [SELL] 7203 ts=2025-09-26T14:37:59.260 uptick=0.25 imb=0.06 spr=5.0 vol=1900 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:38:04,957 INFO [BUY] 9984 ts=2025-09-26T14:38:04.049 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:38:05,319 INFO [BUY] 8306 ts=2025-09-26T14:38:03.445 uptick=0.67 imb=0.06 spr=5.0 vol=2800 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:38:05,860 INFO [BUY] 7203 ts=2025-09-26T14:38:04.656 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:38:10,882 INFO [BUY] 7203 ts=2025-09-26T14:38:02.236 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:38:11,078 INFO [BUY] 9984 ts=2025-09-26T14:38:10.051 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:38:11,494 INFO [BUY] 8306 ts=2025-09-26T14:38:09.444 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:38:16,856 INFO [BUY] 8306 ts=2025-09-26T14:38:07.024 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:38:17,548 INFO [BUY] 7203 ts=2025-09-26T14:38:15.464 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:38:17,737 INFO [BUY] 9984 ts=2025-09-26T14:38:17.243 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:38:22,828 INFO [BUY] 9984 ts=2025-09-26T14:38:13.669 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:38:23,143 INFO [BUY] 8306 ts=2025-09-26T14:38:21.759 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:38:23,632 INFO [SELL] 7203 ts=2025-09-26T14:38:23.267 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:38:28,669 INFO [SELL] 7203 ts=2025-09-26T14:38:20.858 uptick=0.20 imb=0.06 spr=5.0 vol=1900 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:38:28,873 INFO [BUY] 9984 ts=2025-09-26T14:38:28.024 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:38:29,082 INFO [BUY] 8306 ts=2025-09-26T14:38:28.639 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:38:33,984 INFO [BUY] 7203 ts=2025-09-26T14:38:33.465 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:38:34,160 INFO [BUY] 9984 ts=2025-09-26T14:38:32.859 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:38:34,507 INFO [SELL] 8306 ts=2025-09-26T14:38:31.650 uptick=0.25 imb=0.06 spr=5.0 vol=2000 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:38:39,806 INFO [BUY] 7203 ts=2025-09-26T14:38:37.044 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:38:39,985 INFO [BUY] 9984 ts=2025-09-26T14:38:39.462 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:38:40,164 INFO [BUY] 8306 ts=2025-09-26T14:38:39.462 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:38:45,704 INFO [BUY] 7203 ts=2025-09-26T14:38:42.433 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:38:45,883 INFO [SELL] 9984 ts=2025-09-26T14:38:45.457 uptick=0.25 imb=0.06 spr=5.0 vol=1600 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:38:46,058 INFO [BUY] 8306 ts=2025-09-26T14:38:44.853 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:38:51,115 INFO [BUY] 8306 ts=2025-09-26T14:38:38.254 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:38:51,636 INFO [SELL] 7203 ts=2025-09-26T14:38:49.058 uptick=0.25 imb=0.06 spr=5.0 vol=1600 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:38:51,818 INFO [BUY] 9984 ts=2025-09-26T14:38:50.821 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:38:56,826 INFO [BUY] 9984 ts=2025-09-26T14:38:44.853 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:38:57,971 INFO [BUY] 8306 ts=2025-09-26T14:38:49.058 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:38:58,402 INFO [BUY] 7203 ts=2025-09-26T14:38:58.045 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:39:03,305 INFO [BUY] 9984 ts=2025-09-26T14:39:02.832 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:39:03,828 INFO [BUY] 8306 ts=2025-09-26T14:38:59.858 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:39:04,256 INFO [SELL] 7203 ts=2025-09-26T14:39:03.435 uptick=0.00 imb=0.06 spr=5.0 vol=2300 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:39:09,450 INFO [BUY] 9984 ts=2025-09-26T14:39:06.459 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:39:09,711 INFO [BUY] 8306 ts=2025-09-26T14:39:08.223 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:39:10,142 INFO [BUY] 7203 ts=2025-09-26T14:39:08.878 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:39:15,258 INFO [SELL] 9984 ts=2025-09-26T14:39:14.269 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:39:15,519 INFO [BUY] 8306 ts=2025-09-26T14:39:13.663 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:39:15,948 INFO [BUY] 7203 ts=2025-09-26T14:39:14.873 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:39:20,968 INFO [BUY] 9984 ts=2025-09-26T14:39:19.661 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:39:21,144 INFO [BUY] 8306 ts=2025-09-26T14:39:20.870 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:39:21,577 INFO [SELL] 7203 ts=2025-09-26T14:39:20.870 uptick=0.00 imb=0.06 spr=5.0 vol=1700 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:39:26,220 INFO [BUY] 9984 ts=2025-09-26T14:39:25.658 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:39:26,398 INFO [BUY] 8306 ts=2025-09-26T14:39:25.658 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:39:26,829 INFO [SELL] 7203 ts=2025-09-26T14:39:25.658 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:39:31,558 INFO [SELL] 9984 ts=2025-09-26T14:39:31.047 uptick=0.00 imb=0.06 spr=5.0 vol=1900 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:39:31,736 INFO [BUY] 8306 ts=2025-09-26T14:39:31.047 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:39:32,258 INFO [BUY] 7203 ts=2025-09-26T14:39:31.047 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:39:37,386 INFO [BUY] 9984 ts=2025-09-26T14:39:34.070 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:39:37,562 INFO [BUY] 8306 ts=2025-09-26T14:39:37.043 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:39:38,268 INFO [BUY] 7203 ts=2025-09-26T14:39:34.675 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 14:39:43,524 INFO [BUY] 9984 ts=2025-09-26T14:39:41.830 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:39:43,786 INFO [BUY] 8306 ts=2025-09-26T14:39:41.830 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:39:44,218 INFO [BUY] 7203 ts=2025-09-26T14:39:43.644 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:39:49,166 INFO [BUY] 9984 ts=2025-09-26T14:39:48.436 uptick=0.60 imb=0.06 spr=5.0 vol=2500 | base=0.647 adj=0.647 bonus=0.000 thr=0.60
+2025-09-26 14:39:49,781 INFO [BUY] 8306 ts=2025-09-26T14:39:44.853 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:39:50,767 INFO [BUY] 7203 ts=2025-09-26T14:39:46.065 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:39:55,786 INFO [SELL] 9984 ts=2025-09-26T14:39:54.443 uptick=0.25 imb=0.06 spr=5.0 vol=1300 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:39:56,139 INFO [BUY] 8306 ts=2025-09-26T14:39:53.838 uptick=0.80 imb=0.06 spr=5.0 vol=2400 | base=0.798 adj=0.798 bonus=0.000 thr=0.60
+2025-09-26 14:39:56,856 INFO [BUY] 7203 ts=2025-09-26T14:39:54.443 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:40:01,993 INFO [BUY] 9984 ts=2025-09-26T14:40:01.651 uptick=0.80 imb=0.06 spr=5.0 vol=1200 | base=0.698 adj=0.698 bonus=0.000 thr=0.60
+2025-09-26 14:40:02,169 INFO [BUY] 8306 ts=2025-09-26T14:40:01.651 uptick=0.60 imb=0.06 spr=5.0 vol=2600 | base=0.655 adj=0.655 bonus=0.000 thr=0.60
+2025-09-26 14:40:02,790 INFO [BUY] 7203 ts=2025-09-26T14:40:01.046 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:40:07,987 INFO [BUY] 9984 ts=2025-09-26T14:40:05.834 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:40:08,339 INFO [BUY] 8306 ts=2025-09-26T14:40:06.439 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:40:08,774 INFO [BUY] 7203 ts=2025-09-26T14:40:08.250 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:40:13,990 INFO [BUY] 9984 ts=2025-09-26T14:40:12.431 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:40:14,167 INFO [BUY] 8306 ts=2025-09-26T14:40:13.639 uptick=0.75 imb=0.06 spr=5.0 vol=1000 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:40:14,694 INFO [BUY] 7203 ts=2025-09-26T14:40:13.036 uptick=0.83 imb=0.06 spr=5.0 vol=2000 | base=0.792 adj=0.792 bonus=0.000 thr=0.60
+2025-09-26 14:40:19,792 INFO [BUY] 9984 ts=2025-09-26T14:40:18.425 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:40:20,236 INFO [BUY] 8306 ts=2025-09-26T14:40:17.870 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:40:20,667 INFO [BUY] 7203 ts=2025-09-26T14:40:19.636 uptick=0.67 imb=0.06 spr=5.0 vol=2600 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:40:26,027 INFO [BUY] 9984 ts=2025-09-26T14:40:23.267 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:40:27,187 INFO [BUY] 8306 ts=2025-09-26T14:40:17.870 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:40:27,710 INFO [BUY] 7203 ts=2025-09-26T14:40:25.637 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:40:32,441 INFO [BUY] 9984 ts=2025-09-26T14:40:31.629 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:40:32,712 INFO [SELL] 8306 ts=2025-09-26T14:40:31.025 uptick=0.25 imb=0.06 spr=5.0 vol=1700 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:40:33,237 INFO [BUY] 7203 ts=2025-09-26T14:40:31.679 uptick=0.60 imb=0.06 spr=5.0 vol=2400 | base=0.638 adj=0.638 bonus=0.000 thr=0.60
+2025-09-26 14:40:37,718 INFO [SELL] 9984 ts=2025-09-26T14:40:35.868 uptick=0.20 imb=0.06 spr=5.0 vol=2200 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 14:40:37,980 INFO [BUY] 8306 ts=2025-09-26T14:40:37.026 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:40:38,601 INFO [SELL] 7203 ts=2025-09-26T14:40:35.868 uptick=0.25 imb=0.06 spr=5.0 vol=2100 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:40:42,871 INFO [BUY] 9984 ts=2025-09-26T14:40:41.861 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:40:43,048 INFO [BUY] 8306 ts=2025-09-26T14:40:41.258 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:40:43,661 INFO [BUY] 7203 ts=2025-09-26T14:40:41.861 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:40:48,498 INFO [BUY] 9984 ts=2025-09-26T14:40:46.043 uptick=1.00 imb=0.06 spr=5.0 vol=1000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-26 14:40:48,764 INFO [BUY] 8306 ts=2025-09-26T14:40:47.855 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:40:49,287 INFO [BUY] 7203 ts=2025-09-26T14:40:47.855 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:40:54,491 INFO [BUY] 9984 ts=2025-09-26T14:40:53.245 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:40:54,665 INFO [SELL] 8306 ts=2025-09-26T14:40:54.454 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:40:55,186 INFO [BUY] 7203 ts=2025-09-26T14:40:53.849 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:41:00,148 INFO [BUY] 9984 ts=2025-09-26T14:40:59.240 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:41:00,324 INFO [BUY] 8306 ts=2025-09-26T14:40:59.845 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:41:00,755 INFO [BUY] 7203 ts=2025-09-26T14:41:00.448 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:41:05,509 INFO [BUY] 9984 ts=2025-09-26T14:41:05.233 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:41:05,686 INFO [BUY] 8306 ts=2025-09-26T14:41:05.233 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:41:06,116 INFO [BUY] 7203 ts=2025-09-26T14:41:05.837 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:41:11,081 INFO [BUY] 9984 ts=2025-09-26T14:41:10.624 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:41:11,256 INFO [BUY] 8306 ts=2025-09-26T14:41:10.070 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:41:11,966 INFO [BUY] 7203 ts=2025-09-26T14:41:08.861 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:41:17,228 INFO [BUY] 9984 ts=2025-09-26T14:41:11.230 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:41:17,488 INFO [BUY] 8306 ts=2025-09-26T14:41:15.464 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:41:18,011 INFO [BUY] 7203 ts=2025-09-26T14:41:16.622 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:41:23,536 INFO [BUY] 9984 ts=2025-09-26T14:41:19.041 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:41:23,711 INFO [SELL] 8306 ts=2025-09-26T14:41:23.228 uptick=0.00 imb=0.06 spr=5.0 vol=1600 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:41:24,142 INFO [SELL] 7203 ts=2025-09-26T14:41:23.278 uptick=0.20 imb=0.06 spr=5.0 vol=1800 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:41:28,896 INFO [BUY] 9984 ts=2025-09-26T14:41:28.621 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:41:29,073 INFO [BUY] 8306 ts=2025-09-26T14:41:28.067 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:41:29,502 INFO [BUY] 7203 ts=2025-09-26T14:41:29.226 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:41:34,563 INFO [SELL] 7203 ts=2025-09-26T14:41:21.463 uptick=0.20 imb=0.06 spr=5.0 vol=2000 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:41:34,742 INFO [BUY] 9984 ts=2025-09-26T14:41:34.065 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 14:41:35,714 INFO [BUY] 8306 ts=2025-09-26T14:41:28.067 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:41:41,050 INFO [BUY] 8306 ts=2025-09-26T14:41:28.067 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:41:41,480 INFO [BUY] 7203 ts=2025-09-26T14:41:41.275 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:41:41,661 INFO [BUY] 9984 ts=2025-09-26T14:41:41.224 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:41:46,791 INFO [BUY] 9984 ts=2025-09-26T14:41:34.065 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 14:41:47,240 INFO [BUY] 8306 ts=2025-09-26T14:41:44.856 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:41:48,240 INFO [BUY] 7203 ts=2025-09-26T14:41:42.436 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:41:53,399 INFO [BUY] 7203 ts=2025-09-26T14:41:41.275 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:41:53,760 INFO [BUY] 9984 ts=2025-09-26T14:41:52.034 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:41:54,204 INFO [BUY] 8306 ts=2025-09-26T14:41:51.430 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 14:42:00,004 INFO [BUY] 7203 ts=2025-09-26T14:41:56.869 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:42:00,277 INFO [BUY] 9984 ts=2025-09-26T14:41:59.238 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:42:00,463 INFO [BUY] 8306 ts=2025-09-26T14:41:59.842 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:42:06,199 INFO [SELL] 7203 ts=2025-09-26T14:42:05.279 uptick=0.25 imb=0.06 spr=5.0 vol=2900 | base=0.792 adj=0.792 bonus=0.000 thr=0.60
+2025-09-26 14:42:06,472 INFO [BUY] 9984 ts=2025-09-26T14:42:05.531 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 14:42:06,666 INFO [BUY] 8306 ts=2025-09-26T14:42:06.135 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 14:42:11,738 INFO [BUY] 8306 ts=2025-09-26T14:41:58.633 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.765 adj=0.765 bonus=0.000 thr=0.60
+2025-09-26 14:42:12,172 INFO [BUY] 7203 ts=2025-09-26T14:42:11.243 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:42:12,355 INFO [BUY] 9984 ts=2025-09-26T14:42:11.547 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:42:17,201 INFO [BUY] 8306 ts=2025-09-26T14:42:16.967 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:42:17,776 INFO [BUY] 7203 ts=2025-09-26T14:42:17.269 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:42:17,974 INFO [BUY] 9984 ts=2025-09-26T14:42:16.967 uptick=0.67 imb=0.06 spr=5.0 vol=2400 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:42:23,141 INFO [BUY] 8306 ts=2025-09-26T14:42:22.339 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:42:23,569 INFO [BUY] 7203 ts=2025-09-26T14:42:23.245 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:42:23,844 INFO [BUY] 9984 ts=2025-09-26T14:42:21.735 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:42:29,137 INFO [SELL] 8306 ts=2025-09-26T14:42:25.966 uptick=0.00 imb=0.06 spr=5.0 vol=1100 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-26 14:42:29,568 INFO [BUY] 7203 ts=2025-09-26T14:42:28.634 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:42:30,017 INFO [BUY] 9984 ts=2025-09-26T14:42:27.124 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:42:35,178 INFO [BUY] 8306 ts=2025-09-26T14:42:31.957 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:42:35,615 INFO [BUY] 7203 ts=2025-09-26T14:42:35.235 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.950 adj=0.950 bonus=0.000 thr=0.60
+2025-09-26 14:42:35,794 INFO [BUY] 9984 ts=2025-09-26T14:42:35.538 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:42:40,815 INFO [BUY] 8306 ts=2025-09-26T14:42:40.321 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:42:41,520 INFO [BUY] 7203 ts=2025-09-26T14:42:38.258 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:42:41,879 INFO [BUY] 9984 ts=2025-09-26T14:42:39.163 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:42:47,037 INFO [BUY] 8306 ts=2025-09-26T14:42:46.366 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:42:47,744 INFO [BUY] 7203 ts=2025-09-26T14:42:44.250 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:42:48,100 INFO [SELL] 9984 ts=2025-09-26T14:42:45.158 uptick=0.25 imb=0.06 spr=5.0 vol=2000 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:42:52,712 INFO [BUY] 8306 ts=2025-09-26T14:42:52.362 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:42:53,238 INFO [BUY] 7203 ts=2025-09-26T14:42:52.060 uptick=0.60 imb=0.06 spr=5.0 vol=2600 | base=0.655 adj=0.655 bonus=0.000 thr=0.60
+2025-09-26 14:42:53,419 INFO [BUY] 9984 ts=2025-09-26T14:42:52.966 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:42:58,244 INFO [BUY] 8306 ts=2025-09-26T14:42:57.751 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:42:58,768 INFO [BUY] 7203 ts=2025-09-26T14:42:57.448 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:42:58,945 INFO [SELL] 9984 ts=2025-09-26T14:42:58.356 uptick=0.00 imb=0.06 spr=5.0 vol=2200 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:43:04,145 INFO [BUY] 8306 ts=2025-09-26T14:43:02.538 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.765 adj=0.765 bonus=0.000 thr=0.60
+2025-09-26 14:43:04,665 INFO [SELL] 7203 ts=2025-09-26T14:43:02.840 uptick=0.25 imb=0.06 spr=5.0 vol=1900 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:43:04,843 INFO [BUY] 9984 ts=2025-09-26T14:43:04.351 uptick=0.75 imb=0.06 spr=5.0 vol=2500 | base=0.767 adj=0.767 bonus=0.000 thr=0.60
+2025-09-26 14:43:09,855 INFO [BUY] 8306 ts=2025-09-26T14:43:09.136 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:43:10,376 INFO [BUY] 7203 ts=2025-09-26T14:43:09.439 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:43:10,647 INFO [BUY] 9984 ts=2025-09-26T14:43:09.740 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:43:16,001 INFO [BUY] 8306 ts=2025-09-26T14:43:11.556 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:43:16,527 INFO [BUY] 7203 ts=2025-09-26T14:43:15.435 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:43:16,985 INFO [BUY] 9984 ts=2025-09-26T14:43:13.923 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:43:22,067 INFO [BUY] 8306 ts=2025-09-26T14:43:21.130 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:43:22,500 INFO [BUY] 7203 ts=2025-09-26T14:43:22.039 uptick=0.80 imb=0.06 spr=5.0 vol=1100 | base=0.690 adj=0.690 bonus=0.000 thr=0.60
+2025-09-26 14:43:22,857 INFO [BUY] 9984 ts=2025-09-26T14:43:21.130 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:43:28,517 INFO [BUY] 8306 ts=2025-09-26T14:43:24.762 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:43:29,039 INFO [BUY] 7203 ts=2025-09-26T14:43:28.036 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:43:29,220 INFO [BUY] 9984 ts=2025-09-26T14:43:28.943 uptick=0.80 imb=0.06 spr=5.0 vol=1000 | base=0.682 adj=0.682 bonus=0.000 thr=0.60
+2025-09-26 14:43:34,417 INFO [BUY] 9984 ts=2025-09-26T14:43:21.130 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:43:34,784 INFO [BUY] 8306 ts=2025-09-26T14:43:33.122 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:43:35,410 INFO [BUY] 7203 ts=2025-09-26T14:43:33.424 uptick=1.00 imb=0.06 spr=5.0 vol=900 | base=0.833 adj=0.833 bonus=0.000 thr=0.60
+2025-09-26 14:43:40,454 INFO [BUY] 7203 ts=2025-09-26T14:43:26.827 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:43:40,723 INFO [BUY] 9984 ts=2025-09-26T14:43:39.725 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:43:40,985 INFO [BUY] 8306 ts=2025-09-26T14:43:39.725 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:43:46,049 INFO [BUY] 8306 ts=2025-09-26T14:43:32.568 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:43:46,484 INFO [BUY] 7203 ts=2025-09-26T14:43:46.072 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:43:47,035 INFO [SELL] 9984 ts=2025-09-26T14:43:42.748 uptick=0.00 imb=0.06 spr=5.0 vol=2200 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:43:51,787 INFO [BUY] 8306 ts=2025-09-26T14:43:51.159 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:43:52,220 INFO [BUY] 7203 ts=2025-09-26T14:43:51.465 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:43:52,401 INFO [BUY] 9984 ts=2025-09-26T14:43:51.768 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:43:57,239 INFO [BUY] 8306 ts=2025-09-26T14:43:56.553 uptick=0.83 imb=0.06 spr=5.0 vol=1400 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:43:57,947 INFO [BUY] 7203 ts=2025-09-26T14:43:55.042 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:43:58,128 INFO [BUY] 9984 ts=2025-09-26T14:43:57.763 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:44:03,174 INFO [BUY] 9984 ts=2025-09-26T14:43:49.952 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:44:03,349 INFO [BUY] 8306 ts=2025-09-26T14:44:03.155 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 14:44:03,779 INFO [BUY] 7203 ts=2025-09-26T14:44:03.456 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:44:08,651 INFO [BUY] 9984 ts=2025-09-26T14:44:06.125 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:44:08,915 INFO [BUY] 8306 ts=2025-09-26T14:44:07.940 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:44:09,438 INFO [BUY] 7203 ts=2025-09-26T14:44:08.243 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:44:14,365 INFO [BUY] 9984 ts=2025-09-26T14:44:12.724 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:44:14,629 INFO [BUY] 8306 ts=2025-09-26T14:44:12.724 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 14:44:15,152 INFO [SELL] 7203 ts=2025-09-26T14:44:13.682 uptick=0.25 imb=0.06 spr=5.0 vol=2400 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:44:20,199 INFO [BUY] 9984 ts=2025-09-26T14:44:18.770 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:44:20,464 INFO [BUY] 8306 ts=2025-09-26T14:44:19.323 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:44:21,173 INFO [BUY] 7203 ts=2025-09-26T14:44:18.467 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:44:26,092 INFO [BUY] 9984 ts=2025-09-26T14:44:24.764 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:44:26,280 INFO [BUY] 8306 ts=2025-09-26T14:44:25.927 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:44:26,825 INFO [BUY] 7203 ts=2025-09-26T14:44:25.066 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:44:31,901 INFO [BUY] 9984 ts=2025-09-26T14:44:31.332 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:44:32,175 INFO [BUY] 8306 ts=2025-09-26T14:44:30.123 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:44:32,705 INFO [BUY] 7203 ts=2025-09-26T14:44:30.475 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:44:37,680 INFO [BUY] 9984 ts=2025-09-26T14:44:37.324 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:44:38,036 INFO [BUY] 8306 ts=2025-09-26T14:44:36.164 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:44:38,557 INFO [BUY] 7203 ts=2025-09-26T14:44:37.020 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:44:43,831 INFO [BUY] 7203 ts=2025-09-26T14:44:37.020 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:44:44,022 INFO [BUY] 9984 ts=2025-09-26T14:44:43.319 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:44:44,326 INFO [BUY] 8306 ts=2025-09-26T14:44:43.319 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:44:49,337 INFO [BUY] 8306 ts=2025-09-26T14:44:36.164 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:44:50,063 INFO [BUY] 7203 ts=2025-09-26T14:44:47.259 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:44:50,249 INFO [SELL] 9984 ts=2025-09-26T14:44:48.770 uptick=0.00 imb=0.06 spr=5.0 vol=1900 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:44:54,844 INFO [BUY] 8306 ts=2025-09-26T14:44:53.559 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:44:56,051 INFO [BUY] 7203 ts=2025-09-26T14:44:50.231 uptick=0.83 imb=0.06 spr=5.0 vol=1900 | base=0.783 adj=0.783 bonus=0.000 thr=0.60
+2025-09-26 14:44:56,232 INFO [BUY] 9984 ts=2025-09-26T14:44:55.934 uptick=1.00 imb=0.06 spr=5.0 vol=2400 | base=0.958 adj=0.958 bonus=0.000 thr=0.60
+2025-09-26 14:45:01,278 INFO [SELL] 9984 ts=2025-09-26T14:44:49.324 uptick=0.20 imb=0.06 spr=5.0 vol=1600 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 14:45:01,537 INFO [BUY] 8306 ts=2025-09-26T14:45:00.141 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:45:01,968 INFO [BUY] 7203 ts=2025-09-26T14:45:01.049 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:45:06,932 INFO [BUY] 9984 ts=2025-09-26T14:45:06.137 uptick=0.83 imb=0.06 spr=5.0 vol=1600 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 14:45:07,199 INFO [BUY] 8306 ts=2025-09-26T14:45:06.137 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:45:07,724 INFO [BUY] 7203 ts=2025-09-26T14:45:06.439 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:45:12,811 INFO [BUY] 9984 ts=2025-09-26T14:45:12.133 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:45:12,990 INFO [BUY] 8306 ts=2025-09-26T14:45:12.738 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:45:13,517 INFO [SELL] 7203 ts=2025-09-26T14:45:12.434 uptick=0.00 imb=0.06 spr=5.0 vol=2200 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:45:18,596 INFO [BUY] 7203 ts=2025-09-26T14:45:06.439 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:45:18,866 INFO [BUY] 9984 ts=2025-09-26T14:45:17.540 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:45:19,044 INFO [BUY] 8306 ts=2025-09-26T14:45:18.752 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:45:24,111 INFO [BUY] 8306 ts=2025-09-26T14:45:13.345 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:45:24,752 INFO [BUY] 7203 ts=2025-09-26T14:45:21.467 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:45:25,268 INFO [BUY] 9984 ts=2025-09-26T14:45:22.341 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:45:30,687 INFO [BUY] 9984 ts=2025-09-26T14:45:17.540 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:45:31,025 INFO [BUY] 8306 ts=2025-09-26T14:45:29.564 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:45:31,587 INFO [BUY] 7203 ts=2025-09-26T14:45:30.443 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:45:37,413 INFO [BUY] 9984 ts=2025-09-26T14:45:36.142 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:45:37,708 INFO [BUY] 8306 ts=2025-09-26T14:45:36.725 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:45:38,143 INFO [SELL] 7203 ts=2025-09-26T14:45:37.642 uptick=0.17 imb=0.06 spr=5.0 vol=1100 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:45:43,221 INFO [BUY] 7203 ts=2025-09-26T14:45:32.848 uptick=0.67 imb=0.06 spr=5.0 vol=2400 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:45:43,584 INFO [BUY] 9984 ts=2025-09-26T14:45:41.567 uptick=0.75 imb=0.06 spr=5.0 vol=2500 | base=0.767 adj=0.767 bonus=0.000 thr=0.60
+2025-09-26 14:45:44,117 INFO [BUY] 8306 ts=2025-09-26T14:45:39.758 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:45:49,244 INFO [BUY] 8306 ts=2025-09-26T14:45:36.725 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:45:49,679 INFO [BUY] 7203 ts=2025-09-26T14:45:49.036 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:45:49,993 INFO [BUY] 9984 ts=2025-09-26T14:45:48.120 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:45:55,349 INFO [BUY] 8306 ts=2025-09-26T14:45:54.733 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:45:55,875 INFO [BUY] 7203 ts=2025-09-26T14:45:53.877 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:45:56,560 INFO [BUY] 9984 ts=2025-09-26T14:45:52.368 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:46:02,207 INFO [BUY] 9984 ts=2025-09-26T14:45:52.368 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:46:02,385 INFO [BUY] 8306 ts=2025-09-26T14:46:01.932 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:46:02,913 INFO [BUY] 7203 ts=2025-09-26T14:46:01.657 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:46:08,025 INFO [BUY] 7203 ts=2025-09-26T14:45:56.861 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:46:08,312 INFO [BUY] 9984 ts=2025-09-26T14:46:06.766 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:46:08,486 INFO [BUY] 8306 ts=2025-09-26T14:46:07.322 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:46:13,625 INFO [BUY] 8306 ts=2025-09-26T14:46:01.932 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:46:14,255 INFO [BUY] 7203 ts=2025-09-26T14:46:12.473 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 14:46:15,450 INFO [BUY] 9984 ts=2025-09-26T14:46:06.766 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:46:19,287 INFO [BUY] 7203 ts=2025-09-26T14:46:08.237 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:46:21,145 INFO [BUY] 8306 ts=2025-09-26T14:46:20.542 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:46:23,978 INFO [BUY] 9984 ts=2025-09-26T14:46:23.557 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:46:25,873 INFO [BUY] 7203 ts=2025-09-26T14:46:25.645 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:46:28,285 INFO [BUY] 8306 ts=2025-09-26T14:46:25.951 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:46:30,743 INFO [BUY] 9984 ts=2025-09-26T14:46:28.951 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:46:32,666 INFO [BUY] 7203 ts=2025-09-26T14:46:32.274 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:46:34,538 INFO [SELL] 8306 ts=2025-09-26T14:46:33.139 uptick=0.00 imb=0.06 spr=5.0 vol=1300 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 14:46:36,970 INFO [BUY] 9984 ts=2025-09-26T14:46:36.139 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:46:39,441 INFO [BUY] 7203 ts=2025-09-26T14:46:38.860 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:46:41,391 INFO [BUY] 8306 ts=2025-09-26T14:46:40.935 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:46:43,784 INFO [SELL] 9984 ts=2025-09-26T14:46:43.353 uptick=0.20 imb=0.06 spr=5.0 vol=2000 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:46:46,236 INFO [SELL] 7203 ts=2025-09-26T14:46:45.450 uptick=0.25 imb=0.06 spr=5.0 vol=1400 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:46:48,400 INFO [BUY] 8306 ts=2025-09-26T14:46:46.932 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:46:51,017 INFO [BUY] 9984 ts=2025-09-26T14:46:49.665 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:46:53,609 INFO [BUY] 7203 ts=2025-09-26T14:46:50.829 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:46:55,929 INFO [BUY] 8306 ts=2025-09-26T14:46:55.056 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:46:58,519 INFO [SELL] 9984 ts=2025-09-26T14:46:58.034 uptick=0.20 imb=0.06 spr=5.0 vol=1800 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 14:47:01,167 INFO [BUY] 7203 ts=2025-09-26T14:46:58.644 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 14:47:03,572 INFO [BUY] 8306 ts=2025-09-26T14:47:00.458 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:47:06,476 INFO [BUY] 9984 ts=2025-09-26T14:47:04.660 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:47:08,611 INFO [BUY] 8306 ts=2025-09-26T14:46:54.439 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:47:09,220 INFO [BUY] 7203 ts=2025-09-26T14:47:07.634 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:47:14,424 INFO [SELL] 7203 ts=2025-09-26T14:47:08.841 uptick=0.00 imb=0.06 spr=5.0 vol=1900 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:47:14,801 INFO [BUY] 9984 ts=2025-09-26T14:47:12.407 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:47:15,170 INFO [BUY] 8306 ts=2025-09-26T14:47:12.407 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:47:20,383 INFO [BUY] 7203 ts=2025-09-26T14:47:19.068 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 14:47:20,563 INFO [BUY] 9984 ts=2025-09-26T14:47:20.227 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.715 adj=0.715 bonus=0.000 thr=0.60
+2025-09-26 14:47:21,106 INFO [BUY] 8306 ts=2025-09-26T14:47:16.646 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:47:26,408 INFO [BUY] 7203 ts=2025-09-26T14:47:25.064 uptick=0.80 imb=0.06 spr=5.0 vol=2200 | base=0.782 adj=0.782 bonus=0.000 thr=0.60
+2025-09-26 14:47:26,597 INFO [BUY] 9984 ts=2025-09-26T14:47:26.223 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:47:26,777 INFO [BUY] 8306 ts=2025-09-26T14:47:26.223 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:47:32,342 INFO [BUY] 7203 ts=2025-09-26T14:47:31.063 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:47:32,528 INFO [BUY] 9984 ts=2025-09-26T14:47:32.225 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:47:32,706 INFO [BUY] 8306 ts=2025-09-26T14:47:31.667 uptick=1.00 imb=0.06 spr=5.0 vol=2400 | base=0.958 adj=0.958 bonus=0.000 thr=0.60
+2025-09-26 14:47:38,007 INFO [BUY] 7203 ts=2025-09-26T14:47:36.454 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 14:47:38,460 INFO [BUY] 9984 ts=2025-09-26T14:47:35.850 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 14:47:38,831 INFO [BUY] 8306 ts=2025-09-26T14:47:35.850 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:47:44,349 INFO [BUY] 7203 ts=2025-09-26T14:47:42.458 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:47:44,525 INFO [BUY] 9984 ts=2025-09-26T14:47:44.225 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 14:47:45,068 INFO [BUY] 8306 ts=2025-09-26T14:47:41.249 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:47:51,282 INFO [BUY] 7203 ts=2025-09-26T14:47:42.458 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 14:47:51,482 INFO [BUY] 9984 ts=2025-09-26T14:47:50.828 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:47:51,658 INFO [BUY] 8306 ts=2025-09-26T14:47:51.435 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:47:57,218 INFO [BUY] 7203 ts=2025-09-26T14:47:56.274 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:47:57,503 INFO [BUY] 9984 ts=2025-09-26T14:47:56.223 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 14:47:57,678 INFO [BUY] 8306 ts=2025-09-26T14:47:57.436 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:48:03,106 INFO [BUY] 7203 ts=2025-09-26T14:48:02.829 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 14:48:03,384 INFO [BUY] 9984 ts=2025-09-26T14:48:02.224 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 14:48:03,567 INFO [BUY] 8306 ts=2025-09-26T14:48:02.829 uptick=0.75 imb=0.06 spr=5.0 vol=2500 | base=0.767 adj=0.767 bonus=0.000 thr=0.60
+2025-09-26 14:48:08,587 INFO [BUY] 8306 ts=2025-09-26T14:47:58.644 uptick=0.80 imb=0.06 spr=5.0 vol=600 | base=0.648 adj=0.648 bonus=0.000 thr=0.60
+2025-09-26 14:48:09,377 INFO [BUY] 7203 ts=2025-09-26T14:48:06.460 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:48:09,709 INFO [BUY] 9984 ts=2025-09-26T14:48:08.270 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 14:48:14,835 INFO [BUY] 9984 ts=2025-09-26T14:48:04.038 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:48:15,270 INFO [BUY] 8306 ts=2025-09-26T14:48:13.338 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 14:48:16,070 INFO [BUY] 7203 ts=2025-09-26T14:48:13.641 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:48:21,168 INFO [BUY] 7203 ts=2025-09-26T14:48:17.263 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:48:22,046 INFO [BUY] 9984 ts=2025-09-26T14:48:15.156 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:48:22,264 INFO [BUY] 8306 ts=2025-09-26T14:48:21.767 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 14:48:27,270 INFO [BUY] 8306 ts=2025-09-26T14:48:21.158 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 14:48:27,852 INFO [BUY] 7203 ts=2025-09-26T14:48:25.667 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 14:48:28,317 INFO [BUY] 9984 ts=2025-09-26T14:48:27.158 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:48:33,497 INFO [BUY] 9984 ts=2025-09-26T14:48:27.158 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:48:33,941 INFO [SELL] 8306 ts=2025-09-26T14:48:30.748 uptick=0.20 imb=0.06 spr=5.0 vol=1700 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 14:48:34,412 INFO [SELL] 7203 ts=2025-09-26T14:48:34.050 uptick=0.00 imb=0.06 spr=5.0 vol=2000 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:48:39,454 INFO [SELL] 7203 ts=2025-09-26T14:48:34.050 uptick=0.00 imb=0.06 spr=5.0 vol=2000 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:48:39,634 INFO [BUY] 9984 ts=2025-09-26T14:48:39.159 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.950 adj=0.950 bonus=0.000 thr=0.60
+2025-09-26 14:48:40,084 INFO [BUY] 8306 ts=2025-09-26T14:48:36.747 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:48:45,333 INFO [BUY] 7203 ts=2025-09-26T14:48:44.265 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:48:45,612 INFO [BUY] 9984 ts=2025-09-26T14:48:44.529 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 14:48:46,335 INFO [BUY] 8306 ts=2025-09-26T14:48:41.525 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 14:48:51,388 INFO [BUY] 8306 ts=2025-09-26T14:48:39.763 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 14:48:51,824 INFO [BUY] 7203 ts=2025-09-26T14:48:50.846 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 14:48:52,011 INFO [BUY] 9984 ts=2025-09-26T14:48:51.149 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 14:48:57,336 INFO [BUY] 9984 ts=2025-09-26T14:48:46.342 uptick=0.67 imb=0.06 spr=5.0 vol=2400 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 14:48:57,516 INFO [BUY] 8306 ts=2025-09-26T14:48:57.134 uptick=0.67 imb=0.06 spr=5.0 vol=2300 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 14:48:58,043 INFO [BUY] 7203 ts=2025-09-26T14:48:56.252 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 14:49:03,134 INFO [BUY] 7203 ts=2025-09-26T14:48:50.846 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 14:49:03,318 INFO [BUY] 9984 ts=2025-09-26T14:49:01.963 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 14:49:03,944 INFO [BUY] 8306 ts=2025-09-26T14:48:59.553 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:49:09,009 INFO [BUY] 8306 ts=2025-09-26T14:48:55.336 uptick=0.80 imb=0.06 spr=5.0 vol=2000 | base=0.765 adj=0.765 bonus=0.000 thr=0.60
+2025-09-26 14:49:09,441 INFO [SELL] 7203 ts=2025-09-26T14:49:08.865 uptick=0.25 imb=0.06 spr=5.0 vol=1900 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:49:09,720 INFO [BUY] 9984 ts=2025-09-26T14:49:07.932 uptick=0.75 imb=0.06 spr=5.0 vol=500 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 14:49:14,731 INFO [BUY] 9984 ts=2025-09-26T14:49:04.938 uptick=0.80 imb=0.06 spr=5.0 vol=2300 | base=0.790 adj=0.790 bonus=0.000 thr=0.60
+2025-09-26 14:49:14,950 INFO [BUY] 8306 ts=2025-09-26T14:49:13.930 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 14:49:15,600 INFO [BUY] 7203 ts=2025-09-26T14:49:14.236 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 14:49:20,945 INFO [BUY] 7203 ts=2025-09-26T14:49:09.470 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 14:49:21,231 INFO [BUY] 9984 ts=2025-09-26T14:49:19.937 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:49:21,516 INFO [BUY] 8306 ts=2025-09-26T14:49:20.241 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:49:26,605 INFO [BUY] 8306 ts=2025-09-26T14:49:20.241 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 14:49:27,159 INFO [BUY] 7203 ts=2025-09-26T14:49:26.261 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 14:49:27,459 INFO [SELL] 9984 ts=2025-09-26T14:49:26.563 uptick=0.00 imb=0.06 spr=5.0 vol=2300 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 14:49:32,519 INFO [BUY] 9984 ts=2025-09-26T14:49:28.919 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 14:49:32,966 INFO [BUY] 8306 ts=2025-09-26T14:49:30.431 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 14:49:33,683 INFO [BUY] 7203 ts=2025-09-26T14:49:31.677 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 14:49:39,053 INFO [SELL] 7203 ts=2025-09-26T14:49:27.460 uptick=0.00 imb=0.06 spr=5.0 vol=2000 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 14:49:39,348 INFO [BUY] 9984 ts=2025-09-26T14:49:37.934 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 14:49:39,636 INFO [BUY] 8306 ts=2025-09-26T14:49:38.539 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 15:00:06,990 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 15:00:06,990 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 15:00:06,990 INFO [RULE] BUY  require_imb=False thr=0.2 vol_min=100 spread_max=20.0
+2025-09-26 15:00:06,990 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 15:00:07,263 INFO [BUY] 7203 ts=2025-09-26T15:00:03.469 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 15:00:07,788 INFO [BUY] 9984 ts=2025-09-26T15:00:01.352 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:00:07,959 INFO [BUY] 8306 ts=2025-09-26T15:00:04.935 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:00:12,967 INFO [BUY] 7203 ts=2025-09-26T15:00:12.446 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 15:00:13,320 INFO [BUY] 9984 ts=2025-09-26T15:00:11.539 uptick=0.80 imb=0.06 spr=5.0 vol=1300 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-26 15:00:13,577 INFO [BUY] 8306 ts=2025-09-26T15:00:12.144 uptick=1.00 imb=0.06 spr=5.0 vol=2700 | base=0.983 adj=0.983 bonus=0.000 thr=0.60
+2025-09-26 15:00:18,714 INFO [BUY] 7203 ts=2025-09-26T15:00:18.449 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 15:00:18,887 INFO [SELL] 9984 ts=2025-09-26T15:00:17.542 uptick=0.00 imb=0.06 spr=5.0 vol=1900 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 15:00:19,055 INFO [BUY] 8306 ts=2025-09-26T15:00:18.751 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 15:00:24,394 INFO [BUY] 7203 ts=2025-09-26T15:00:22.632 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 15:00:24,568 INFO [BUY] 9984 ts=2025-09-26T15:00:24.142 uptick=0.60 imb=0.06 spr=5.0 vol=2600 | base=0.655 adj=0.655 bonus=0.000 thr=0.60
+2025-09-26 15:00:25,068 INFO [BUY] 8306 ts=2025-09-26T15:00:21.724 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 15:00:30,173 INFO [BUY] 7203 ts=2025-09-26T15:00:29.851 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:00:30,348 INFO [BUY] 9984 ts=2025-09-26T15:00:29.549 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:00:30,770 INFO [BUY] 8306 ts=2025-09-26T15:00:27.721 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 15:00:36,144 INFO [BUY] 7203 ts=2025-09-26T15:00:35.848 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 15:00:36,318 INFO [BUY] 9984 ts=2025-09-26T15:00:35.544 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.867 adj=0.867 bonus=0.000 thr=0.60
+2025-09-26 15:00:36,822 INFO [BUY] 8306 ts=2025-09-26T15:00:33.730 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 15:00:42,098 INFO [BUY] 7203 ts=2025-09-26T15:00:41.849 uptick=0.67 imb=0.06 spr=5.0 vol=2400 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 15:00:42,272 INFO [BUY] 9984 ts=2025-09-26T15:00:41.547 uptick=1.00 imb=0.06 spr=5.0 vol=1100 | base=0.850 adj=0.850 bonus=0.000 thr=0.60
+2025-09-26 15:00:43,451 INFO [BUY] 8306 ts=2025-09-26T15:00:33.730 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 15:00:48,768 INFO [BUY] 7203 ts=2025-09-26T15:00:48.448 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 15:00:48,941 INFO [BUY] 9984 ts=2025-09-26T15:00:48.146 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 15:00:49,359 INFO [BUY] 8306 ts=2025-09-26T15:00:46.935 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 15:00:54,673 INFO [BUY] 7203 ts=2025-09-26T15:00:53.839 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 15:00:54,846 INFO [BUY] 9984 ts=2025-09-26T15:00:54.142 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 15:00:55,014 INFO [BUY] 8306 ts=2025-09-26T15:00:54.142 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 15:00:59,971 INFO [BUY] 7203 ts=2025-09-26T15:00:59.231 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 15:01:00,147 INFO [BUY] 9984 ts=2025-09-26T15:00:59.532 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 15:01:00,399 INFO [BUY] 8306 ts=2025-09-26T15:00:58.928 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 15:01:05,685 INFO [SELL] 7203 ts=2025-09-26T15:01:05.276 uptick=0.25 imb=0.06 spr=5.0 vol=1600 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:01:05,865 INFO [BUY] 9984 ts=2025-09-26T15:01:05.529 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 15:01:06,036 INFO [BUY] 8306 ts=2025-09-26T15:01:05.529 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 15:01:11,584 INFO [BUY] 7203 ts=2025-09-26T15:01:10.667 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 15:01:11,843 INFO [BUY] 9984 ts=2025-09-26T15:01:10.969 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 15:01:12,031 INFO [BUY] 8306 ts=2025-09-26T15:01:10.969 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:01:17,193 INFO [BUY] 8306 ts=2025-09-26T15:01:03.764 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 15:01:17,648 INFO [BUY] 7203 ts=2025-09-26T15:01:17.264 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:01:18,170 INFO [BUY] 9984 ts=2025-09-26T15:01:15.150 uptick=1.00 imb=0.06 spr=5.0 vol=1800 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 15:01:23,204 INFO [BUY] 9984 ts=2025-09-26T15:01:10.969 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 15:01:23,556 INFO [BUY] 8306 ts=2025-09-26T15:01:21.765 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:01:24,072 INFO [BUY] 7203 ts=2025-09-26T15:01:23.277 uptick=0.67 imb=0.06 spr=5.0 vol=2500 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 15:01:29,140 INFO [BUY] 7203 ts=2025-09-26T15:01:22.672 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 15:01:29,319 INFO [BUY] 9984 ts=2025-09-26T15:01:28.924 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 15:01:29,596 INFO [BUY] 8306 ts=2025-09-26T15:01:28.370 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 15:01:34,737 INFO [BUY] 8306 ts=2025-09-26T15:01:21.765 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:01:35,552 INFO [BUY] 7203 ts=2025-09-26T15:01:32.253 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:01:35,727 INFO [BUY] 9984 ts=2025-09-26T15:01:34.922 uptick=0.75 imb=0.06 spr=5.0 vol=1200 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:01:40,681 INFO [BUY] 8306 ts=2025-09-26T15:01:39.760 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:01:41,159 INFO [BUY] 7203 ts=2025-09-26T15:01:40.668 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 15:01:41,418 INFO [BUY] 9984 ts=2025-09-26T15:01:39.760 uptick=1.00 imb=0.06 spr=5.0 vol=1600 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 15:01:46,187 INFO [BUY] 8306 ts=2025-09-26T15:01:45.757 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:01:46,614 INFO [BUY] 7203 ts=2025-09-26T15:01:45.455 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 15:01:46,959 INFO [BUY] 9984 ts=2025-09-26T15:01:45.153 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 15:01:51,729 INFO [SELL] 8306 ts=2025-09-26T15:01:49.943 uptick=0.25 imb=0.06 spr=5.0 vol=1500 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 15:01:52,279 INFO [BUY] 7203 ts=2025-09-26T15:01:50.850 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 15:01:52,796 INFO [BUY] 9984 ts=2025-09-26T15:01:48.732 uptick=0.67 imb=0.06 spr=5.0 vol=1300 | base=0.600 adj=0.600 bonus=0.000 thr=0.60
+2025-09-26 15:01:57,721 INFO [BUY] 8306 ts=2025-09-26T15:01:55.938 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:01:58,203 INFO [BUY] 7203 ts=2025-09-26T15:01:56.845 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:01:58,396 INFO [BUY] 9984 ts=2025-09-26T15:01:57.751 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:02:03,232 INFO [SELL] 8306 ts=2025-09-26T15:02:01.935 uptick=0.00 imb=0.06 spr=5.0 vol=2000 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 15:02:03,702 INFO [BUY] 7203 ts=2025-09-26T15:02:02.842 uptick=0.80 imb=0.06 spr=5.0 vol=2200 | base=0.782 adj=0.782 bonus=0.000 thr=0.60
+2025-09-26 15:02:03,880 INFO [BUY] 9984 ts=2025-09-26T15:02:03.144 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:02:09,043 INFO [BUY] 9984 ts=2025-09-26T15:01:57.751 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:02:09,472 INFO [BUY] 8306 ts=2025-09-26T15:02:05.561 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 15:02:09,934 INFO [BUY] 7203 ts=2025-09-26T15:02:09.442 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 15:02:15,004 INFO [BUY] 7203 ts=2025-09-26T15:02:02.842 uptick=0.80 imb=0.06 spr=5.0 vol=2200 | base=0.782 adj=0.782 bonus=0.000 thr=0.60
+2025-09-26 15:02:15,186 INFO [BUY] 9984 ts=2025-09-26T15:02:14.557 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:02:15,611 INFO [BUY] 8306 ts=2025-09-26T15:02:13.348 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 15:02:20,738 INFO [BUY] 8306 ts=2025-09-26T15:02:08.534 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:02:21,443 INFO [BUY] 7203 ts=2025-09-26T15:02:18.439 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 15:02:21,643 INFO [SELL] 9984 ts=2025-09-26T15:02:19.951 uptick=0.00 imb=0.06 spr=5.0 vol=1800 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:02:26,771 INFO [BUY] 8306 ts=2025-09-26T15:02:25.352 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 15:02:27,201 INFO [BUY] 7203 ts=2025-09-26T15:02:26.838 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:02:27,471 INFO [BUY] 9984 ts=2025-09-26T15:02:26.536 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 15:02:32,496 INFO [BUY] 8306 ts=2025-09-26T15:02:31.945 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.715 adj=0.715 bonus=0.000 thr=0.60
+2025-09-26 15:02:32,940 INFO [BUY] 7203 ts=2025-09-26T15:02:32.248 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 15:02:33,507 INFO [BUY] 9984 ts=2025-09-26T15:02:29.569 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 15:02:38,870 INFO [BUY] 9984 ts=2025-09-26T15:02:29.569 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 15:02:39,093 INFO [BUY] 8306 ts=2025-09-26T15:02:38.560 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 15:02:39,536 INFO [BUY] 7203 ts=2025-09-26T15:02:38.870 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 15:02:44,575 INFO [BUY] 7203 ts=2025-09-26T15:02:32.248 uptick=0.60 imb=0.06 spr=5.0 vol=2000 | base=0.605 adj=0.605 bonus=0.000 thr=0.60
+2025-09-26 15:02:45,092 INFO [BUY] 9984 ts=2025-09-26T15:02:42.146 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 15:02:45,388 INFO [BUY] 8306 ts=2025-09-26T15:02:42.751 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:02:50,719 INFO [BUY] 8306 ts=2025-09-26T15:02:39.726 uptick=0.80 imb=0.06 spr=5.0 vol=2300 | base=0.790 adj=0.790 bonus=0.000 thr=0.60
+2025-09-26 15:02:51,368 INFO [SELL] 7203 ts=2025-09-26T15:02:48.459 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:02:51,563 INFO [BUY] 9984 ts=2025-09-26T15:02:51.126 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 15:02:56,932 INFO [BUY] 8306 ts=2025-09-26T15:02:55.369 uptick=0.80 imb=0.06 spr=5.0 vol=1600 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 15:02:57,383 INFO [BUY] 7203 ts=2025-09-26T15:02:56.856 uptick=0.80 imb=0.06 spr=5.0 vol=1500 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 15:02:58,037 INFO [BUY] 9984 ts=2025-09-26T15:02:53.531 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 15:03:02,945 INFO [SELL] 8306 ts=2025-09-26T15:03:01.969 uptick=0.00 imb=0.06 spr=5.0 vol=1500 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 15:03:03,390 INFO [BUY] 7203 ts=2025-09-26T15:03:02.839 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:03:03,589 INFO [SELL] 9984 ts=2025-09-26T15:03:01.969 uptick=0.25 imb=0.06 spr=5.0 vol=1700 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 15:03:08,646 INFO [BUY] 8306 ts=2025-09-26T15:03:07.358 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 15:03:09,091 INFO [BUY] 7203 ts=2025-09-26T15:03:08.848 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:03:09,292 INFO [BUY] 9984 ts=2025-09-26T15:03:08.533 uptick=1.00 imb=0.06 spr=5.0 vol=1300 | base=0.867 adj=0.867 bonus=0.000 thr=0.60
+2025-09-26 15:03:14,362 INFO [SELL] 9984 ts=2025-09-26T15:03:01.361 uptick=0.25 imb=0.06 spr=5.0 vol=1500 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 15:03:14,983 INFO [BUY] 8306 ts=2025-09-26T15:03:10.934 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:03:15,542 INFO [BUY] 7203 ts=2025-09-26T15:03:13.654 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:03:20,884 INFO [BUY] 9984 ts=2025-09-26T15:03:18.742 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 15:03:21,234 INFO [BUY] 8306 ts=2025-09-26T15:03:18.742 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:03:21,773 INFO [BUY] 7203 ts=2025-09-26T15:03:20.251 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:03:26,880 INFO [BUY] 7203 ts=2025-09-26T15:03:13.654 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:03:27,053 INFO [BUY] 9984 ts=2025-09-26T15:03:26.548 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 15:03:27,222 INFO [BUY] 8306 ts=2025-09-26T15:03:26.548 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:03:32,932 INFO [BUY] 7203 ts=2025-09-26T15:03:30.483 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 15:03:33,198 INFO [SELL] 9984 ts=2025-09-26T15:03:30.735 uptick=0.25 imb=0.06 spr=5.0 vol=1600 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:03:33,471 INFO [BUY] 8306 ts=2025-09-26T15:03:32.548 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 15:03:38,333 INFO [BUY] 7203 ts=2025-09-26T15:03:37.031 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 15:03:38,516 INFO [BUY] 9984 ts=2025-09-26T15:03:37.939 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 15:03:39,054 INFO [BUY] 8306 ts=2025-09-26T15:03:34.361 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:03:44,106 INFO [BUY] 7203 ts=2025-09-26T15:03:42.424 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:03:44,280 INFO [BUY] 9984 ts=2025-09-26T15:03:43.937 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 15:03:44,451 INFO [SELL] 8306 ts=2025-09-26T15:03:43.332 uptick=0.25 imb=0.06 spr=5.0 vol=2100 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:03:50,156 INFO [BUY] 7203 ts=2025-09-26T15:03:44.239 uptick=0.80 imb=0.06 spr=5.0 vol=1700 | base=0.740 adj=0.740 bonus=0.000 thr=0.60
+2025-09-26 15:03:50,332 INFO [BUY] 9984 ts=2025-09-26T15:03:49.936 uptick=0.75 imb=0.06 spr=5.0 vol=1700 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 15:03:50,502 INFO [SELL] 8306 ts=2025-09-26T15:03:49.331 uptick=0.20 imb=0.06 spr=5.0 vol=1600 | base=0.723 adj=0.723 bonus=0.000 thr=0.60
+2025-09-26 15:03:55,466 INFO [BUY] 7203 ts=2025-09-26T15:03:49.634 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 15:03:55,639 INFO [BUY] 9984 ts=2025-09-26T15:03:55.328 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:03:55,813 INFO [BUY] 8306 ts=2025-09-26T15:03:55.328 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:04:00,823 INFO [BUY] 7203 ts=2025-09-26T15:03:58.652 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:04:00,996 INFO [BUY] 9984 ts=2025-09-26T15:04:00.768 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:04:01,168 INFO [SELL] 8306 ts=2025-09-26T15:04:00.768 uptick=0.00 imb=0.06 spr=5.0 vol=1900 | base=0.908 adj=0.908 bonus=0.000 thr=0.60
+2025-09-26 15:04:06,715 INFO [SELL] 7203 ts=2025-09-26T15:04:02.837 uptick=0.00 imb=0.06 spr=5.0 vol=2400 | base=0.950 adj=0.950 bonus=0.000 thr=0.60
+2025-09-26 15:04:06,889 INFO [SELL] 9984 ts=2025-09-26T15:04:06.161 uptick=0.25 imb=0.06 spr=5.0 vol=1900 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:04:07,056 INFO [SELL] 8306 ts=2025-09-26T15:04:06.161 uptick=0.00 imb=0.06 spr=5.0 vol=1800 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 15:04:12,185 INFO [SELL] 7203 ts=2025-09-26T15:04:08.277 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:04:12,532 INFO [BUY] 9984 ts=2025-09-26T15:04:10.948 uptick=0.67 imb=0.06 spr=5.0 vol=1900 | base=0.650 adj=0.650 bonus=0.000 thr=0.60
+2025-09-26 15:04:12,700 INFO [BUY] 8306 ts=2025-09-26T15:04:12.158 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 15:04:17,311 INFO [BUY] 7203 ts=2025-09-26T15:04:16.642 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:04:17,659 INFO [BUY] 9984 ts=2025-09-26T15:04:15.735 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:04:17,830 INFO [BUY] 8306 ts=2025-09-26T15:04:17.550 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 15:04:23,490 INFO [BUY] 7203 ts=2025-09-26T15:04:20.269 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:04:23,667 INFO [BUY] 9984 ts=2025-09-26T15:04:22.940 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:04:23,838 INFO [SELL] 8306 ts=2025-09-26T15:04:22.940 uptick=0.25 imb=0.06 spr=5.0 vol=1600 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:04:29,248 INFO [BUY] 7203 ts=2025-09-26T15:04:27.422 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:04:29,429 INFO [BUY] 9984 ts=2025-09-26T15:04:27.728 uptick=0.83 imb=0.06 spr=5.0 vol=1600 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 15:04:29,688 INFO [BUY] 8306 ts=2025-09-26T15:04:27.728 uptick=0.67 imb=0.06 spr=5.0 vol=2400 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 15:04:34,828 INFO [BUY] 7203 ts=2025-09-26T15:04:33.427 uptick=1.00 imb=0.06 spr=5.0 vol=1900 | base=0.917 adj=0.917 bonus=0.000 thr=0.60
+2025-09-26 15:04:35,003 INFO [BUY] 9984 ts=2025-09-26T15:04:34.335 uptick=0.80 imb=0.06 spr=5.0 vol=2100 | base=0.773 adj=0.773 bonus=0.000 thr=0.60
+2025-09-26 15:04:35,172 INFO [SELL] 8306 ts=2025-09-26T15:04:34.940 uptick=0.17 imb=0.06 spr=5.0 vol=1700 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 15:04:40,249 INFO [BUY] 7203 ts=2025-09-26T15:04:39.476 uptick=0.71 imb=0.06 spr=5.0 vol=2500 | base=0.738 adj=0.738 bonus=0.000 thr=0.60
+2025-09-26 15:04:40,424 INFO [BUY] 9984 ts=2025-09-26T15:04:39.729 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:04:40,655 INFO [BUY] 8306 ts=2025-09-26T15:04:40.333 uptick=0.67 imb=0.06 spr=5.0 vol=1400 | base=0.608 adj=0.608 bonus=0.000 thr=0.60
+2025-09-26 15:05:24,257 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 15:05:24,257 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 15:05:24,257 INFO [RULE] BUY  require_imb=False thr=0.3 vol_min=100 spread_max=20.0
+2025-09-26 15:05:24,257 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 15:05:24,444 INFO [SELL] 7203 ts=2025-09-26T15:05:21.469 uptick=0.33 imb=0.06 spr=5.0 vol=1700 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 15:05:24,624 INFO [BUY] 9984 ts=2025-09-26T15:05:21.721 uptick=1.00 imb=0.06 spr=5.0 vol=1500 | base=0.883 adj=0.883 bonus=0.000 thr=0.60
+2025-09-26 15:05:25,051 INFO [BUY] 8306 ts=2025-09-26T15:05:19.321 uptick=0.67 imb=0.06 spr=5.0 vol=2100 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 15:05:29,906 INFO [BUY] 7203 ts=2025-09-26T15:05:29.233 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 15:05:30,167 INFO [BUY] 9984 ts=2025-09-26T15:05:28.931 uptick=0.75 imb=0.06 spr=5.0 vol=2600 | base=0.775 adj=0.775 bonus=0.000 thr=0.60
+2025-09-26 15:05:30,509 INFO [BUY] 8306 ts=2025-09-26T15:05:28.325 uptick=0.67 imb=0.06 spr=5.0 vol=1700 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 15:05:35,540 INFO [BUY] 7203 ts=2025-09-26T15:05:34.071 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 15:05:35,802 INFO [BUY] 9984 ts=2025-09-26T15:05:33.769 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:05:35,975 INFO [BUY] 8306 ts=2025-09-26T15:05:35.532 uptick=0.75 imb=0.06 spr=5.0 vol=1600 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 15:05:41,092 INFO [BUY] 7203 ts=2025-09-26T15:05:40.671 uptick=1.00 imb=0.06 spr=5.0 vol=1200 | base=0.858 adj=0.858 bonus=0.000 thr=0.60
+2025-09-26 15:05:41,353 INFO [SELL] 9984 ts=2025-09-26T15:05:39.765 uptick=0.25 imb=0.06 spr=5.0 vol=1800 | base=0.700 adj=0.700 bonus=0.000 thr=0.60
+2025-09-26 15:05:41,708 INFO [BUY] 8306 ts=2025-09-26T15:05:39.765 uptick=0.80 imb=0.06 spr=5.0 vol=1300 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-26 15:05:46,791 INFO [BUY] 7203 ts=2025-09-26T15:05:46.065 uptick=0.75 imb=0.06 spr=5.0 vol=1500 | base=0.683 adj=0.683 bonus=0.000 thr=0.60
+2025-09-26 15:05:46,963 INFO [BUY] 9984 ts=2025-09-26T15:05:46.368 uptick=1.00 imb=0.06 spr=5.0 vol=2100 | base=0.933 adj=0.933 bonus=0.000 thr=0.60
+2025-09-26 15:05:47,140 INFO [BUY] 8306 ts=2025-09-26T15:05:46.368 uptick=0.80 imb=0.06 spr=5.0 vol=1900 | base=0.757 adj=0.757 bonus=0.000 thr=0.60
+2025-09-26 15:05:52,042 INFO [SELL] 7203 ts=2025-09-26T15:05:47.226 uptick=0.00 imb=0.06 spr=5.0 vol=1700 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 15:05:52,216 INFO [SELL] 9984 ts=2025-09-26T15:05:51.761 uptick=0.20 imb=0.06 spr=5.0 vol=1400 | base=0.707 adj=0.707 bonus=0.000 thr=0.60
+2025-09-26 15:05:52,385 INFO [BUY] 8306 ts=2025-09-26T15:05:51.761 uptick=0.67 imb=0.06 spr=5.0 vol=1500 | base=0.617 adj=0.617 bonus=0.000 thr=0.60
+2025-09-26 15:05:57,087 INFO [SELL] 7203 ts=2025-09-26T15:05:55.038 uptick=0.00 imb=0.06 spr=5.0 vol=2100 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 15:05:57,262 INFO [BUY] 9984 ts=2025-09-26T15:05:56.549 uptick=0.75 imb=0.06 spr=5.0 vol=1900 | base=0.717 adj=0.717 bonus=0.000 thr=0.60
+2025-09-26 15:05:57,682 INFO [BUY] 8306 ts=2025-09-26T15:05:53.525 uptick=0.75 imb=0.06 spr=5.0 vol=1800 | base=0.708 adj=0.708 bonus=0.000 thr=0.60
+2025-09-26 15:06:02,154 INFO [BUY] 7203 ts=2025-09-26T15:06:01.031 uptick=1.00 imb=0.06 spr=5.0 vol=2200 | base=0.942 adj=0.942 bonus=0.000 thr=0.60
+2025-09-26 15:06:02,415 INFO [SELL] 9984 ts=2025-09-26T15:06:00.729 uptick=0.00 imb=0.06 spr=5.0 vol=1700 | base=0.892 adj=0.892 bonus=0.000 thr=0.60
+2025-09-26 15:06:02,755 INFO [BUY] 8306 ts=2025-09-26T15:06:00.729 uptick=0.80 imb=0.06 spr=5.0 vol=1400 | base=0.715 adj=0.715 bonus=0.000 thr=0.60
+2025-09-26 15:06:07,645 INFO [BUY] 7203 ts=2025-09-26T15:06:06.423 uptick=1.00 imb=0.06 spr=5.0 vol=1000 | base=0.842 adj=0.842 bonus=0.000 thr=0.60
+2025-09-26 15:06:08,012 INFO [BUY] 9984 ts=2025-09-26T15:06:04.962 uptick=0.75 imb=0.06 spr=5.0 vol=2000 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 15:06:08,205 INFO [BUY] 8306 ts=2025-09-26T15:06:07.932 uptick=0.75 imb=0.06 spr=5.0 vol=2100 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:06:13,581 INFO [BUY] 7203 ts=2025-09-26T15:06:12.470 uptick=0.60 imb=0.06 spr=5.0 vol=2100 | base=0.613 adj=0.613 bonus=0.000 thr=0.60
+2025-09-26 15:06:13,765 INFO [BUY] 9984 ts=2025-09-26T15:06:13.346 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 15:06:13,947 INFO [SELL] 8306 ts=2025-09-26T15:06:13.347 uptick=0.25 imb=0.06 spr=5.0 vol=2200 | base=0.733 adj=0.733 bonus=0.000 thr=0.60
+2025-09-26 15:06:18,974 INFO [BUY] 8306 ts=2025-09-26T15:06:06.725 uptick=0.67 imb=0.06 spr=5.0 vol=1600 | base=0.625 adj=0.625 bonus=0.000 thr=0.60
+2025-09-26 15:06:19,428 INFO [BUY] 7203 ts=2025-09-26T15:06:19.034 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 15:06:19,699 INFO [BUY] 9984 ts=2025-09-26T15:06:18.127 uptick=0.67 imb=0.06 spr=5.0 vol=2000 | base=0.658 adj=0.658 bonus=0.000 thr=0.60
+2025-09-26 21:17:42,257 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 21:17:42,257 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 21:17:42,258 INFO [RULE] BUY  require_imb=False thr=0.3 vol_min=100 spread_max=20.0
+2025-09-26 21:17:42,258 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 21:17:42,357 INFO [BUY] 9984 ts=2025-09-26T09:25:37.267 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 21:17:42,420 INFO [SELL] 8306 ts=2025-09-26T09:25:37.267 uptick=0.25 imb=0.06 spr=5.0 vol=2300 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 21:17:42,421 INFO naut_runner stop
+2025-09-26 21:29:18,601 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 21:29:18,602 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 21:29:18,602 INFO [RULE] BUY  require_imb=False thr=0.3 vol_min=100 spread_max=20.0
+2025-09-26 21:29:18,602 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 21:29:18,703 INFO [BUY] 9984 ts=2025-09-26T09:25:37.267 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 21:29:18,767 INFO [SELL] 8306 ts=2025-09-26T09:25:37.267 uptick=0.25 imb=0.06 spr=5.0 vol=2300 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 21:29:18,767 INFO naut_runner stop
+2025-09-26 21:30:50,067 INFO naut_runner start (profile=prod, window=None)
+2025-09-26 21:30:50,068 INFO [RULE] SELL require_imb=False thr=0.62 spread_max=20.0
+2025-09-26 21:30:50,068 INFO [RULE] BUY  require_imb=False thr=0.3 vol_min=100 spread_max=20.0
+2025-09-26 21:30:50,068 INFO [RULE] read_window since=2025-09-26T00:00:00 until=2025-09-26T23:59:59
+2025-09-26 21:30:50,815 INFO [BUY] 9984 ts=2025-09-26T09:25:37.267 uptick=0.67 imb=0.06 spr=5.0 vol=2200 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 21:30:50,874 INFO [SELL] 8306 ts=2025-09-26T09:25:37.267 uptick=0.25 imb=0.06 spr=5.0 vol=2300 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 21:30:51,206 INFO [BUY] 7203 ts=2025-09-26T09:25:39.082 uptick=0.75 imb=0.06 spr=5.0 vol=2200 | base=0.742 adj=0.742 bonus=0.000 thr=0.60
+2025-09-26 21:30:55,913 INFO [BUY] 8306 ts=2025-09-26T09:25:43.265 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 21:30:56,260 INFO [BUY] 7203 ts=2025-09-26T09:25:48.715 uptick=0.75 imb=0.06 spr=5.0 vol=1400 | base=0.675 adj=0.675 bonus=0.000 thr=0.60
+2025-09-26 21:30:56,356 INFO [BUY] 9984 ts=2025-09-26T09:25:48.108 uptick=0.75 imb=0.06 spr=5.0 vol=2300 | base=0.750 adj=0.750 bonus=0.000 thr=0.60
+2025-09-26 21:31:00,947 INFO [SELL] 8306 ts=2025-09-26T09:25:45.688 uptick=0.25 imb=0.06 spr=5.0 vol=1400 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 21:31:01,296 INFO [SELL] 7203 ts=2025-09-26T09:25:57.081 uptick=0.25 imb=0.06 spr=5.0 vol=2100 | base=0.725 adj=0.725 bonus=0.000 thr=0.60
+2025-09-26 21:31:01,390 INFO [BUY] 9984 ts=2025-09-26T09:25:58.895 uptick=1.00 imb=0.06 spr=5.0 vol=2000 | base=0.925 adj=0.925 bonus=0.000 thr=0.60
+2025-09-26 21:31:05,949 INFO [BUY] 8306 ts=2025-09-26T09:25:56.476 uptick=1.00 imb=0.06 spr=5.0 vol=1700 | base=0.900 adj=0.900 bonus=0.000 thr=0.60
+2025-09-26 21:31:06,334 INFO [BUY] 7203 ts=2025-09-26T09:26:07.891 uptick=0.60 imb=0.06 spr=5.0 vol=2300 | base=0.630 adj=0.630 bonus=0.000 thr=0.60
+2025-09-26 21:31:06,503 INFO [SELL] 9984 ts=2025-09-26T09:26:04.865 uptick=0.33 imb=0.06 spr=5.0 vol=1800 | base=0.633 adj=0.633 bonus=0.000 thr=0.60
+2025-09-26 21:31:11,410 INFO [BUY] 7203 ts=2025-09-26T09:26:13.909 uptick=0.75 imb=0.06 spr=5.0 vol=1300 | base=0.667 adj=0.667 bonus=0.000 thr=0.60
+2025-09-26 21:31:11,729 INFO [BUY] 9984 ts=2025-09-26T09:26:14.514 uptick=0.67 imb=0.06 spr=5.0 vol=1800 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 21:31:11,787 INFO [SELL] 8306 ts=2025-09-26T09:26:19.305 uptick=0.33 imb=0.06 spr=5.0 vol=2500 | base=0.692 adj=0.692 bonus=0.000 thr=0.60
+2025-09-26 21:31:16,448 INFO [SELL] 7203 ts=2025-09-26T09:26:16.885 uptick=0.00 imb=0.06 spr=5.0 vol=2400 | base=0.950 adj=0.950 bonus=0.000 thr=0.60
+2025-09-26 21:31:16,770 INFO [BUY] 9984 ts=2025-09-26T09:26:22.277 uptick=0.83 imb=0.06 spr=5.0 vol=2300 | base=0.817 adj=0.817 bonus=0.000 thr=0.60
+2025-09-26 21:31:16,827 INFO [BUY] 8306 ts=2025-09-26T09:26:29.498 uptick=0.80 imb=0.06 spr=5.0 vol=1800 | base=0.748 adj=0.748 bonus=0.000 thr=0.60
+2025-09-26 21:31:21,487 INFO [BUY] 7203 ts=2025-09-26T09:26:27.076 uptick=1.00 imb=0.06 spr=5.0 vol=1400 | base=0.875 adj=0.875 bonus=0.000 thr=0.60
+2025-09-26 21:31:21,777 INFO [SELL] 9984 ts=2025-09-26T09:26:33.679 uptick=0.33 imb=0.06 spr=5.0 vol=1900 | base=0.642 adj=0.642 bonus=0.000 thr=0.60
+2025-09-26 21:31:21,834 INFO [SELL] 8306 ts=2025-09-26T09:26:39.077 uptick=0.17 imb=0.06 spr=5.0 vol=1700 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 21:31:26,798 INFO [BUY] 9984 ts=2025-09-26T09:26:40.890 uptick=0.80 imb=0.06 spr=5.0 vol=2400 | base=0.798 adj=0.798 bonus=0.000 thr=0.60
+2025-09-26 21:31:26,857 INFO [BUY] 8306 ts=2025-09-26T09:26:49.274 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 21:31:27,203 INFO [SELL] 7203 ts=2025-09-26T09:26:48.720 uptick=0.20 imb=0.06 spr=5.0 vol=1700 | base=0.732 adj=0.732 bonus=0.000 thr=0.60
+2025-09-26 21:31:31,820 INFO [BUY] 9984 ts=2025-09-26T09:26:49.274 uptick=0.60 imb=0.06 spr=5.0 vol=2200 | base=0.622 adj=0.622 bonus=0.000 thr=0.60
+2025-09-26 21:31:32,071 INFO [BUY] 8306 ts=2025-09-26T09:26:54.685 uptick=0.75 imb=0.06 spr=5.0 vol=2400 | base=0.758 adj=0.758 bonus=0.000 thr=0.60
+2025-09-26 21:31:32,382 INFO [BUY] 7203 ts=2025-09-26T09:27:00.089 uptick=1.00 imb=0.06 spr=5.0 vol=2300 | base=0.950 adj=0.950 bonus=0.000 thr=0.60
+2025-09-26 21:31:32,854 INFO KeyboardInterrupt
+2025-09-26 21:31:32,855 INFO naut_runner stop

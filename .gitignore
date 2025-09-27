@@ -16,3 +16,4 @@ __pycache__/
 !docs/specs/*.md
 !docs/specs/**/*.md
 templates/index.html.txt
+kabusapi-Python-v1.9.0/

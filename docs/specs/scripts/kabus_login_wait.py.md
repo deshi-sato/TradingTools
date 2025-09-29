@@ -27,5 +27,5 @@
 
 ## 実行例
 ```powershell
-py scripts/kabus_login_wait.py -Config config/stream_settings.json
+py -m scripts.kabus_login_wait -Config config\stream_settings.json
 ```

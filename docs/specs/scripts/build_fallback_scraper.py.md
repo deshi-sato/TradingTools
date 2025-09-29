@@ -42,6 +42,11 @@
 
 ## 実行例
 ```powershell
-py scripts/build_fallback_scraper.py --outdir data --filter config/fallback_filter.json --workers 8
 py scripts/build_fallback_scraper.py --no-browser --encoding cp932 --debug
+py -m scripts.build_fallback_scraper `
+  --outdir data `
+  --filter config/fallback_filter.json `
+  --workers 12 `
+  --no-browser
+
 ```

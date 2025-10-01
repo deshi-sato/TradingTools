@@ -1,35 +1,34 @@
 # scripts/ws_board_receiver.py
 # -*- coding: utf-8 -*-
 """
-Kabu WebSocket (Board / Tick) 受信ワーカー（RESTポーリング/モック/不要デバッグなし）
+Kabu WebSocket (Board / Tick) 受信ワーカー
 - Board → orderbook_snapshot へ UPSERT
 - Tick  → ticks_raw へ INSERT OR IGNORE
 設定は config/stream_settings.json に統合：
-  - token       : X-API-KEY に使用（毎回 /kabusapi/token で取得し設定）
+  - token       : X-API-KEY に使用
   - db_path     : SQLite のフルパス
-  - symbols     : 監視銘柄（ログ用途）
-  - price_guard : { "<code>": {"min": <float|null>, "max": <float|null>}, ... }
+  - symbols     : 監視銘柄（ログ表示のみ）
+  - price_guard : { "<code>": {"min": <float|null>, "max": <float|null>} }
 ws_url はコード内に固定（ws://localhost:18080/kabusapi/websocket）
 """
 
 import argparse
 import json
 import logging
+import os
 import random
 import sqlite3
 import sys
 import time
-import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 try:
     from websocket import create_connection  # pip install websocket-client
 except Exception:
-    create_connection = None  # type: ignore[assignment]
+    create_connection = None  # type: ignore
 
-
-WS_URL = "ws://localhost:18080/kabusapi/websocket"  # 要件2: 固定
+WS_URL = "ws://localhost:18080/kabusapi/websocket"
 
 
 def iso_now_ms() -> str:
@@ -55,16 +54,14 @@ def top3_sum(arr: Optional[Sequence[Any]]) -> int:
         try:
             s += int(float(v or 0))
         except Exception:
-            continue
+            pass
     return int(s)
 
 
 def looks_like_dummy(bid1: Optional[float], ask1: Optional[float], buy3: int, sell3: int) -> bool:
-    # 既知の固定ダミー板を除外（過去の不具合対策）
     return bid1 == 1000.0 and ask1 == 1000.5 and buy3 == 2800 and sell3 == 2500
 
 
-# ---- DB ----
 DDL = """
 CREATE TABLE IF NOT EXISTS orderbook_snapshot (
   ticker     TEXT NOT NULL,
@@ -107,7 +104,8 @@ def upsert_board(conn: sqlite3.Connection, row: Dict[str, Any]) -> None:
           total_ask=excluded.total_ask,
           src=excluded.src,
           seq=excluded.seq
-        """
+        """,
+        row,  # ★ ここが抜けていた
     )
 
 
@@ -116,49 +114,51 @@ def insert_tick(conn: sqlite3.Connection, row: Dict[str, Any]) -> None:
         """
         INSERT OR IGNORE INTO ticks_raw (ticker, ts, price, size, seq)
         VALUES (:ticker, :ts, :price, :size, :seq)
-        """
+        """,
+        row,  # ★ ここも抜けていた
     )
 
 
-# ---- config/helpers ----
 def load_json_utf8(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8-sig") as handle:
-        return json.load(handle)
+    with open(path, "r", encoding="utf-8-sig") as f:
+        return json.load(f)
 
 
 def build_guard_map(cfg: Dict[str, Any]) -> Dict[str, Tuple[Optional[float], Optional[float]]]:
-    """price_guard: { '7203': {'min':400, 'max':6000}, ... } を { '7203': (400.0, 6000.0) } に変換"""
     out: Dict[str, Tuple[Optional[float], Optional[float]]] = {}
     raw = cfg.get("price_guard") or {}
     if isinstance(raw, dict):
         for k, v in raw.items():
             if isinstance(v, dict):
-                lo = v.get("min"); hi = v.get("max")
+                lo = v.get("min")
+                hi = v.get("max")
                 lo_f = float(lo) if lo is not None else None
                 hi_f = float(hi) if hi is not None else None
                 out[str(k)] = (lo_f, hi_f)
     return out
 
 
-def guard_allows(ticker: str, bid1: Optional[float], ask1: Optional[float],
-                 guard: Dict[str, Tuple[Optional[float], Optional[float]]]) -> bool:
-    """銘柄コード完全一致で min/max を適用。未定義銘柄は許可（WARNのみ）"""
+def guard_allows(
+    ticker: str,
+    bid1: Optional[float],
+    ask1: Optional[float],
+    guard: Dict[str, Tuple[Optional[float], Optional[float]]],
+) -> bool:
     rng = guard.get(ticker)
     if not rng:
         return True
     lo, hi = rng
-    for price in (bid1, ask1):
-        if price is None:
+    for p in (bid1, ask1):
+        if p is None:
             continue
-        if (lo is not None and price < lo) or (hi is not None and price > hi):
+        if (lo is not None and p < lo) or (hi is not None and p > hi):
             return False
     return True
 
 
-# ---- main ----
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("-Config", required=True, help="path to config/stream_settings.json")
+    parser.add_argument("-Config", required=True)
     parser.add_argument("-Verbose", type=int, default=1)
     args = parser.parse_args()
 
@@ -166,7 +166,7 @@ def main() -> None:
 
     token = cfg.get("token") or cfg.get("kabu", {}).get("api_token")
     if not token:
-        print("[ERROR] 'token' が未設定です。/kabusapi/token の Token を設定してください。", file=sys.stderr)
+        print("[ERROR] 'token' が未設定です。", file=sys.stderr)
         sys.exit(2)
 
     db_path = cfg.get("db_path")
@@ -194,14 +194,9 @@ def main() -> None:
     conn.executescript(DDL)
     conn.commit()
 
-    if symbols:
-        undef = [s for s in symbols if s not in guard_map]
-        if undef:
-            log.warning(f"price_guard 未定義の銘柄（ガード無しで通す）: {undef}")
-
-    backoff = 1.0
     log.info("start ws receiver url=%s db=%s symbols=%s", WS_URL, db_path, symbols or "-")
 
+    backoff = 1.0
     try:
         while True:
             ws = None
@@ -211,19 +206,20 @@ def main() -> None:
                 backoff = 1.0
 
                 while True:
-                    raw_msg = ws.recv()
-                    if not raw_msg:
+                    raw = ws.recv()
+                    if not raw:
                         continue
-
                     try:
-                        payload = json.loads(raw_msg if isinstance(raw_msg, str) else raw_msg.decode("utf-8", "ignore"))
+                        payload = json.loads(raw if isinstance(raw, str) else raw.decode("utf-8", "ignore"))
                     except Exception:
                         continue
 
                     # ---- Board ----
                     if (
                         isinstance(payload, dict)
-                        and "Symbol" in payload and "BidPrice" in payload and "AskPrice" in payload
+                        and "Symbol" in payload
+                        and "BidPrice" in payload
+                        and "AskPrice" in payload
                     ):
                         ticker = str(payload["Symbol"])
                         bid1 = float(payload["BidPrice"]) if payload.get("BidPrice") is not None else None
@@ -234,10 +230,10 @@ def main() -> None:
                         if looks_like_dummy(bid1, ask1, buy3, sell3):
                             continue
                         if not guard_allows(ticker, bid1, ask1, guard_map):
-                            log.warning(f"guard skip {ticker}: bid={bid1} ask={ask1}")
+                            log.warning("guard skip %s: bid=%s ask=%s", ticker, bid1, ask1)
                             continue
 
-                        board_row = {
+                        row = {
                             "ticker": ticker,
                             "ts": payload.get("ExecutionDateTime") or payload.get("CurrentPriceTime") or iso_now_ms(),
                             "bid1": bid1,
@@ -251,15 +247,18 @@ def main() -> None:
                             "seq": int(payload.get("SeqNum") or 0),
                         }
                         with conn:
-                            upsert_board(conn, board_row)
+                            upsert_board(conn, row)
                         continue
 
                     # ---- Tick ----
                     if (
                         isinstance(payload, dict)
-                        and "Symbol" in payload and "Price" in payload and "Volume" in payload and "ExecutionDateTime" in payload
+                        and "Symbol" in payload
+                        and "Price" in payload
+                        and "Volume" in payload
+                        and "ExecutionDateTime" in payload
                     ):
-                        tick_row = {
+                        row = {
                             "ticker": str(payload["Symbol"]),
                             "ts": str(payload["ExecutionDateTime"]),
                             "price": float(payload["Price"]),
@@ -267,17 +266,17 @@ def main() -> None:
                             "seq": int(payload.get("SeqNum") or 0),
                         }
                         with conn:
-                            insert_tick(conn, tick_row)
+                            insert_tick(conn, row)
                         continue
 
-            except Exception as exc:
+            except Exception as e:
                 if ws:
                     try:
                         ws.close()
                     except Exception:
                         pass
                 wait = min(60.0, backoff) + random.random() * 0.5
-                log.warning("ws error: %s; reconnect in %.1fs", exc, wait)
+                log.warning("ws error: %s; reconnect in %.1fs", e, wait)
                 time.sleep(wait)
                 backoff = min(60.0, backoff * 2.0)
             finally:

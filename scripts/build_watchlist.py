@@ -2,7 +2,7 @@
 from __future__ import annotations
 import argparse, csv, logging, sys, re, glob, os
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Set
 
 # ----------------------------
 # ログ
@@ -34,32 +34,62 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 # ----------------------------
-# 正規化：symbol/exchange へ寄せる
+# 正規化：code/name を抽出
 # ----------------------------
-def normalize_to_symbol(rows: List[Dict[str, str]]) -> List[Tuple[str, int]]:
-    out: List[Tuple[str, int]] = []
+def normalize_to_code_name(rows: List[Dict[str, str]]) -> List[Tuple[str, str]]:
+    """
+    入力行から code（= 証券コード / シンボル相当）, name（銘柄名）を抽出。
+    name が無い場合は空文字にする。
+    """
+    out: List[Tuple[str, str]] = []
+    seen: Set[str] = set()
     for row in rows:
-        sym = (row.get("symbol") or row.get("code") or row.get("Code") or "").strip()
-        if not sym:
+        code = (
+            row.get("code")
+            or row.get("Code")
+            or row.get("symbol")
+            or row.get("Symbol")
+            or ""
+        ).strip()
+        if not code:
             continue
-        ex = (row.get("exchange") or row.get("exch") or row.get("market") or "").strip()
-        try:
-            exi = int(ex) if ex else 1
-        except Exception:
-            exi = 1
-        out.append((sym, exi))
+
+        # そのまま大文字化のみ（新規上場の英数字コード 215A 等にも対応）
+        code_norm = code.upper()
+
+        # 銘柄名の候補キー
+        name = (
+            row.get("name")
+            or row.get("Name")
+            or row.get("銘柄名")
+            or row.get("company")
+            or ""
+        ).strip()
+
+        if code_norm in seen:
+            continue
+        seen.add(code_norm)
+        out.append((code_norm, name))
     return out
 
 # ----------------------------
-# 書き出し：symbol,exchange 固定
+# 書き出し：rank, code, name, score, reason
 # ----------------------------
-def write_watchlist(path: Path, symbols: List[Tuple[str, int]]) -> None:
+def write_watchlist_top50(path: Path, items: List[Tuple[str, str]], fixed_score: int = 50) -> None:
+    """
+    watchlist_top50 と同じ5カラムで出力。
+    - rank: 1始まりの連番（入力順）
+    - code: 正規化済みコード
+    - name: 可能なら入力から採用。無ければ空文字
+    - score: 常に fixed_score（デフォルト 50）
+    - reason: 空文字（要件が出たら差し替え可能）
+    """
     ensure_parent(path)
     with path.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["symbol", "exchange"])
-        for s, ex in symbols:
-            w.writerow([s, ex])
+        w.writerow(["rank", "code", "name", "score", "reason"])
+        for idx, (code, name) in enumerate(items, start=1):
+            w.writerow([idx, code, name, fixed_score, ""])
 
 # ----------------------------
 # 最新ファイル選択（YYYYMMDDHHMM をファイル名から抽出）
@@ -99,10 +129,10 @@ def choose_latest_source(data_dir: Path) -> Tuple[Path, str]:
 # 引数
 # ----------------------------
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Build today's watchlist with latest perma/fallback")
+    ap = argparse.ArgumentParser(description="Build today's watchlist (top50-format output)")
     ap.add_argument("--data-dir", default=r".\data", help="perma/fallback の格納ディレクトリ")
-    ap.add_argument("--output",   default=r".\data\watchlist_today.csv", help="出力CSV")
-    ap.add_argument("--limit",    type=int, help="上位N件までに制限")
+    ap.add_argument("--output",   default=r".\data\watchlist_today.csv", help="出力CSV（rank,code,name,score,reason）")
+    ap.add_argument("--limit",    type=int, help="上位N件までに制限（例: 50）")
     ap.add_argument("--force-fallback", action="store_true", help="常に最新の fallback を採用（perma を無視）")
     ap.add_argument("--debug", action="store_true", help="DEBUGログを出す")
     return ap.parse_args()
@@ -118,7 +148,6 @@ def main() -> int:
     out_path = Path(args.output)
 
     if args.force_fallback:
-        # フォース時は fallback のみを探索
         fp, ts = _latest_by_glob(str(data_dir / "fallback_daytrade_*.csv"))
         if not fp:
             logging.error("No fallback_daytrade_*.csv in: %s", data_dir)
@@ -130,16 +159,16 @@ def main() -> int:
     logging.info("[watchlist] ranking source = %s -> %s", picked, source)
 
     rows = read_csv_any(source)
-    syms = normalize_to_symbol(rows)
-    if not syms:
+    items = normalize_to_code_name(rows)
+    if not items:
         logging.error("Selected source is empty or invalid: %s", source)
         return 1
 
     if args.limit is not None and args.limit >= 0:
-        syms = syms[: args.limit]
+        items = items[: args.limit]
 
-    write_watchlist(out_path, syms)
-    logging.info("Wrote watchlist: %s (%d rows) [source=%s]", out_path, len(syms), picked)
+    write_watchlist_top50(out_path, items, fixed_score=50)
+    logging.info("Wrote watchlist(top50-format): %s (%d rows) [source=%s]", out_path, len(items), picked)
     return 0
 
 if __name__ == "__main__":

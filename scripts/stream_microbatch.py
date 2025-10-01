@@ -2,15 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-stream_microbatch.py (REST/Mock削除版)
-
-- CurrentPrice (PUSH via kabu WS) -> tick_batch
-- features_stream は DB内の最新 orderbook_snapshot を参照して生成（本スクリプトは orderbook_snapshot を書かない）
-
-依存:
-  pip install websocket-client
-設定:
-  -Config JSON (symbols, host, port, token, market_window, window_ms, db_path, price_guard, tick_queue_max)
+stream_microbatch.py (安定版, IssueCode 対応)
+- kabu WebSocket PUSH からティックを受信し tick_batch / features_stream に書き込み
+- orderbook_snapshot は ws_board_receiver 側が書く想定で、ここでは参照のみ
 """
 
 import argparse
@@ -22,7 +16,7 @@ import sqlite3
 import sys
 import threading
 import time
-from datetime import datetime, time as dtime
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -37,17 +31,6 @@ def spread_bp(bid: Optional[float], ask: Optional[float]) -> Optional[float]:
     if bid is None or ask is None or bid <= 0 or ask <= 0:
         return None
     return (ask - bid) / ((ask + bid) / 2.0) * 10000.0
-
-def top3_sum(qtys: Optional[Sequence[Any]]) -> int:
-    if not isinstance(qtys, (list, tuple)):
-        return 0
-    s = 0
-    for v in list(qtys)[:3]:
-        try:
-            s += int(float(v))
-        except Exception:
-            pass
-    return int(s)
 
 def depth_imbalance_calc(buy3: int, sell3: int) -> float:
     total = buy3 + sell3
@@ -65,12 +48,17 @@ def load_json_utf8(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
-# ---------- WebSocket (price PUSH) ----------
+# ---------- WebSocket ----------
 try:
-    from websocket import create_connection, WebSocketTimeoutException
-except Exception as e:  # pragma: no cover
+    from websocket import (
+        create_connection,
+        WebSocketTimeoutException,
+        WebSocketConnectionClosedException,
+    )
+except Exception:
     create_connection = None
-    WebSocketTimeoutException = type("WebSocketTimeoutException", (), {})  # dummy
+    WebSocketTimeoutException = type("WebSocketTimeoutException", (), {})
+    WebSocketConnectionClosedException = type("WebSocketConnectionClosedException", (), {})
 
 # ---------- logging ----------
 logger = logging.getLogger(__name__)
@@ -86,17 +74,6 @@ CREATE TABLE IF NOT EXISTS tick_batch (
   downticks       INT,
   vol_sum         REAL,
   last_price      REAL
-);
-"""
-DDL_OB_SNAP = """
-CREATE TABLE IF NOT EXISTS orderbook_snapshot (
-  ticker TEXT,
-  ts     TEXT,
-  bid1   REAL,
-  ask1   REAL,
-  spread_bp REAL,
-  buy_top3  INT,
-  sell_top3 INT
 );
 """
 DDL_FEAT = """
@@ -121,9 +98,8 @@ CREATE TABLE IF NOT EXISTS features_stream (
 def ensure_tables(db_path: str) -> None:
     conn = sqlite3.connect(db_path)
     with conn:
-        conn.executescript(DDL_TICK_BATCH + DDL_OB_SNAP + DDL_FEAT)
+        conn.executescript(DDL_TICK_BATCH + DDL_FEAT)
         conn.execute("CREATE INDEX IF NOT EXISTS ix_tb_sym_end ON tick_batch(ticker, ts_window_end)")
-        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_obs ON orderbook_snapshot(ticker, ts)")
         conn.execute("CREATE INDEX IF NOT EXISTS ix_feat_sym_ts ON features_stream(ticker, ts)")
     conn.close()
 
@@ -143,11 +119,13 @@ def insert_features(conn, rows):
 
 # ---------- PUSH receiver ----------
 class PushTickReceiver(threading.Thread):
-    def __init__(self, symbols, q, stop_event, *, host, port, token, price_guard, connect_timeout=6.0, recv_timeout=2.0):
+    def __init__(self, symbols, q, stop_event, *, host, port, token, price_guard,
+                 connect_timeout=6.0, recv_timeout=2.0):
         if create_connection is None:
             raise RuntimeError("websocket-client is required (pip install websocket-client)")
         super().__init__(daemon=True)
-        self.symbols = symbols
+        self.symbols = list(symbols)
+        self.symbols_set = set(self.symbols)
         self.q = q
         self.stop_event = stop_event
         self.url = f"ws://{host}:{port}/kabusapi/websocket"
@@ -155,25 +133,39 @@ class PushTickReceiver(threading.Thread):
         self.connect_timeout = connect_timeout
         self.recv_timeout = recv_timeout
         self.price_guard = price_guard
-        self.last_vol = {s: None for s in symbols}
+        self.last_vol = {s: None for s in self.symbols}
 
     def run(self):
+        backoff = 1.0
         while not self.stop_event.is_set():
+            ws = None
             try:
                 ws = create_connection(self.url, header=self.headers, timeout=self.connect_timeout)
                 ws.settimeout(self.recv_timeout)
                 logger.info("connected (symbols=%d)", len(self.symbols))
+                backoff = 1.0
                 while not self.stop_event.is_set():
                     try:
                         msg = ws.recv()
                     except WebSocketTimeoutException:
                         continue
+                    except (WebSocketConnectionClosedException, OSError) as e:
+                        raise RuntimeError(f"connection closed: {e}")
                     if not msg:
                         continue
                     self._on_msg(msg)
             except Exception as e:
-                logger.warning("ws error: %s", e)
-                time.sleep(1.0)
+                if self.stop_event.is_set():
+                    break
+                logger.warning("ws error: %s (reconnect in %.1fs)", e, backoff)
+                time.sleep(backoff)
+                backoff = min(backoff * 2.0, 30.0)
+            finally:
+                try:
+                    if ws:
+                        ws.close()
+                except Exception:
+                    pass
 
     def _on_msg(self, payload: Any):
         try:
@@ -182,38 +174,53 @@ class PushTickReceiver(threading.Thread):
             obj = json.loads(payload)
         except Exception:
             return
+
+        # --- FIX: Symbol / IssueCode の両対応 ---
         sym = str(obj.get("Symbol") or obj.get("IssueCode") or "").strip()
-        if not sym:
+        if not sym or (self.symbols_set and sym not in self.symbols_set):
             return
+
         price = _to_float(obj.get("CurrentPrice") or obj.get("Price"))
         if price is None:
             return
 
-        # sanity (price guard)
+        # guard
         lo_hi = self.price_guard.get(sym, (None, None))
         if isinstance(lo_hi, (list, tuple)) and len(lo_hi) == 2:
             lo, hi = lo_hi
             if (lo is not None and price < lo) or (hi is not None and price > hi):
                 return
 
-        # 約定数量の推定（TradingVolume 差分）
-        tv = obj.get("TradingVolume") or obj.get("Volume")
+        # 出来高差分
+        tv_raw = obj.get("TradingVolume") or obj.get("Volume")
         qty = 0
         try:
-            tv = int(float(tv)) if tv is not None else None
+            tv = int(float(tv_raw)) if tv_raw is not None else None
             if tv is not None:
                 prev = self.last_vol.get(sym)
                 self.last_vol[sym] = tv
-                qty = max(0, tv - prev) if prev is not None else 0
+                if prev is not None:
+                    qty = max(0, tv - prev)
         except Exception:
             qty = 0
 
-        ts = obj.get("CurrentPriceTime") or obj.get("TradeTime") or obj.get("Time") or datetime.now().isoformat(timespec="milliseconds")
-        if "T" not in str(ts) and " " in str(ts):
-            ts = str(ts).replace(" ", "T", 1)
+        ts = (
+            obj.get("CurrentPriceTime")
+            or obj.get("TradeTime")
+            or obj.get("TransactTime")
+            or obj.get("Time")
+        )
+        if ts is None:
+            ts = datetime.now().isoformat(timespec="milliseconds")
+        else:
+            ts = str(ts)
+            if "T" not in ts and " " in ts:
+                ts = ts.replace(" ", "T", 1)
+            if len(ts) == 8 and ts.count(":") == 2:
+                ts = f"{datetime.now().strftime('%Y-%m-%d')}T{ts}"
 
         try:
-            self.q.put((sym, float(price), int(qty), str(ts)), timeout=0.02)
+            self.q.put((sym, float(price), int(qty), ts), timeout=0.02)
         except queue.Full:
             pass
 
@@ -241,7 +248,7 @@ def main() -> None:
     symbols = list(cfg.get("symbols", []))
     host = str(cfg.get("host","localhost"))
     port = int(cfg.get("port",18080))
-    token = str(cfg.get("token") or os.environ.get("KABU_TOKEN") or os.environ.get("KABU_API_KEY") or "")
+    token = str(cfg.get("token") or "")
     if not symbols:
         print("ERROR: symbols empty", file=sys.stderr); sys.exit(2)
     if not token:
@@ -272,31 +279,6 @@ def main() -> None:
     rx = PushTickReceiver(symbols, q, stop_event, host=host, port=port, token=token, price_guard=price_guard)
     rx.start()
 
-    # 板は DBに既に蓄積されている前提で、features_stream 生成時に「直近の板」を参照
-    def latest_board_from_db(sym: str, ts_limit_iso: Optional[str]) -> Optional[Dict[str, Any]]:
-        if ts_limit_iso:
-            row = conn.execute(
-                """select bid1, ask1, buy_top3, sell_top3
-                   from orderbook_snapshot
-                   where ticker=? and ts <= ?
-                   order by ts desc limit 1""",
-                (sym, ts_limit_iso)
-            ).fetchone()
-        else:
-            row = conn.execute(
-                """select bid1, ask1, buy_top3, sell_top3
-                   from orderbook_snapshot
-                   where ticker=?
-                   order by ts desc limit 1""",
-                (sym,)
-            ).fetchone()
-        if not row:
-            return None
-        b1, a1, bt, st = row
-        if b1 is None or a1 is None or b1<=0 or a1<=0 or a1<b1:
-            return None
-        return {"bid1": b1, "ask1": a1, "buy3": int(bt), "sell3": int(st), "spr": spread_bp(b1,a1)}
-
     last_price: Dict[str, Optional[float]] = {s: None for s in symbols}
     window_s = window_ms / 1000.0
     next_cut = time.monotonic() + window_s
@@ -323,7 +305,6 @@ def main() -> None:
             for s in symbols:
                 arr = ticks_buf[s]
                 if arr:
-                    # ティック集約
                     upt=dwn=0; vol=0.0
                     prev = last_price[s] if last_price[s] is not None else arr[0][0]
                     for price, qty, _ in arr:
@@ -334,34 +315,33 @@ def main() -> None:
                     ts_end_iso = arr[-1][2]
                     tick_rows.append((s, ts_start_iso, ts_end_iso, len(arr), upt, dwn, vol, last_price[s]))
 
-                    # 直近の板（DB参照のみ）
-                    ob = latest_board_from_db(s, ts_end_iso)
+                    ob = conn.execute(
+                        """select bid1, ask1, buy_top3, sell_top3
+                           from orderbook_snapshot
+                           where ticker=? and ts <= ?
+                           order by ts desc limit 1""",
+                        (s, ts_end_iso)
+                    ).fetchone()
                     if ob:
-                        b1,a1 = ob["bid1"], ob["ask1"]
-                        spr   = ob["spr"]
-                        buy3  = ob["buy3"]
-                        sell3 = ob["sell3"]
-                    else:
-                        b1=a1=None; spr=None; buy3=sell3=0
-
-                    imb = depth_imbalance_calc(int(buy3), int(sell3))
-                    feat_rows.append({
-                        "ticker": s, "ts": ts_end_iso,
-                        "uptick_ratio": uptick_ratio(upt,dwn),
-                        "vol_sum": vol,
-                        "spread_bp": spr,
-                        "buy_top3": int(buy3),
-                        "sell_top3": int(sell3),
-                        "depth_imbalance": float(imb),
-                        "burst_buy": 0, "burst_sell": 0, "burst_score": 0.0,
-                        "streak_len": 0, "surge_vol_ratio": 1.0, "last_signal_ts": ""
-                    })
+                        b1,a1,bt,st = ob
+                        spr = spread_bp(b1,a1)
+                        imb = depth_imbalance_calc(int(bt), int(st))
+                        feat_rows.append({
+                            "ticker": s, "ts": ts_end_iso,
+                            "uptick_ratio": uptick_ratio(upt,dwn),
+                            "vol_sum": vol,
+                            "spread_bp": spr,
+                            "buy_top3": int(bt),
+                            "sell_top3": int(st),
+                            "depth_imbalance": imb,
+                            "burst_buy": 0, "burst_sell": 0, "burst_score": 0.0,
+                            "streak_len": 0, "surge_vol_ratio": 1.0, "last_signal_ts": ""
+                        })
 
             with conn:
                 insert_tick_batch(conn, tick_rows)
                 insert_features(conn, feat_rows)
 
-            # 最小限のオペレーションログのみ残す
             if tick_rows:
                 logger.info("batch ticks=%s feats=%s", sum(r[3] for r in tick_rows), len(feat_rows))
 

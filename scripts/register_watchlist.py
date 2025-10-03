@@ -1,7 +1,9 @@
 # scripts/register_watchlist.py
-# kabuステーションAPI /register に watchlist_top50.csv の code を登録し、
-# stream_settings.json の "symbols" と "price_guard" を更新する。
-# 追加修正: 登録前に /unregister/all を必ず実行し、結果をコンソール表示する。
+# kabuステーションAPI: /register へ銘柄を送信し、stream_settings.json の
+# "symbols" と "price_guard" を更新する。
+# 仕様:
+#  - 登録前に「全解除」を実施（DELETE /register/all が404なら PUT 空配列でフォールバック）
+#  - /register の送信形式は {"Symbols":[{"Symbol":"8136","Exchange":1}, ...]}
 
 import argparse
 import csv
@@ -13,7 +15,7 @@ from typing import List, Dict
 try:
     import requests
 except ImportError:
-    print("requests が未インストールです。PowerShellで:  py -m pip install requests", file=sys.stderr)
+    print("requests 未インストール。PowerShellで:  py -m pip install requests", file=sys.stderr)
     sys.exit(1)
 
 
@@ -33,16 +35,15 @@ def load_codes(csv_path: Path) -> List[str]:
         try:
             with csv_path.open("r", encoding=enc, newline="") as f:
                 reader = csv.DictReader(f)
-                cols = [c.lower() for c in reader.fieldnames or []]
+                cols = [c.lower() for c in (reader.fieldnames or [])]
                 if "code" in cols:
                     col = reader.fieldnames[cols.index("code")]
                 elif "ticker" in cols:
                     col = reader.fieldnames[cols.index("ticker")]
-                elif "銘柄コード" in reader.fieldnames:
+                elif "銘柄コード" in (reader.fieldnames or []):
                     col = "銘柄コード"
                 else:
                     raise RuntimeError("CSVに code 列がありません")
-
                 codes = [row[col].strip() for row in reader if row.get(col)]
                 if codes:
                     return codes
@@ -76,17 +77,28 @@ def fetch_price_guard(port: int, token: str, code: str, exchange: int = 1) -> Di
 
 
 def unregister_all(port: int, token: str) -> None:
-    """全解除を実行して結果をコンソールに表示"""
-    url = f"http://localhost:{port}/kabusapi/register/all"
-    headers = {"X-API-KEY": token}
+    """全解除。DELETE /register/all が404等なら PUT 空配列でフォールバック。"""
+    base = f"http://localhost:{port}/kabusapi"
+    headers = {"X-API-KEY": token, "Content-Type": "application/json"}
+    # 1) DELETE /register/all を試す
     try:
-        resp = requests.delete(url, headers=headers, timeout=10)
+        resp = requests.delete(f"{base}/unregister/all", headers=headers, timeout=10)
         if resp.status_code == 200:
-            print("[UNREGISTER] all symbols cleared")
+            print("[UNREGISTER] all symbols cleared (DELETE /unregister/all)")
+            return
         else:
-            print(f"[UNREGISTER] failed status={resp.status_code} body={resp.text}", file=sys.stderr)
+            print(f"[UNREGISTER] DELETE fallback status={resp.status_code} body={resp.text}", file=sys.stderr)
     except Exception as e:
-        print(f"[UNREGISTER] exception: {e}", file=sys.stderr)
+        print(f"[UNREGISTER] DELETE exception: {e}", file=sys.stderr)
+    # 2) フォールバック: PUT 空配列で上書き
+    try:
+        resp2 = requests.put(f"{base}/register", headers=headers, json={"Symbols": []}, timeout=10)
+        if resp2.status_code == 200:
+            print("[UNREGISTER] all symbols cleared (PUT empty list)")
+        else:
+            print(f"[UNREGISTER] PUT empty failed status={resp2.status_code} body={resp2.text}", file=sys.stderr)
+    except Exception as e:
+        print(f"[UNREGISTER] PUT empty exception: {e}", file=sys.stderr)
 
 
 def main():
@@ -106,26 +118,31 @@ def main():
     if not token:
         raise RuntimeError("Configの token が空です。先に kabus_login_wait.py を実行してください。")
 
-    # --- 追加: 全解除 ---
+    # --- 全解除 ---
     unregister_all(port, token)
 
+    # --- CSV → codes(list[str]) ---
     codes = load_codes(Path(args.Input))[: max(1, args.Max)]
-    symbols = build_symbols(codes, exchange=args.Exchange)
-
     if args.Verbose:
         print(f"[WATCHLIST] loaded {len(codes)} codes: {codes[:10]}...")
 
+    # --- /register 送信用に {"Symbol":..., "Exchange":...} へ変換 ---
+    symbols_payload = build_symbols(codes, exchange=args.Exchange)
+
+    # --- 送信 ---
     if args.DryRun:
-        print("[REGISTER] DryRun=ON → API送信しません。")
+        print("[REGISTER] DryRun=ON → API送信しません。payload=", symbols_payload)
     else:
-        resp = put_register(port, token, symbols)
+        resp = put_register(port, token, symbols_payload)
         if resp.status_code != 200:
             print(f"[FAIL] register status={resp.status_code} body={resp.text}", file=sys.stderr)
             sys.exit(2)
         print("[REGISTER] Completed.")
 
-    # --- stream_settings.json 更新 ---
+    # --- stream_settings.json 更新（symbolsは純粋なコード配列を保持）---
     config["symbols"] = codes
+
+    # --- price_guard 取得 ---
     pg_map: Dict[str, Dict[str, float]] = {}
     for c in codes:
         try:

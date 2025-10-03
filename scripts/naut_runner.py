@@ -4,7 +4,7 @@ import argparse
 import logging
 import sqlite3
 import sys
-import time
+import time, atexit, os, ctypes
 from collections import defaultdict
 from datetime import datetime, time as dtime, timedelta
 from pathlib import Path
@@ -16,6 +16,42 @@ from scripts.common_config import load_json_utf8
 logger = logging.getLogger(__name__)
 
 # ------------------------ base score / logging helpers ------------------------
+# --- singleton guard: 二重起動防止（Windows Mutex + PIDファイル） ---
+_singleton_handle = None
+_pidfile_path = None
+
+def _cleanup_pid():
+    global _singleton_handle, _pidfile_path
+    try:
+        if _singleton_handle:
+            ctypes.windll.kernel32.CloseHandle(_singleton_handle)
+    except Exception:
+        pass
+    try:
+        if _pidfile_path and _pidfile_path.exists():
+            _pidfile_path.unlink()
+    except Exception:
+        pass
+
+def singleton_guard(tag: str):
+    """同名タスクが動作中なら即終了。"""
+    global _singleton_handle, _pidfile_path
+    # Mutex で重複検出
+    name = f"Global\\{tag}"
+    _singleton_handle = ctypes.windll.kernel32.CreateMutexW(None, False, name)
+    if ctypes.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        print(f"[ERROR] {tag} already running", file=sys.stderr)
+        sys.exit(1)
+
+    # PIDファイルも置く
+    pid_dir = Path("runtime/pids"); pid_dir.mkdir(parents=True, exist_ok=True)
+    _pidfile_path = pid_dir / f"{tag}.pid"
+    try:
+        _pidfile_path.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception:
+        pass
+
+    atexit.register(_cleanup_pid)
 
 def compute_base_score(side: str, f: dict, cfg: dict, vol_min_by_code: dict) -> float:
     vol_min = max(1, int(vol_min_by_code.get(f["ticker"], cfg["VOL_MIN"])))
@@ -284,6 +320,7 @@ def is_sell_signal(
 # ------------------------------- main loop ------------------------------------
 
 def main() -> None:
+    singleton_guard("naut_runner")
     ap = argparse.ArgumentParser()
     ap.add_argument("-Config", required=True)
     ap.add_argument("-Verbose", type=int, default=1)

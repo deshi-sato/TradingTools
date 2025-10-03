@@ -1,12 +1,12 @@
 # scripts/register_watchlist.py
 # kabuステーションAPI /register に watchlist_top50.csv の code を登録し、
 # stream_settings.json の "symbols" と "price_guard" を更新する。
+# 追加修正: 登録前に /unregister/all を必ず実行し、結果をコンソール表示する。
 
 import argparse
 import csv
 import json
 import sys
-import time
 from pathlib import Path
 from typing import List, Dict
 
@@ -75,6 +75,20 @@ def fetch_price_guard(port: int, token: str, code: str, exchange: int = 1) -> Di
     }
 
 
+def unregister_all(port: int, token: str) -> None:
+    """全解除を実行して結果をコンソールに表示"""
+    url = f"http://localhost:{port}/kabusapi/register/all"
+    headers = {"X-API-KEY": token}
+    try:
+        resp = requests.delete(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            print("[UNREGISTER] all symbols cleared")
+        else:
+            print(f"[UNREGISTER] failed status={resp.status_code} body={resp.text}", file=sys.stderr)
+    except Exception as e:
+        print(f"[UNREGISTER] exception: {e}", file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-Config", required=True, help="設定JSONパス（port, token を含む）")
@@ -91,6 +105,9 @@ def main():
     token = (config.get("token") or "").strip()
     if not token:
         raise RuntimeError("Configの token が空です。先に kabus_login_wait.py を実行してください。")
+
+    # --- 追加: 全解除 ---
+    unregister_all(port, token)
 
     codes = load_codes(Path(args.Input))[: max(1, args.Max)]
     symbols = build_symbols(codes, exchange=args.Exchange)

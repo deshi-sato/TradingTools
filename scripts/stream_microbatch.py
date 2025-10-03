@@ -9,6 +9,7 @@ stream_microbatch.py (一次バッファ化 + keepalive修正)
 """
 
 import argparse, json, logging, queue, sqlite3, sys, threading, time, socket
+import ctypes, atexit, os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -23,6 +24,43 @@ except Exception:
 logger=logging.getLogger(__name__)
 
 # helpers -------------------------------------------------
+# --- singleton guard: 二重起動防止（Windows Mutex + PIDファイル） ---
+_singleton_handle = None
+_pidfile_path = None
+
+def _cleanup_pid():
+    global _singleton_handle, _pidfile_path
+    try:
+        if _singleton_handle:
+            ctypes.windll.kernel32.CloseHandle(_singleton_handle)
+    except Exception:
+        pass
+    try:
+        if _pidfile_path and _pidfile_path.exists():
+            _pidfile_path.unlink()
+    except Exception:
+        pass
+
+def singleton_guard(tag: str):
+    """同名タスクが動作中なら即終了。"""
+    global _singleton_handle, _pidfile_path
+    # Mutex で重複検出
+    name = f"Global\\{tag}"
+    _singleton_handle = ctypes.windll.kernel32.CreateMutexW(None, False, name)
+    if ctypes.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        print(f"[ERROR] {tag} already running", file=sys.stderr)
+        sys.exit(1)
+
+    # PIDファイルも置く（異常終了時の痕跡削除用）
+    pid_dir = Path("runtime/pids"); pid_dir.mkdir(parents=True, exist_ok=True)
+    _pidfile_path = pid_dir / f"{tag}.pid"
+    try:
+        _pidfile_path.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception:
+        pass
+
+    atexit.register(_cleanup_pid)
+
 def _to_float(x:Any)->Optional[float]:
     try: return float(x) if x is not None else None
     except: return None
@@ -96,7 +134,6 @@ class RawWS(threading.Thread):
                     try:
                         msg=ws.recv(); last_rx=now
                     except WebSocketTimeoutException:
-                        if time.time()-last_rx>self.idle_reconnect_sec: raise RuntimeError("idle timeout")
                         continue
                     except (WebSocketConnectionClosedException,OSError): raise RuntimeError("ws closed")
                     if not msg: continue
@@ -166,6 +203,7 @@ def within_market_window(spec):
 
 # main ----------------------------------------------------
 def main():
+    singleton_guard("stream_microbatch")   # ← main 冒頭に追加
     ap=argparse.ArgumentParser()
     ap.add_argument("-Config",required=True)
     ap.add_argument("-Verbose",type=int,default=1)

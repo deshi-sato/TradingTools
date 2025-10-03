@@ -15,13 +15,14 @@ ws_url はコード内に固定（ws://localhost:18080/kabusapi/websocket）
 import argparse
 import json
 import logging
-import os
+import os, sys, atexit, ctypes
 import random
 import sqlite3
 import sys
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Sequence, Tuple
+from pathlib import Path
 
 try:
     from websocket import create_connection  # pip install websocket-client
@@ -30,6 +31,42 @@ except Exception:
 
 WS_URL = "ws://localhost:18080/kabusapi/websocket"
 
+# --- singleton guard: 二重起動防止（Windows Mutex + PIDファイル） ---
+_singleton_handle = None
+_pidfile_path = None
+
+def _cleanup_pid():
+    global _singleton_handle, _pidfile_path
+    try:
+        if _singleton_handle:
+            ctypes.windll.kernel32.CloseHandle(_singleton_handle)
+    except Exception:
+        pass
+    try:
+        if _pidfile_path and _pidfile_path.exists():
+            _pidfile_path.unlink()
+    except Exception:
+        pass
+
+def singleton_guard(tag: str):
+    """同名タスクが動作中なら即終了。"""
+    global _singleton_handle, _pidfile_path
+    # Mutex で重複検出
+    name = f"Global\\{tag}"
+    _singleton_handle = ctypes.windll.kernel32.CreateMutexW(None, False, name)
+    if ctypes.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        print(f"[ERROR] {tag} already running", file=sys.stderr)
+        sys.exit(1)
+
+    # PIDファイルも置く
+    pid_dir = Path("runtime/pids"); pid_dir.mkdir(parents=True, exist_ok=True)
+    _pidfile_path = pid_dir / f"{tag}.pid"
+    try:
+        _pidfile_path.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception:
+        pass
+
+    atexit.register(_cleanup_pid)
 
 def iso_now_ms() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="milliseconds")
@@ -157,6 +194,7 @@ def guard_allows(
 
 
 def main() -> None:
+    singleton_guard("ws_board_receiver")   # ← main 冒頭に追加
     parser = argparse.ArgumentParser()
     parser.add_argument("-Config", required=True)
     parser.add_argument("-Verbose", type=int, default=1)

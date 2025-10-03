@@ -82,7 +82,7 @@ def unregister_all(port: int, token: str) -> None:
     headers = {"X-API-KEY": token, "Content-Type": "application/json"}
     # 1) DELETE /register/all を試す
     try:
-        resp = requests.delete(f"{base}/unregister/all", headers=headers, timeout=10)
+        resp = requests.put(f"{base}/unregister/all", headers=headers, timeout=10)
         if resp.status_code == 200:
             print("[UNREGISTER] all symbols cleared (DELETE /unregister/all)")
             return

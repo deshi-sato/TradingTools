@@ -8,6 +8,9 @@ from typing import Any, Dict
 
 _SNIPPET_LEN = 120
 
+def load_json_utf8(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def _format_snippet(text: str) -> str:
     cleaned = text.replace("\\r", " ").replace("\\n", " ")

@@ -21,17 +21,11 @@ import time
 import ctypes
 import atexit
 import os
-import hashlib
 from collections import deque
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from math import exp, tanh
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-try:
-    from zoneinfo import ZoneInfo
-except Exception:  # pragma: no cover - fallback when zoneinfo unavailable
-    ZoneInfo = None  # type: ignore[assignment]
 
 try:
     from websocket import create_connection, WebSocketTimeoutException, WebSocketConnectionClosedException
@@ -101,19 +95,6 @@ def load_json_utf8(path: str):
         return json.load(f)
 
 
-DDL_DATASET_REGISTRY = """
-CREATE TABLE IF NOT EXISTS dataset_registry (
-  dataset_id     TEXT PRIMARY KEY,
-  created_at     TEXT NOT NULL,
-  source_db_path TEXT NOT NULL,
-  source_db_sha1 TEXT NOT NULL,
-  build_tool     TEXT NOT NULL,
-  code_version   TEXT NOT NULL,
-  config_json    TEXT NOT NULL
-);
-"""
-
-
 DDL_OB = """
 CREATE TABLE IF NOT EXISTS orderbook_snapshot(
   ticker TEXT,
@@ -174,139 +155,6 @@ FEATURE_COLUMNS = (
     "bidqty1",
     "askqty1",
 )
-
-
-JST = timezone(timedelta(hours=9))
-if ZoneInfo is not None:
-    try:
-        JST = ZoneInfo("Asia/Tokyo")
-    except Exception:
-        pass
-
-
-def get_jst_now() -> datetime:
-    return datetime.now(tz=JST)
-
-
-def get_trading_date_str(now: Optional[datetime] = None) -> str:
-    current = now or get_jst_now()
-    if current.tzinfo is None:
-        current = current.replace(tzinfo=JST)
-    else:
-        current = current.astimezone(JST)
-    return current.strftime("%Y%m%d")
-
-
-def ensure_parent_dir(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def resolve_db_paths(cfg_db_path: Optional[str], trading_date: str) -> Dict[str, Path]:
-    base_dir: Path
-    if cfg_db_path:
-        try:
-            candidate = Path(cfg_db_path)
-            if candidate.is_dir():
-                base_dir = candidate
-            else:
-                base_dir = candidate.parent
-        except Exception:
-            base_dir = Path("db")
-    else:
-        base_dir = Path("db")
-    refeed_name = f"naut_market_{trading_date}_refeed.db"
-    refeed_path = (base_dir / refeed_name).resolve()
-    return {"refeed": refeed_path}
-
-
-def sha1_file(path: Path) -> str:
-    try:
-        if not path.exists():
-            logger.warning("sha1 skipped; file missing: %s", path)
-            return ""
-        h = hashlib.sha1()
-        with path.open("rb") as f:
-            for chunk in iter(lambda: f.read(8192), b""):
-                h.update(chunk)
-        return h.hexdigest()
-    except Exception as exc:
-        logger.warning("sha1 failed for %s: %s", path, exc)
-        return ""
-
-
-def build_config_snapshot(cfg: Dict[str, Any]) -> Dict[str, Any]:
-    snapshot: Dict[str, Any] = {}
-    symbols = [str(s) for s in cfg.get("symbols", [])]
-    snapshot["symbols_preview"] = symbols[:10]
-    snapshot["symbols_total"] = len(symbols)
-    for key in ("mode", "trading_start", "trading_end"):
-        if key in cfg:
-            snapshot[key] = cfg[key]
-    for key in ("queue_max", "orderbook_queue_max", "NoSleep", "no_sleep"):
-        if key in cfg:
-            snapshot[key] = cfg[key]
-    settings = cfg.get("settings")
-    if isinstance(settings, dict):
-        naut_settings = settings.get("naut")
-        if isinstance(naut_settings, dict):
-            snapshot["settings_naut"] = naut_settings
-    watchlist = cfg.get("watchlist")
-    if isinstance(watchlist, list):
-        watchlist_entries = [str(s) for s in watchlist]
-        snapshot["watchlist_preview"] = watchlist_entries[:10]
-        snapshot["watchlist_total"] = len(watchlist_entries)
-    burst_cfg = cfg.get("burst")
-    if isinstance(burst_cfg, dict):
-        snapshot["burst"] = burst_cfg
-    return snapshot
-
-
-def register_dataset(
-    db_path: Path,
-    config_dict: Dict[str, Any],
-    code_version: str,
-    now_jst: Optional[datetime] = None,
-) -> tuple[Optional[str], bool]:
-    timestamp = now_jst or get_jst_now()
-    if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=JST)
-    else:
-        timestamp = timestamp.astimezone(JST)
-    dataset_id = f"REF{timestamp.strftime('%Y%m%d_%H%M')}"
-    created_at = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
-    config_json = json.dumps(config_dict, ensure_ascii=False)
-    source_db_path = str(db_path)
-    source_db_sha1 = sha1_file(db_path)
-
-    conn = sqlite3.connect(source_db_path)
-    try:
-        with conn:
-            conn.execute(DDL_DATASET_REGISTRY)
-            try:
-                conn.execute(
-                    """
-                    INSERT INTO dataset_registry (dataset_id, created_at, source_db_path, source_db_sha1, build_tool, code_version, config_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        dataset_id,
-                        created_at,
-                        source_db_path,
-                        source_db_sha1,
-                        "stream_microbatch.py",
-                        code_version or "unknown",
-                        config_json,
-                    ),
-                )
-                inserted = True
-            except sqlite3.IntegrityError:
-                inserted = False
-        return dataset_id, inserted
-    except Exception as exc:
-        logger.exception("dataset_registry registration failed: %s", exc)
-        return None, False
-    finally:
-        conn.close()
 
 
 def _get_table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
@@ -819,7 +667,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-Config", required=True)
     ap.add_argument("-Verbose", type=int, default=1)
-    ap.add_argument("-CodeVersion", default="unknown")
     args = ap.parse_args()
 
     cfg = load_json_utf8(args.Config)
@@ -832,13 +679,7 @@ def main():
     if not token:
         sys.exit("ERROR: token empty")
 
-    jst_now = get_jst_now()
-    trading_date = get_trading_date_str(jst_now)
-    db_paths = resolve_db_paths(cfg.get("db_path"), trading_date)
-    refeed_path = db_paths["refeed"]
-    ensure_parent_dir(refeed_path)
-    db_path = str(refeed_path)
-
+    db_path = cfg.get("db_path", "naut_market.db")
     log_path = cfg.get("log_path", "logs/stream_microbatch.log")
     Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -849,30 +690,7 @@ def main():
     )
     logger.info("boot symbols=%s db=%s", symbols, db_path)
 
-    print(f"[stream_microbatch] Trading date (JST): {jst_now.strftime('%Y-%m-%d')}")
-    print(f"[stream_microbatch] Refeed DB: {db_path}")
-
-    try:
-        ensure_tables(db_path)
-    except Exception as exc:
-        logger.exception("failed to prepare database: %s", exc)
-        print(f"[stream_microbatch] DB初期化失敗: {exc}")
-        return
-
-    dataset_id, inserted = register_dataset(
-        refeed_path,
-        build_config_snapshot(cfg),
-        args.CodeVersion,
-        now_jst=jst_now,
-    )
-    if dataset_id:
-        status = "registered" if inserted else "already exists"
-        print(f"[stream_microbatch] dataset_id: {dataset_id} ({status})")
-        logger.info("dataset_registry %s dataset_id=%s", status, dataset_id)
-    else:
-        print("[stream_microbatch] dataset_registry 登録失敗")
-        logger.error("dataset_registry registration failed; aborting start")
-        return
+    ensure_tables(db_path)
 
     board_q = queue.Queue(maxsize=int(cfg.get("orderbook_queue_max", 10000)))
     buf = PushBuffer(maxsize=int(cfg.get("queue_max", 2000)))

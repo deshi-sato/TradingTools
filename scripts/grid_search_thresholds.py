@@ -47,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-Horizons", default="60,120")
     parser.add_argument("-MinTrades", type=int, default=150)
     parser.add_argument("-EVFloor", type=float, default=0.0)
+    parser.add_argument("-CV", type=int, default=0)
     parser.add_argument("-Out")
     parser.add_argument("-Verbose", type=int, default=0)
     return parser.parse_args()
@@ -213,42 +214,29 @@ def _to_float(value: Optional[float]) -> Optional[float]:
         return None
 
 
-def build_group_folds(groups: Sequence[str], n_splits: int) -> List[List[int]]:
-    unique_groups: Dict[str, int] = {}
-    for g in groups:
-        unique_groups[g] = unique_groups.get(g, 0) + 1
-    unique_keys = sorted(unique_groups.keys())
-    if not unique_keys:
-        return [list(range(len(groups)))]
-    n_splits = max(1, min(n_splits, len(unique_keys)))
-    if n_splits == 1:
-        return [list(range(len(groups)))]
+def group_by_day(rows: Sequence[DataRow]) -> Tuple[List[str], Dict[str, List[int]]]:
+    day_groups: Dict[str, List[int]] = defaultdict(list)
+    for idx, row in enumerate(rows):
+        day_groups[row.group].append(idx)
+    days = sorted(day_groups.keys())
+    return days, day_groups
 
-    fold_groups: List[List[str]] = [[] for _ in range(n_splits)]
-    fold_sizes = [0] * n_splits
-    for g in unique_keys:
-        size = unique_groups[g]
-        target = min(range(n_splits), key=lambda idx: fold_sizes[idx])
-        fold_groups[target].append(g)
+
+def make_day_folds(days: Sequence[str], day_groups: Dict[str, List[int]], cv: int) -> List[List[str]]:
+    if cv <= 1 or len(days) <= 1:
+        return [list(days)]
+    cv = max(2, min(cv, len(days)))
+    folds: List[List[str]] = [[] for _ in range(cv)]
+    fold_sizes = [0] * cv
+    for day in days:
+        size = len(day_groups.get(day, []))
+        target = min(range(cv), key=lambda idx: fold_sizes[idx])
+        folds[target].append(day)
         fold_sizes[target] += size
-
-    indices_by_group: Dict[str, List[int]] = defaultdict(list)
-    for idx, g in enumerate(groups):
-        indices_by_group[g].append(idx)
-
-    folds: List[List[int]] = []
-    for fg in fold_groups:
-        idxs: List[int] = []
-        for g in fg:
-            idxs.extend(indices_by_group.get(g, []))
-        if idxs:
-            folds.append(sorted(idxs))
-    if not folds:
-        folds.append(list(range(len(groups))))
-    return folds
+    return [fold for fold in folds if fold]
 
 
-def evaluate_fold(rows: List[DataRow], indices: Sequence[int], params: Dict[str, Optional[float]]) -> Dict[str, float]:
+def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params: Dict[str, Optional[float]]) -> Dict[str, float]:
     last_fire: Dict[str, float] = {}
     signals = 0
     hits = 0
@@ -327,6 +315,40 @@ def aggregate_metrics(fold_metrics: Sequence[Dict[str, float]]) -> Dict[str, flo
     }
 
 
+def _zero_metrics() -> Dict[str, float]:
+    return {"signals": 0.0, "hits": 0.0, "sum_hit": 0.0, "sum_miss": 0.0, "loss_count": 0.0}
+
+
+def evaluate_params(
+    rows: Sequence[DataRow],
+    days: Sequence[str],
+    day_groups: Dict[str, List[int]],
+    params: Dict[str, Optional[float]],
+    cv: int,
+) -> Dict[str, float]:
+    if cv <= 1 or len(days) <= 1:
+        indices: List[int] = []
+        for day in days:
+            indices.extend(day_groups.get(day, []))
+        if not indices:
+            return aggregate_metrics([_zero_metrics()])
+        metrics = evaluate_on_indices(rows, indices, params)
+        return aggregate_metrics([metrics])
+
+    folds = make_day_folds(days, day_groups, cv)
+    fold_metrics: List[Dict[str, float]] = []
+    for fold_days in folds:
+        indices: List[int] = []
+        for day in fold_days:
+            indices.extend(day_groups.get(day, []))
+        if not indices:
+            continue
+        fold_metrics.append(evaluate_on_indices(rows, indices, params))
+    if not fold_metrics:
+        fold_metrics.append(_zero_metrics())
+    return aggregate_metrics(fold_metrics)
+
+
 def grid_parameters(has_score: bool, has_vol: bool) -> List[Dict[str, float]]:
     upticks = [0.55, 0.60, 0.65, 0.70]
     spreads = [10, 15, 20, 25, 30]
@@ -354,20 +376,20 @@ def grid_parameters(has_score: bool, has_vol: bool) -> List[Dict[str, float]]:
 
 
 def evaluate_grid(
-    rows: List[DataRow],
-    folds: List[List[int]],
+    rows: Sequence[DataRow],
+    days: Sequence[str],
+    day_groups: Dict[str, List[int]],
     params_list: List[Dict[str, float]],
     min_trades: int,
     ev_floor: float,
     verbose: bool,
+    cv: int,
 ) -> List[Dict[str, object]]:
     results: List[Dict[str, object]] = []
     total_candidates = len(params_list)
     start = time.time()
-    no_candidates = len(params_list)
     for idx, params in enumerate(params_list, start=1):
-        fold_metrics = [evaluate_fold(rows, val_idx, params) for val_idx in folds]
-        agg = aggregate_metrics(fold_metrics)
+        agg = evaluate_params(rows, days, day_groups, params, cv)
         eligible = agg["signals"] >= min_trades and agg["ev"] >= ev_floor
         result = {
             "params": params,
@@ -460,6 +482,7 @@ def main() -> None:
     min_trades = max(1, int(args.MinTrades))
     ev_floor = float(args.EVFloor)
     verbose = bool(args.Verbose)
+    cv_folds = max(0, int(args.CV))
 
     db_path = resolve_db_path(dataset_id)
     conn = sqlite3.connect(str(db_path))
@@ -477,11 +500,9 @@ def main() -> None:
     if not rows:
         raise SystemExit("ERROR: No matched rows for dataset/horizons.")
 
-    groups = [row.group for row in rows]
-    folds = build_group_folds(groups, 5)
-
+    days, day_groups = group_by_day(rows)
     params_list = grid_parameters(has_score, has_vol)
-    results = evaluate_grid(rows, folds, params_list, min_trades, ev_floor, verbose)
+    results = evaluate_grid(rows, days, day_groups, params_list, min_trades, ev_floor, verbose, cv_folds)
 
     top_results = select_top(results, top_k=5)
     for idx, item in enumerate(top_results, start=1):

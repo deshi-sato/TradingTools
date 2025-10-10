@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS features_stream(
   ask1 REAL,
   bidqty1 REAL,
   askqty1 REAL,
+  f1_delta REAL,
   PRIMARY KEY(dataset_id, symbol, t_exec)
 );
 """
@@ -176,6 +177,7 @@ FEATURE_COLUMNS = (
     "ask1",
     "bidqty1",
     "askqty1",
+    "f1_delta",
 )
 
 
@@ -327,12 +329,10 @@ def ensure_tables(db: str):
         with conn:
             conn.execute(DDL_OB)
             conn.execute("DROP TABLE IF EXISTS tick_batch")
-            existing_cols = _get_table_columns(conn, "features_stream")
-            if existing_cols and existing_cols != list(FEATURE_COLUMNS):
-                conn.execute("DROP TABLE IF EXISTS features_stream")
             conn.execute(DDL_RAW_PUSH)
             conn.execute(DDL_FEATURES_STREAM)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_feat_time ON features_stream(t_exec)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_feat_ds_time ON features_stream(dataset_id, t_exec)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_push_ts ON raw_push(t_recv)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_push_symbol_ts ON raw_push(symbol, t_recv)")
     finally:

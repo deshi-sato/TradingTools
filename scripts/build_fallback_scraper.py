@@ -277,18 +277,16 @@ def main():
                 listing.extend(parse_listing_rows_selenium(driver))
             ts_from_site = extract_timestamp_from_dom_selenium(driver)
 
-        # --- 銘柄名解決を並列化 ---
+        # --- 銘柄名解決を並列化（入力順を保持） ---
         results = []
         if listing:
             with ThreadPoolExecutor(max_workers=max(1, args.workers)) as ex:
-                futures = [ex.submit(worker_resolve, row) for row in listing]
-                for fu in as_completed(futures):
+                for resolved in ex.map(worker_resolve, listing):
                     try:
-                        resolved = fu.result()
                         if pass_filter(resolved, filters):
                             results.append([resolved["code"].upper(), resolved["name"], "matsui_morning"])
                     except Exception:
-                        continue
+                        pass
 
         fetched = len(results)
         if fetched == 0:

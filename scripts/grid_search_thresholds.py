@@ -50,6 +50,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-CV", type=int, default=0)
     parser.add_argument("-Out")
     parser.add_argument("-Verbose", type=int, default=0)
+    parser.add_argument(
+        "-ProgressStep",
+        type=int,
+        default=500,
+        help="Progress output interval (number of candidates, default: 500).",
+    )
     return parser.parse_args()
 
 
@@ -384,10 +390,27 @@ def evaluate_grid(
     ev_floor: float,
     verbose: bool,
     cv: int,
+    progress_step: int,
 ) -> List[Dict[str, object]]:
     results: List[Dict[str, object]] = []
     total_candidates = len(params_list)
+    step = max(1, progress_step)
     start = time.time()
+
+    def result_rank_key(item: Dict[str, object]) -> Tuple[int, float, int, float]:
+        eligible_score = 1 if item["eligible"] else 0
+        return (
+            eligible_score,
+            float(item["precision"]),
+            int(item["signals"]),
+            float(item["ev"]),
+        )
+
+    best_so_far: Optional[Dict[str, object]] = None
+
+    print(f"[grid] total candidates = {total_candidates}")
+    sys.stdout.flush()
+
     for idx, params in enumerate(params_list, start=1):
         agg = evaluate_params(rows, days, day_groups, params, cv)
         eligible = agg["signals"] >= min_trades and agg["ev"] >= ev_floor
@@ -402,6 +425,8 @@ def evaluate_grid(
             "eligible": eligible,
         }
         results.append(result)
+        if best_so_far is None or result_rank_key(result) > result_rank_key(best_so_far):
+            best_so_far = result
         if verbose:
             progress = (idx / total_candidates) * 100.0
             print(
@@ -416,9 +441,33 @@ def evaluate_grid(
                     params,
                 )
             )
+        if (idx % step == 0) or (idx == total_candidates):
+            elapsed = time.time() - start
+            cps = idx / elapsed if elapsed > 0 else 0.0
+            pct = (idx / total_candidates * 100.0) if total_candidates else 100.0
+            eta = ((total_candidates - idx) / cps) if cps > 0 else 0.0
+            if best_so_far:
+                best_ev = float(best_so_far['ev']) if best_so_far['ev'] is not None else 0.0
+                best_prec = float(best_so_far['precision']) if best_so_far['precision'] is not None else 0.0
+                best_trades = int(best_so_far['signals']) if best_so_far['signals'] is not None else 0
+                best_str = f"best ev={best_ev:.3f} prec={best_prec:.3f} trades={best_trades}"
+            else:
+                best_str = "best n/a"
+            print(
+                "[grid] {done:,}/{total:,} ({pct:4.1f}%)  {cps:,.0f}/s  "
+                "elapsed={elapsed:,.1f}s  ETA≈{eta:,.1f}s  {best}".format(
+                    done=idx,
+                    total=total_candidates,
+                    pct=pct,
+                    cps=cps,
+                    elapsed=elapsed,
+                    eta=eta,
+                    best=best_str,
+                )
+            )
+            sys.stdout.flush()
     duration = time.time() - start
-    if verbose:
-        print(f"[grid] evaluated {total_candidates} candidates in {duration:.2f}s")
+    print(f"[grid] evaluated {total_candidates} candidates in {duration:.2f}s")
     return results
 
 
@@ -502,7 +551,7 @@ def main() -> None:
 
     days, day_groups = group_by_day(rows)
     params_list = grid_parameters(has_score, has_vol)
-    results = evaluate_grid(rows, days, day_groups, params_list, min_trades, ev_floor, verbose, cv_folds)
+    results = evaluate_grid(rows, days, day_groups, params_list, min_trades, ev_floor, verbose, cv_folds, max(1, int(args.ProgressStep)))
 
     top_results = select_top(results, top_k=5)
     for idx, item in enumerate(top_results, start=1):

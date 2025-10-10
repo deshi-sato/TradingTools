@@ -11,7 +11,9 @@ Labels capture whether price moved up/down beyond given bp thresholds within spe
 from __future__ import annotations
 
 import argparse
+import glob
 import json
+import os
 import sqlite3
 import sys
 import time
@@ -19,6 +21,56 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+REGISTRY_DB_DEFAULT = os.path.join("db", "naut_market.db")
+
+
+def _registry_lookup(dataset_id: str, registry_db: str) -> Optional[str]:
+    if not registry_db:
+        return None
+    registry_path = os.path.abspath(registry_db)
+    if not os.path.exists(registry_path):
+        return None
+    try:
+        with sqlite3.connect(registry_path) as conn:
+            cur = conn.execute(
+                "SELECT db_path FROM dataset_registry WHERE dataset_id=? LIMIT 1",
+                (dataset_id,),
+            )
+            row = cur.fetchone()
+    except sqlite3.Error:
+        return None
+    if not row:
+        return None
+    db_path = row[0]
+    if not db_path:
+        return None
+    return db_path
+
+
+def _legacy_resolve_db_path(dataset_id: str) -> Optional[Path]:
+    db_dir = Path("db")
+    candidates = sorted(db_dir.glob("naut_market_*_refeed.db"))
+    if not candidates:
+        return None
+    for path in candidates:
+        try:
+            with sqlite3.connect(str(path)) as conn:
+                cur = conn.execute(
+                    "SELECT source_db_path FROM dataset_registry WHERE dataset_id=? LIMIT 1",
+                    (dataset_id,),
+                )
+                row = cur.fetchone()
+        except sqlite3.Error:
+            continue
+        if row:
+            source = row[0]
+            final_path = Path(source) if source else path
+            if not final_path.exists():
+                final_path = path
+            return final_path.resolve()
+    return None
+
 
 JST = timezone(timedelta(hours=9))
 
@@ -56,27 +108,10 @@ def load_dataset_meta(db_path: Path, dataset_id: str) -> sqlite3.Row:
 
 
 def resolve_db_path(dataset_id: str) -> Path:
-    db_dir = Path("db")
-    candidates = sorted(db_dir.glob("naut_market_*_refeed.db"))
-    if not candidates:
-        raise SystemExit("ERROR: no refeed DBs found under db/")
-    for path in candidates:
-        conn = sqlite3.connect(str(path))
-        try:
-            cur = conn.execute(
-                "SELECT source_db_path FROM dataset_registry WHERE dataset_id=? LIMIT 1",
-                (dataset_id,),
-            )
-            row = cur.fetchone()
-            if row:
-                source = row[0]
-                final_path = Path(source) if source else path
-                if not final_path.exists():
-                    final_path = path
-                return final_path.resolve()
-        finally:
-            conn.close()
-    raise SystemExit(f"ERROR: dataset_id {dataset_id} not found in any refeed DB.")
+    resolved = _legacy_resolve_db_path(dataset_id)
+    if resolved is None:
+        raise SystemExit(f"ERROR: dataset_id {dataset_id} not found in any refeed DB.")
+    return resolved
 
 
 def parse_horizons(horizons: str) -> List[int]:
@@ -266,7 +301,31 @@ def run_job(args: argparse.Namespace) -> None:
     if bp_mode != "mid":
         raise SystemExit("ERROR: only mid mode currently implemented")
 
-    db_path = resolve_db_path(dataset_id)
+    if args.DB:
+        db_path_str: Optional[str] = os.path.abspath(args.DB)
+    else:
+        db_path_str = _registry_lookup(dataset_id, args.Registry)
+        if not db_path_str:
+            legacy_path = _legacy_resolve_db_path(dataset_id)
+            if legacy_path is not None:
+                db_path_str = str(legacy_path)
+        if not db_path_str:
+            for candidate in glob.glob(os.path.join("db", "naut_market_*_refeed.db")):
+                try:
+                    with sqlite3.connect(candidate) as con:
+                        hit = con.execute(
+                            "SELECT 1 FROM events_replay WHERE dataset_id=? LIMIT 1",
+                            (dataset_id,),
+                        ).fetchone()
+                    if hit:
+                        db_path_str = candidate
+                        break
+                except sqlite3.Error:
+                    continue
+    if not db_path_str:
+        raise SystemExit(f"ERROR: dataset_id {dataset_id} not found in any refeed DB.")
+
+    db_path = Path(db_path_str).resolve()
     dataset_meta = load_dataset_meta(db_path, dataset_id)
     print("===== build_labels_from_replay =====")
     print(f"[labels] dataset_id={dataset_id}")
@@ -314,6 +373,8 @@ def configure_parser() -> argparse.ArgumentParser:
     parser.add_argument("-Horizons", default="60,120")
     parser.add_argument("-BpMode", default="mid")
     parser.add_argument("-Thresholds", default="+8,-6")
+    parser.add_argument("-DB", help="Optional explicit refeed DB path override")
+    parser.add_argument("-Registry", default=REGISTRY_DB_DEFAULT)
     return parser
 
 

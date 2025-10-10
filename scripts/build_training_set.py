@@ -11,10 +11,12 @@ Uses dataset_registry to locate the correct dated refeed DB.
 from __future__ import annotations
 
 import argparse
-import csv
 import sqlite3
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence
+
+import numpy as np
+import pandas as pd
 
 JST_DEFAULT_COLS = [
     "f1",
@@ -77,31 +79,40 @@ def ensure_indexes(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def fetch_rows(
+def load_tables_for_asof(
     conn: sqlite3.Connection,
     dataset_id: str,
     extra_cols: Sequence[str],
-) -> Iterable[Tuple]:
-    select_cols = ", ".join(
-        [
-            "l.symbol",
-            "l.ts",
-            "l.horizon_sec",
-            "l.ret_bp",
-            "l.label",
-        ]
-        + [f"f.{col}" for col in extra_cols]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load labels (left) and features (right) as DataFrame for asof-merge."""
+    lab = pd.read_sql(
+        """
+        SELECT symbol, ts, horizon_sec, ret_bp, label
+          FROM labels_outcome
+         WHERE dataset_id=?
+         ORDER BY symbol, ts
+        """,
+        conn,
+        params=(dataset_id,),
     )
-    join_conditions = ["f.symbol = l.symbol", "CAST(f.t_exec * 1000 AS INTEGER) = l.ts"]
-    sql = f"""
-        SELECT {select_cols}
-          FROM labels_outcome AS l
-          JOIN features_stream AS f
-            ON {' AND '.join(join_conditions)}
-         WHERE l.dataset_id=?
-         ORDER BY l.symbol, l.ts, l.horizon_sec
-    """
-    return conn.execute(sql, (dataset_id,))
+    feat_cols = ["symbol", "t_exec"] + list(extra_cols)
+    feat = pd.read_sql(
+        f"""
+        SELECT {", ".join(feat_cols)}
+          FROM features_stream
+         ORDER BY symbol, t_exec
+        """,
+        conn,
+    )
+    # 型そろえ（秒単位を想定。ms で来たら秒に寄せる）
+    lab["ts"] = pd.to_numeric(lab["ts"], errors="coerce").astype("float64")
+    feat["t_exec"] = pd.to_numeric(feat["t_exec"], errors="coerce").astype("float64")
+    # ms 判定（だいたい 1e11 以上は ms）→ 秒に変換
+    if not lab["ts"].dropna().empty and lab["ts"].dropna().iloc[0] > 1e11:
+        lab["ts"] = lab["ts"] / 1000.0
+    if not feat["t_exec"].dropna().empty and feat["t_exec"].dropna().iloc[0] > 1e11:
+        feat["t_exec"] = feat["t_exec"] / 1000.0
+    return lab, feat
 
 
 def ensure_output_path(path: Path) -> None:
@@ -110,19 +121,11 @@ def ensure_output_path(path: Path) -> None:
 
 def write_csv(
     out_path: Path,
-    rows: Iterable[Tuple],
-    headers: Sequence[str],
+    df: pd.DataFrame,
 ) -> int:
     ensure_output_path(out_path)
-    # use utf-8-sig to emit BOM
-    with out_path.open("w", encoding="utf-8-sig", newline="") as fh:
-        writer = csv.writer(fh, lineterminator="\r\n")
-        writer.writerow(headers)
-        count = 0
-        for row in rows:
-            writer.writerow(row)
-            count += 1
-    return count
+    df.to_csv(out_path, index=False, encoding="utf-8-sig", lineterminator="\r\n")
+    return len(df)
 
 
 def run(args: argparse.Namespace) -> None:
@@ -136,11 +139,74 @@ def run(args: argparse.Namespace) -> None:
     conn.row_factory = sqlite3.Row
     ensure_indexes(conn)
 
-    headers = ["symbol", "ts", "horizon_sec", "ret_bp", "label"] + list(extra_cols)
-    rows = fetch_rows(conn, dataset_id, extra_cols)
-    count = write_csv(out_path, rows, headers)
+    # --- 近傍JOIN（asof）に変更 ---
+    lab, feat = load_tables_for_asof(conn, dataset_id, extra_cols)
+    # 許容秒は引数で可変（デフォルト 3.0）
+    tol = float(args.ToleranceSec)
+    dfs: list[pd.DataFrame] = []
+    for sym, g_lab in lab.groupby("symbol", sort=False):
+        g_feat = feat[feat["symbol"] == sym]
+        if g_feat.empty:
+            continue
+        m = pd.merge_asof(
+            g_lab.sort_values("ts"),
+            g_feat.sort_values("t_exec"),
+            left_on="ts",
+            right_on="t_exec",
+            direction="nearest",
+            tolerance=tol,
+        )
+        dfs.append(m)
+    df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    # マッチできなかった行は落とす
+    if "score" in df.columns:
+        df = df.dropna(subset=["score"])
+
+    num_cols = [
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "score",
+        "spread_ticks",
+        "bid1",
+        "ask1",
+        "bidqty1",
+        "askqty1",
+    ]
+    for col in num_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if "uptick" not in df.columns and "f1" in df.columns:
+        df["uptick"] = pd.to_numeric(df["f1"], errors="coerce").fillna(np.nan)
+
+    cols = [
+        "symbol",
+        "ts",
+        "horizon_sec",
+        "ret_bp",
+        "label",
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "score",
+        "spread_ticks",
+        "bid1",
+        "ask1",
+        "bidqty1",
+        "askqty1",
+        "uptick",
+    ]
+    df = df[[c for c in cols if c in df.columns]]
 
     conn.close()
+    count = write_csv(out_path, df)
     print(f"[training_set] rows={count} out={out_path}")
 
 
@@ -149,6 +215,12 @@ def configure_parser() -> argparse.ArgumentParser:
     parser.add_argument("-DatasetId", required=True)
     parser.add_argument("-Out")
     parser.add_argument("-Cols")
+    parser.add_argument(
+        "-ToleranceSec",
+        type=float,
+        default=3.0,
+        help="asof merge tolerance in seconds (default: 3.0)",
+    )
     return parser
 
 

@@ -15,11 +15,14 @@ import json
 import sqlite3
 import sys
 import time
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from scripts.stream_microbatch import load_json_utf8
+
+REGISTRY_DB_DEFAULT = os.path.join("db", "naut_market.db")
 
 JST = timezone(timedelta(hours=9))
 
@@ -45,6 +48,23 @@ def _iter_refeed_dbs() -> List[Path]:
     if not db_dir.exists():
         return []
     return sorted(db_dir.glob("naut_market_*_refeed.db"))
+
+
+def _get_db_path_from_registry(registry_db: Path, dataset_id: str) -> Path:
+    conn = sqlite3.connect(str(registry_db))
+    try:
+        row = conn.execute(
+            "SELECT db_path FROM dataset_registry WHERE dataset_id=?",
+            (dataset_id,),
+        ).fetchone()
+        if not row:
+            raise RuntimeError(f"dataset_id {dataset_id} not found in registry: {registry_db}")
+        db_path = Path(row[0])
+        if not db_path.exists():
+            raise RuntimeError(f"Resolved db_path not found: {db_path}")
+        return db_path.resolve()
+    finally:
+        conn.close()
 
 
 def _fetch_dataset_row(db_path: Path, dataset_id: Optional[str]) -> Optional[sqlite3.Row]:
@@ -398,6 +418,11 @@ def configure_parser() -> argparse.ArgumentParser:
     parser.add_argument("-RunId", help="Run identifier (default RUN{YYYYMMDD_HHMMSS}).")
     parser.add_argument("-DatasetId", help="Dataset identifier to replay (default latest).")
     parser.add_argument("-Verbose", type=int, default=1, help="Verbosity toggle (reserved).")
+    parser.add_argument(
+        "-Registry",
+        default=REGISTRY_DB_DEFAULT,
+        help=f"Central registry sqlite path (default: {REGISTRY_DB_DEFAULT})",
+    )
     # legacy compatibility arguments (ignored)
     parser.add_argument("-Src", help=argparse.SUPPRESS)
     parser.add_argument("-Dst", help=argparse.SUPPRESS)
@@ -419,12 +444,34 @@ def main() -> None:
     symbols = _load_symbols(config)
     thresholds = _strategy_thresholds(config)
 
-    dataset_id, db_path, dataset_info = resolve_dataset(args.DatasetId)
+    dataset_arg = args.DatasetId
+    registry_path = Path(args.Registry).resolve()
+
+    dataset_id: str
+    db_path: Path
+    dataset_info: Dict[str, Any]
+
+    used_registry = False
+    if dataset_arg and registry_path.exists():
+        try:
+            resolved_db = _get_db_path_from_registry(registry_path, dataset_arg)
+            dataset_id = dataset_arg
+            db_path = resolved_db
+            row = _fetch_dataset_row(db_path, dataset_id)
+            dataset_info = dict(row) if row else {}
+            used_registry = True
+        except RuntimeError as err:
+            print(f"[warn] {err}. Falling back to local lookup.", file=sys.stderr)
+            dataset_id, db_path, dataset_info = resolve_dataset(dataset_arg)
+    else:
+        dataset_id, db_path, dataset_info = resolve_dataset(dataset_arg)
 
     print("===== Running replay_naut.py =====")
     print(f"[replay] run_id={run_id}")
     print(f"[replay] dataset_id={dataset_id}")
     print(f"[replay] db_path={db_path}")
+    if used_registry:
+        print(f"[replay] registry={registry_path}")
     print(f"[replay] symbols={symbols}")
 
     conn = sqlite3.connect(str(db_path))

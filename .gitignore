@@ -19,3 +19,9 @@ templates/index.html.txt
 kabusapi-Python-v1.9.0/
 # Dendronノートは含める
 !dendron/notes/**/*.md
+
+# SQLite WAL/SHM
+*.db-wal
+*.db-shm
+*-wal
+*-shm

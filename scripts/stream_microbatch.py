@@ -22,9 +22,10 @@ import ctypes
 import atexit
 import os
 import hashlib
-from collections import deque
+import numpy as np
+import pandas as pd
 from datetime import datetime, timedelta, timezone
-from math import exp, tanh
+from math import exp
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -138,6 +139,7 @@ CREATE TABLE IF NOT EXISTS raw_push(
 
 DDL_FEATURES_STREAM = """
 CREATE TABLE IF NOT EXISTS features_stream(
+  dataset_id TEXT,
   symbol TEXT NOT NULL,
   t_exec REAL NOT NULL,
   ver TEXT NOT NULL,
@@ -153,11 +155,12 @@ CREATE TABLE IF NOT EXISTS features_stream(
   ask1 REAL,
   bidqty1 REAL,
   askqty1 REAL,
-  PRIMARY KEY(symbol, t_exec)
+  PRIMARY KEY(dataset_id, symbol, t_exec)
 );
 """
 
 FEATURE_COLUMNS = (
+    "dataset_id",
     "symbol",
     "t_exec",
     "ver",
@@ -432,73 +435,86 @@ class ScoreState:
         self.sc = 0.0
         self.ts = 0.0
         self.tick = tick
-        self.mp = deque(maxlen=4)
         self.b1: Optional[float] = None
         self.a1: Optional[float] = None
+        self.bid_prev: float = 0.0
+        self.ask_prev: float = 0.0
+        self.b1_prev: float = 1.0
+        self.a1_prev: float = 1.0
 
 
 def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.0) -> Dict[str, Any]:
-    bid = _to_float(evt.get("BidPrice")) or 0.0
-    ask = _to_float(evt.get("AskPrice")) or 0.0
-    b1 = _to_float(evt.get("BidQty1")) or 0.0
-    a1 = _to_float(evt.get("AskQty1")) or 0.0
+    # kabu仕様: 英語ラベルが逆。ここで論理Ask/Bidにスワップ
+    ask = _to_float(evt.get("BidPrice")) or 0.0
+    bid = _to_float(evt.get("AskPrice")) or 0.0
+
+    def _qty(keys: list[str], nested: str | None = None) -> float:
+        for key in keys:
+            if key in evt and evt[key] is not None:
+                return _to_float(evt[key]) or 0.0
+        if nested:
+            node = evt.get(nested)
+            if isinstance(node, dict):
+                return _to_float(node.get("Qty")) or 0.0
+        return 0.0
+
+    # 論理解釈: Ask 側が BidQty 系、Bid 側が AskQty 系に入ってくる
+    a1 = _qty(["BidQty1", "BidQty"], nested="Buy1")
+    b1 = _qty(["AskQty1", "AskQty"], nested="Sell1")
 
     spread_raw = evt.get("SpreadTicks")
     if spread_raw is None:
         tick = max(1e-6, st.tick)
-        spread = int(round((ask - bid) / tick)) if tick else 0
+        spread_ticks = int(round((ask - bid) / tick)) if tick else 0
     else:
         try:
-            spread = int(float(spread_raw))
+            spread_ticks = int(float(spread_raw))
         except Exception:
-            spread = 0
-    spread = max(0, spread)
+            spread_ticks = 0
+    spread_ticks = max(0, spread_ticks)
 
     dt = (now - st.ts) if st.ts else 0.0
     if dt > 0.0:
         st.sc *= exp(-dt / tau)
 
-    f1 = max(0.0, 1.0 - min(3, spread) / 3.0)
+    if st.ts == 0.0 or dt > 60:
+        st.sc = 5.0
 
-    bsum = b1 + (_to_float(evt.get("BidQty2")) or 0.0) + (_to_float(evt.get("BidQty3")) or 0.0)
-    asum = a1 + (_to_float(evt.get("AskQty2")) or 0.0) + (_to_float(evt.get("AskQty3")) or 0.0)
-    denom = max(1.0, bsum + asum)
-    f2 = (bsum - asum) / denom
+    if bid <= 0.0:
+        bid = st.bid_prev or 0.0
+    if ask <= 0.0:
+        ask = st.ask_prev or 0.0
+    if b1 <= 0.0:
+        b1 = st.b1_prev or 1.0
+    if a1 <= 0.0:
+        a1 = st.a1_prev or 1.0
 
-    volume_side = b1 + a1
-    mp = (ask * b1 + bid * a1) / max(1.0, volume_side)
-    st.mp.append(mp)
-    if len(st.mp) >= 3:
-        f3 = tanh((st.mp[-1] - st.mp[-3]) / (2 * max(1e-6, st.tick)))
-    else:
-        f3 = 0.0
+    if dt < 0.1:
+        dt = 0.1
 
-    iv = min(1.5, dt) if dt > 0.0 else 1.5
-    f4 = 1.0 - iv / 1.5
+    st.bid_prev, st.ask_prev, st.b1_prev, st.a1_prev = bid, ask, b1, a1
 
-    mo_b = _to_float(evt.get("MarketOrderBuyQty")) or 0.0
-    mo_s = _to_float(evt.get("MarketOrderSellQty")) or 0.0
-    mos = mo_b + mo_s
-    f5 = (mo_b - mo_s) / mos if mos > 0 else 0.0
+    spread_abs = max(0.0, ask - bid)
+    mid = (ask + bid) * 0.5 if (ask and bid) else 0.0
+    # ---- 改良版スプレッドスコア ----
+    spread_raw = (spread_abs / mid * 1000.0) if mid else 0.0
+    v = max(0.0, min(10.0, 10.0 - spread_raw * 0.5))
 
-    if st.b1 is None or st.a1 is None:
-        f6 = 0.0
-    else:
-        db = b1 - st.b1
-        da = a1 - st.a1
-        v = (-db + da)
-        if v > 0:
-            f6 = 1.0
-        elif v < 0:
-            f6 = -1.0
-        else:
-            f6 = 0.0
+    import random
 
-    delta = 2 * f1 + 2 * f2 + 2 * f3 + 1 * f4 + 2 * f5 + 1 * f6
-    if spread >= 3:
-        delta -= 1.0
+    v += random.uniform(-0.2, 0.2)
+    v = max(0.0, min(10.0, v))
 
-    st.sc = max(0.0, min(10.0, st.sc + delta))
+    st.sc += (v - 5.0) * 0.2
+    st.sc = max(0.0, min(10.0, st.sc))
+
+    f1 = 10.0 if v > 9.5 else v
+    f2 = 10.0 if spread_abs < 2.0 else max(0.0, 10.0 - spread_abs)
+    f3 = st.sc
+    f4 = max(0.0, min(10.0, 10.0 - abs(ask - bid)))
+    f5 = f1 * 0.5 + f2 * 0.3 + f3 * 0.2
+    f6 = (f1 + f2 + f3 + f4 + f5) / 5.0
+
     st.ts = now
     st.b1 = b1
     st.a1 = a1
@@ -515,7 +531,7 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
         "f5": f5,
         "f6": f6,
         "score": st.sc,
-        "spread_ticks": spread,
+        "spread_ticks": spread_ticks,
         "bid1": bid,
         "ask1": ask,
         "bidqty1": b1,
@@ -523,11 +539,12 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
     }
 
 
-def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any]):
+def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id: str):
     conn.execute(
-        "INSERT OR IGNORE INTO features_stream(symbol,t_exec,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
+            dataset_id,
             d["symbol"],
             d["t_exec"],
             d["ver"],
@@ -547,10 +564,75 @@ def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any]):
     )
 
 
-def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue], stop_event: threading.Event):
+def _ensure_features_schema(conn: sqlite3.Connection) -> None:
+    """Ensure backward compatible columns exist on features_stream."""
+    try:
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(features_stream);")]
+        if "f1_delta" not in columns:
+            conn.execute("ALTER TABLE features_stream ADD COLUMN f1_delta REAL;")
+            conn.commit()
+    except sqlite3.DatabaseError as exc:
+        logger.warning("failed to ensure features_stream schema: %s", exc)
+
+
+def _transform_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Enrich batched features with deltas, smoothing, and score scaling."""
+    if df.empty:
+        return df
+
+    if "symbol" in df.columns:
+        group_keys = df.groupby("symbol", sort=False)
+    else:
+        group_keys = None
+
+    if "f1" in df.columns:
+        try:
+            if group_keys is not None:
+                df["f1_delta"] = (
+                    group_keys["f1"]
+                    .transform(lambda s: s.astype(float).diff().fillna(0.0))
+                    .clip(-5, 5)
+                )
+            else:
+                df["f1_delta"] = df["f1"].astype(float).diff().fillna(0.0).clip(-5, 5)
+        except Exception:
+            df["f1_delta"] = 0.0
+
+    for col in ("f2", "f3"):
+        if col not in df.columns:
+            continue
+        try:
+            if group_keys is not None:
+                df[col] = group_keys[col].transform(
+                    lambda s: s.astype(float).rolling(window=5, min_periods=1).mean()
+                )
+            else:
+                df[col] = (
+                    df[col].astype(float).rolling(window=5, min_periods=1).mean()
+                )
+        except Exception:
+            # leave the original values untouched on failure
+            pass
+
+    if "score" in df.columns:
+        try:
+            scores = df["score"].astype(float).to_numpy()
+            low = float(np.nanpercentile(scores, 1))
+            high = float(np.nanpercentile(scores, 99))
+            denom = max(high - low, 1e-9)
+            scaled = np.clip((scores - low) / denom * 10.0, 0.0, 10.0)
+            df["score"] = scaled
+        except Exception:
+            pass
+
+    return df
+
+
+def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue], stop_event: threading.Event, dataset_id: str):
     conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
+    _ensure_features_schema(conn)
     states: Dict[str, ScoreState] = {}
     batch: list[Dict[str, Any]] = []
     last_flush = time.monotonic()
@@ -562,9 +644,65 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 last_flush = time.monotonic()
             return
         try:
-            with conn:
-                for row in batch:
-                    insert_features_row(conn, row)
+            df = pd.DataFrame.from_records(batch)
+            if df.empty:
+                batch.clear()
+                last_flush = time.monotonic()
+                return
+            df["dataset_id"] = dataset_id
+            df = _transform_features(df)
+            defaults = {
+                "dataset_id": dataset_id,
+                "symbol": "",
+                "t_exec": np.nan,
+                "ver": "feat_v1",
+                "f1": 0.0,
+                "f2": 0.0,
+                "f3": 0.0,
+                "f4": 0.0,
+                "f5": 0.0,
+                "f6": 0.0,
+                "score": 0.0,
+                "spread_ticks": 0,
+                "bid1": 0.0,
+                "ask1": 0.0,
+                "bidqty1": 0.0,
+                "askqty1": 0.0,
+                "f1_delta": 0.0,
+            }
+            for col, default in defaults.items():
+                if col not in df.columns:
+                    df[col] = default
+            required_cols = [
+                "dataset_id",
+                "symbol",
+                "t_exec",
+                "ver",
+                "f1",
+                "f2",
+                "f3",
+                "f4",
+                "f5",
+                "f6",
+                "score",
+                "spread_ticks",
+                "bid1",
+                "ask1",
+                "bidqty1",
+                "askqty1",
+                "f1_delta",
+            ]
+            missing = [col for col in required_cols if col not in df.columns]
+            for col in missing:
+                df[col] = defaults.get(col, 0.0)
+            df = df[required_cols]
+            rows_to_insert = [tuple(row) for row in df.itertuples(index=False, name=None)]
+            conn.executemany(
+                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                rows_to_insert,
+            )
+            conn.commit()
         except Exception as exc:
             logger.exception("features_stream insert failed: %s", exc)
         finally:
@@ -605,15 +743,30 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
 
             is_board = "BidPrice" in evt and "AskPrice" in evt
             if is_board and board_q is not None:
+                ask_price = _to_float(evt.get("BidPrice"))
+                bid_price = _to_float(evt.get("AskPrice"))
+
+                def _top3(prefix: str) -> int:
+                    total = 0
+                    for i in (1, 2, 3):
+                        node = evt.get(f"{prefix}{i}")
+                        if isinstance(node, dict):
+                            total += _to_int(node.get("Qty"))
+                        else:
+                            total += _to_int(evt.get(f"{prefix}{i}Qty"))
+                    return total
+
+                sell_top3 = _top3("Sell")
+                buy_top3 = _top3("Buy")
                 snap = (
                     sym,
                     datetime.now().isoformat(timespec="milliseconds"),
-                    _to_float(evt.get("BidPrice")),
-                    _to_float(evt.get("AskPrice")),
+                    bid_price,
+                    ask_price,
                     _to_int(evt.get("OverSellQty")),
                     _to_int(evt.get("UnderBuyQty")),
-                    sum(_to_int(evt.get(f"Sell{i}Qty")) for i in range(1, 4)),
-                    sum(_to_int(evt.get(f"Buy{i}Qty")) for i in range(1, 4)),
+                    sell_top3,
+                    buy_top3,
                 )
                 try:
                     board_q.put_nowait(snap)
@@ -887,7 +1040,7 @@ def main():
     rx = RawWS(url, headers, stop_event, buf, db_path)
     rx.start()
 
-    feat_thread = threading.Thread(target=features_worker, args=(buf, db_path, board_q, stop_event), daemon=True)
+    feat_thread = threading.Thread(target=features_worker, args=(buf, db_path, board_q, stop_event, dataset_id), daemon=True)
     feat_thread.start()
 
     orderbook_saver = OrderbookSaver(db_path, board_q, stop_event)

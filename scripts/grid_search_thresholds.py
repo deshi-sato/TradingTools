@@ -25,6 +25,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Any
 
+import pandas as pd
+
 JST = timezone(timedelta(hours=9))
 
 CACHE_VERSION = 1
@@ -54,6 +56,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-EVFloor", type=float, default=0.0)
     parser.add_argument("-CV", type=int, default=0)
     parser.add_argument("-Out")
+    parser.add_argument("-Symbols", help="Comma-separated list of symbols to include")
     parser.add_argument("-Verbose", type=int, default=0)
     parser.add_argument(
         "-ProgressStep",
@@ -78,6 +81,21 @@ def parse_list(arg: str) -> List[int]:
             raise SystemExit(f"ERROR: horizon must be positive (got {value})")
         result.append(value)
     return sorted(set(result))
+
+
+def parse_symbols_arg(arg: Optional[str]) -> Optional[List[str]]:
+    if not arg:
+        return None
+    parts = [p.strip() for p in arg.split(",") if p.strip()]
+    if not parts:
+        return None
+    seen = set()
+    ordered: List[str] = []
+    for part in parts:
+        if part not in seen:
+            seen.add(part)
+            ordered.append(part)
+    return ordered
 
 
 def resolve_db_path(dataset_id: str) -> Path:
@@ -135,20 +153,23 @@ def load_rows(
     horizons: Sequence[int],
     has_vol_surge: bool,
     use_ts_ms: bool,
+    symbols: Optional[Sequence[str]] = None,
 ) -> List[DataRow]:
+    if not horizons:
+        return []
     placeholders = ",".join(["?"] * len(horizons))
     select_parts = [
-        "l.symbol",
-        "l.ts",
-        "l.horizon_sec",
-        "l.ret_bp",
-        "l.label",
-        "f.f1",
-        "f.score",
-        "f.spread_ticks",
+        "l.symbol AS symbol",
+        "l.ts AS ts_ms",
+        "l.horizon_sec AS horizon_sec",
+        "l.ret_bp AS ret_bp",
+        "l.label AS label",
+        "f.f1 AS f1",
+        "f.score AS score",
+        "f.spread_ticks AS spread_ticks",
     ]
     if has_vol_surge:
-        select_parts.append("f.vol_surge_z")
+        select_parts.append("f.vol_surge_z AS vol_surge_z")
     join_condition = "f.symbol = l.symbol"
     if use_ts_ms:
         join_condition += " AND f.ts_ms = l.ts"
@@ -161,64 +182,66 @@ def load_rows(
             ON {join_condition}
          WHERE l.dataset_id = ?
            AND l.horizon_sec IN ({placeholders})
-         ORDER BY l.symbol, l.ts, l.horizon_sec
     """
-    params = [dataset_id] + list(horizons)
-    rows: List[DataRow] = []
-    cur = conn.execute(sql, params)
-    for rec in cur:
-        idx = 0
-        symbol = rec[idx]; idx += 1
-        ts_ms = rec[idx]; idx += 1
-        horizon = rec[idx]; idx += 1
-        ret_bp = rec[idx]; idx += 1
-        label = rec[idx]; idx += 1
-        uptick = rec[idx]; idx += 1
-        score = rec[idx]; idx += 1
-        spread_ticks = rec[idx]; idx += 1
-        vol = rec[idx] if has_vol_surge else None
+    params: List[Any] = [dataset_id] + list(horizons)
+    if symbols:
+        symbols_clean = [s.strip() for s in symbols if s.strip()]
+        symbols_unique: List[str] = []
+        seen_symbols = set()
+        for sym in symbols_clean:
+            if sym not in seen_symbols:
+                seen_symbols.add(sym)
+                symbols_unique.append(sym)
+        if symbols_unique:
+            symbol_placeholders = ",".join(["?"] * len(symbols_unique))
+            sql += f" AND l.symbol IN ({symbol_placeholders})"
+            params.extend(symbols_unique)
+    df = pd.read_sql_query(sql, conn, params=params)
+    if df.empty:
+        return []
+    df["ts_ms"] = pd.to_numeric(df["ts_ms"], errors="coerce")
+    df["ret_bp"] = pd.to_numeric(df["ret_bp"], errors="coerce")
+    df["horizon_sec"] = pd.to_numeric(df["horizon_sec"], errors="coerce")
+    df["label"] = pd.to_numeric(df["label"], errors="coerce")
+    df = df.dropna(subset=["ts_ms", "ret_bp", "horizon_sec", "label"])
+    df["ts_ms"] = df["ts_ms"].astype("int64")
+    df["ts_sec"] = df["ts_ms"].astype("float64") / 1000.0
+    df["horizon_sec"] = df["horizon_sec"].astype("int64")
+    df["label"] = df["label"].astype("int64")
+    numeric_optional = ["f1", "score", "spread_ticks"]
+    if has_vol_surge:
+        numeric_optional.append("vol_surge_z")
+    for col in numeric_optional:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    ts_jst = pd.to_datetime(df["ts_sec"], unit="s") + pd.to_timedelta(9, unit="h")
+    df["group"] = ts_jst.dt.strftime("%Y%m%d")
+    df["symbol"] = df["symbol"].astype(str)
+    df = df.sort_values(["symbol", "ts_ms", "horizon_sec"]).reset_index(drop=True)
 
-        if ts_ms is None:
-            continue
-        try:
-            ts_ms_int = int(ts_ms)
-        except (TypeError, ValueError):
-            continue
-        ts_sec = ts_ms_int / 1000.0
-        uptick_val = _to_float(uptick)
-        score_val = _to_float(score)
-        spread_ticks_val = _to_float(spread_ticks)
-        vol_val = _to_float(vol)
-        label_int = int(label)
-        ret_bp_float = _to_float(ret_bp)
-        if ret_bp_float is None:
-            continue
-        day = datetime.fromtimestamp(ts_sec, tz=JST).strftime("%Y%m%d")
+    def _opt(val: Any) -> Optional[float]:
+        return None if pd.isna(val) else float(val)
+
+    rows: List[DataRow] = []
+    for row in df.itertuples(index=False, name="Row"):
         rows.append(
             DataRow(
-                symbol=str(symbol),
-                ts_ms=ts_ms_int,
-                ts_sec=ts_sec,
-                horizon_sec=int(horizon),
-                ret_bp=float(ret_bp_float),
-                label=label_int,
-                uptick=uptick_val,
-                score=score_val,
-                spread_ticks=spread_ticks_val,
-                vol_surge=vol_val,
-                group=day,
+                symbol=row.symbol,
+                ts_ms=int(row.ts_ms),
+                ts_sec=float(row.ts_sec),
+                horizon_sec=int(row.horizon_sec),
+                ret_bp=float(row.ret_bp),
+                label=int(row.label),
+                uptick=_opt(getattr(row, "f1", None)),
+                score=_opt(getattr(row, "score", None)),
+                spread_ticks=_opt(getattr(row, "spread_ticks", None)),
+                vol_surge=_opt(getattr(row, "vol_surge_z", None))
+                if hasattr(row, "vol_surge_z")
+                else None,
+                group=row.group,
             )
         )
     return rows
-
-
-def _to_float(value: Optional[float]) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def group_by_day(rows: Sequence[DataRow]) -> Tuple[List[str], Dict[str, List[int]]]:
@@ -243,6 +266,7 @@ def _build_cache_key(
     has_vol: bool,
     has_ts_ms: bool,
     db_signature: str,
+    symbols: Optional[Sequence[str]],
 ) -> str:
     payload = {
         "dataset_id": dataset_id,
@@ -250,6 +274,7 @@ def _build_cache_key(
         "has_vol": has_vol,
         "has_ts_ms": has_ts_ms,
         "db_signature": db_signature,
+        "symbols": list(symbols) if symbols else [],
         "version": CACHE_VERSION,
     }
     raw = json.dumps(payload, sort_keys=True).encode("utf-8")
@@ -267,8 +292,9 @@ def load_dataset_cache(
     has_vol: bool,
     has_ts_ms: bool,
     db_signature: str,
+    symbols: Optional[Sequence[str]],
 ) -> Optional[Tuple[List[DataRow], List[str], Dict[str, List[int]]]]:
-    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature, symbols)
     path = _cache_path(key)
     if not path.exists():
         return None
@@ -294,11 +320,12 @@ def save_dataset_cache(
     has_vol: bool,
     has_ts_ms: bool,
     db_signature: str,
+    symbols: Optional[Sequence[str]],
     rows: Sequence[DataRow],
     days: Sequence[str],
     day_groups: Dict[str, List[int]],
 ) -> None:
-    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature, symbols)
     path = _cache_path(key)
     payload = {
         "meta": {
@@ -308,6 +335,7 @@ def save_dataset_cache(
             "has_vol": has_vol,
             "has_ts_ms": has_ts_ms,
             "db_signature": db_signature,
+            "symbols": list(symbols) if symbols else [],
             "row_count": len(rows),
         },
         "rows": list(rows),
@@ -669,6 +697,7 @@ def main() -> None:
     args = parse_args()
     dataset_id = args.DatasetId
     horizons = parse_list(args.Horizons)
+    symbols_filter = parse_symbols_arg(getattr(args, "Symbols", None))
     min_trades = max(1, int(args.MinTrades))
     ev_floor = float(args.EVFloor)
     verbose = bool(args.Verbose)
@@ -686,12 +715,12 @@ def main() -> None:
     if "f1" not in columns:
         raise SystemExit("ERROR: features_stream missing f1 (uptick) column.")
 
-    cache_hit = load_dataset_cache(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    cache_hit = load_dataset_cache(dataset_id, horizons, has_vol, has_ts_ms, db_signature, symbols_filter)
     if cache_hit:
         rows, days, day_groups = cache_hit
         print(f"[grid] dataset cache hit (rows={len(rows)})")
     else:
-        rows = load_rows(conn, dataset_id, horizons, has_vol, has_ts_ms)
+        rows = load_rows(conn, dataset_id, horizons, has_vol, has_ts_ms, symbols_filter)
         if not rows:
             conn.close()
             raise SystemExit("ERROR: No matched rows for dataset/horizons.")
@@ -702,6 +731,7 @@ def main() -> None:
             has_vol,
             has_ts_ms,
             db_signature,
+            symbols_filter,
             rows,
             days,
             day_groups,
@@ -710,6 +740,8 @@ def main() -> None:
     conn.close()
 
     params_list = grid_parameters(has_score, has_vol)
+    if symbols_filter:
+        print(f"[grid] symbol filter: {', '.join(symbols_filter)}")
     print(f"[grid] applying filters: MinTrades>={min_trades:,}, EVFloor>={ev_floor:.3f}")
     all_results, eligible_results = evaluate_grid(
         rows,

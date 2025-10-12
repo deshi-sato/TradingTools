@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
+import pickle
 import sqlite3
 import sys
 import time
@@ -21,9 +23,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Any
 
 JST = timezone(timedelta(hours=9))
+
+CACHE_VERSION = 1
+CACHE_DIR = Path("out/grid_cache")
 
 
 @dataclass
@@ -36,7 +41,7 @@ class DataRow:
     label: int
     uptick: Optional[float]
     score: Optional[float]
-    spread_bp: Optional[float]
+    spread_ticks: Optional[float]
     vol_surge: Optional[float]
     group: str
 
@@ -106,26 +111,22 @@ def feature_columns(conn: sqlite3.Connection) -> List[str]:
     return [row[1] for row in cur.fetchall()]
 
 
-def ensure_indexes(conn: sqlite3.Connection) -> None:
+def ensure_indexes(conn: sqlite3.Connection, has_ts_ms: bool) -> None:
     statements = [
         "CREATE INDEX IF NOT EXISTS idx_labels_dataset_symbol_ts ON labels_outcome(dataset_id, symbol, ts)",
         "CREATE INDEX IF NOT EXISTS idx_labels_dataset_horizon ON labels_outcome(dataset_id, horizon_sec)",
-        "CREATE INDEX IF NOT EXISTS idx_features_symbol_ts ON features_stream(symbol, t_exec)",
     ]
     for stmt in statements:
         conn.execute(stmt)
+    if has_ts_ms:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_features_symbol_ts_ms ON features_stream(symbol, ts_ms)"
+        )
+    else:
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_features_symbol_ts ON features_stream(symbol, t_exec)"
+        )
     conn.commit()
-
-
-def compute_spread_bp(bid: Optional[float], ask: Optional[float]) -> Optional[float]:
-    if bid is None or ask is None:
-        return None
-    if bid <= 0 or ask <= 0:
-        return None
-    diff = ask - bid
-    if diff < 0:
-        return None
-    return (diff / bid) * 10000.0
 
 
 def load_rows(
@@ -133,6 +134,7 @@ def load_rows(
     dataset_id: str,
     horizons: Sequence[int],
     has_vol_surge: bool,
+    use_ts_ms: bool,
 ) -> List[DataRow]:
     placeholders = ",".join(["?"] * len(horizons))
     select_parts = [
@@ -141,20 +143,22 @@ def load_rows(
         "l.horizon_sec",
         "l.ret_bp",
         "l.label",
-        "f.t_exec",
         "f.f1",
         "f.score",
-        "f.bid1",
-        "f.ask1",
+        "f.spread_ticks",
     ]
     if has_vol_surge:
         select_parts.append("f.vol_surge_z")
+    join_condition = "f.symbol = l.symbol"
+    if use_ts_ms:
+        join_condition += " AND f.ts_ms = l.ts"
+    else:
+        join_condition += " AND CAST(f.t_exec * 1000 AS INTEGER) = l.ts"
     sql = f"""
         SELECT {', '.join(select_parts)}
           FROM labels_outcome AS l
           JOIN features_stream AS f
-            ON f.symbol = l.symbol
-           AND CAST(f.t_exec * 1000 AS INTEGER) = l.ts
+            ON {join_condition}
          WHERE l.dataset_id = ?
            AND l.horizon_sec IN ({placeholders})
          ORDER BY l.symbol, l.ts, l.horizon_sec
@@ -163,18 +167,15 @@ def load_rows(
     rows: List[DataRow] = []
     cur = conn.execute(sql, params)
     for rec in cur:
-        # rec order matches select_parts
         idx = 0
         symbol = rec[idx]; idx += 1
         ts_ms = rec[idx]; idx += 1
         horizon = rec[idx]; idx += 1
         ret_bp = rec[idx]; idx += 1
         label = rec[idx]; idx += 1
-        t_exec = rec[idx]; idx += 1
         uptick = rec[idx]; idx += 1
         score = rec[idx]; idx += 1
-        bid = rec[idx]; idx += 1
-        ask = rec[idx]; idx += 1
+        spread_ticks = rec[idx]; idx += 1
         vol = rec[idx] if has_vol_surge else None
 
         if ts_ms is None:
@@ -184,9 +185,9 @@ def load_rows(
         except (TypeError, ValueError):
             continue
         ts_sec = ts_ms_int / 1000.0
-        spread_bp = compute_spread_bp(_to_float(bid), _to_float(ask))
         uptick_val = _to_float(uptick)
         score_val = _to_float(score)
+        spread_ticks_val = _to_float(spread_ticks)
         vol_val = _to_float(vol)
         label_int = int(label)
         ret_bp_float = _to_float(ret_bp)
@@ -203,7 +204,7 @@ def load_rows(
                 label=label_int,
                 uptick=uptick_val,
                 score=score_val,
-                spread_bp=spread_bp,
+                spread_ticks=spread_ticks_val,
                 vol_surge=vol_val,
                 group=day,
             )
@@ -226,6 +227,95 @@ def group_by_day(rows: Sequence[DataRow]) -> Tuple[List[str], Dict[str, List[int
         day_groups[row.group].append(idx)
     days = sorted(day_groups.keys())
     return days, day_groups
+
+
+def _dataset_signature(path: Path) -> str:
+    try:
+        stat = path.stat()
+    except FileNotFoundError:
+        return ""
+    return f"{stat.st_mtime_ns}:{stat.st_size}"
+
+
+def _build_cache_key(
+    dataset_id: str,
+    horizons: Sequence[int],
+    has_vol: bool,
+    has_ts_ms: bool,
+    db_signature: str,
+) -> str:
+    payload = {
+        "dataset_id": dataset_id,
+        "horizons": list(horizons),
+        "has_vol": has_vol,
+        "has_ts_ms": has_ts_ms,
+        "db_signature": db_signature,
+        "version": CACHE_VERSION,
+    }
+    raw = json.dumps(payload, sort_keys=True).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()
+
+
+def _cache_path(key: str) -> Path:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    return CACHE_DIR / f"{key}.pkl"
+
+
+def load_dataset_cache(
+    dataset_id: str,
+    horizons: Sequence[int],
+    has_vol: bool,
+    has_ts_ms: bool,
+    db_signature: str,
+) -> Optional[Tuple[List[DataRow], List[str], Dict[str, List[int]]]]:
+    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    path = _cache_path(key)
+    if not path.exists():
+        return None
+    try:
+        with path.open("rb") as fh:
+            payload: Dict[str, Any] = pickle.load(fh)
+    except (OSError, pickle.UnpicklingError):
+        return None
+    meta = payload.get("meta", {})
+    if meta.get("version") != CACHE_VERSION:
+        return None
+    rows = payload.get("rows")
+    days = payload.get("days")
+    day_groups = payload.get("day_groups")
+    if rows is None or days is None or day_groups is None:
+        return None
+    return rows, days, day_groups
+
+
+def save_dataset_cache(
+    dataset_id: str,
+    horizons: Sequence[int],
+    has_vol: bool,
+    has_ts_ms: bool,
+    db_signature: str,
+    rows: Sequence[DataRow],
+    days: Sequence[str],
+    day_groups: Dict[str, List[int]],
+) -> None:
+    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    path = _cache_path(key)
+    payload = {
+        "meta": {
+            "version": CACHE_VERSION,
+            "dataset_id": dataset_id,
+            "horizons": list(horizons),
+            "has_vol": has_vol,
+            "has_ts_ms": has_ts_ms,
+            "db_signature": db_signature,
+            "row_count": len(rows),
+        },
+        "rows": list(rows),
+        "days": list(days),
+        "day_groups": day_groups,
+    }
+    with path.open("wb") as fh:
+        pickle.dump(payload, fh, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def make_day_folds(days: Sequence[str], day_groups: Dict[str, List[int]], cv: int) -> List[List[str]]:
@@ -264,7 +354,7 @@ def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params:
         if score_thr is not None:
             if row.score is None or row.score < score_thr:
                 continue
-        if row.spread_bp is None or row.spread_bp > spread_max:
+        if row.spread_ticks is None or row.spread_ticks > spread_max:
             continue
         if vol_thr is not None:
             if row.vol_surge is None or row.vol_surge < vol_thr:
@@ -356,10 +446,10 @@ def evaluate_params(
 
 
 def grid_parameters(has_score: bool, has_vol: bool) -> List[Dict[str, float]]:
-    upticks = [0.55, 0.60, 0.65, 0.70]
-    spreads = [10, 15, 20, 25, 30]
-    cooldowns = [5, 10, 15]
-    scores = [6.0, 6.5, 7.0] if has_score else [None]
+    upticks = [round(0.40 + 0.05 * i, 2) for i in range(7)]
+    spreads = [10, 20, 30]
+    cooldowns = [5.0, 10.0, 15.0]
+    scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
     vols = [0.0, 0.5, 1.0] if has_vol else [None]
 
     params_list: List[Dict[str, float]] = []
@@ -391,8 +481,9 @@ def evaluate_grid(
     verbose: bool,
     cv: int,
     progress_step: int,
-) -> List[Dict[str, object]]:
+) -> Tuple[List[Dict[str, object]], List[Dict[str, object]]]:
     results: List[Dict[str, object]] = []
+    eligible_results: List[Dict[str, object]] = []
     total_candidates = len(params_list)
     step = max(1, progress_step)
     start = time.time()
@@ -407,6 +498,7 @@ def evaluate_grid(
         )
 
     best_so_far: Optional[Dict[str, object]] = None
+    best_eligible: Optional[Dict[str, object]] = None
 
     print(f"[grid] total candidates = {total_candidates}")
     sys.stdout.flush()
@@ -421,12 +513,17 @@ def evaluate_grid(
             "precision": agg["precision"],
             "mean_hit": agg["mean_hit"],
             "mean_miss": agg["mean_miss"],
-            "ev": agg["ev"],
-            "eligible": eligible,
-        }
-        results.append(result)
+        "ev": agg["ev"],
+        "eligible": eligible,
+    }
+    results.append(result)
+    if eligible:
+        eligible_results.append(result)
         if best_so_far is None or result_rank_key(result) > result_rank_key(best_so_far):
             best_so_far = result
+        if eligible:
+            if best_eligible is None or result_rank_key(result) > result_rank_key(best_eligible):
+                best_eligible = result
         if verbose:
             progress = (idx / total_candidates) * 100.0
             print(
@@ -446,29 +543,38 @@ def evaluate_grid(
             cps = idx / elapsed if elapsed > 0 else 0.0
             pct = (idx / total_candidates * 100.0) if total_candidates else 100.0
             eta = ((total_candidates - idx) / cps) if cps > 0 else 0.0
-            if best_so_far:
-                best_ev = float(best_so_far['ev']) if best_so_far['ev'] is not None else 0.0
-                best_prec = float(best_so_far['precision']) if best_so_far['precision'] is not None else 0.0
-                best_trades = int(best_so_far['signals']) if best_so_far['signals'] is not None else 0
-                best_str = f"best ev={best_ev:.3f} prec={best_prec:.3f} trades={best_trades}"
+            if best_eligible:
+                be = best_eligible
+                best_ev = float(be["ev"]) if be["ev"] is not None else 0.0
+                best_prec = float(be["precision"]) if be["precision"] is not None else 0.0
+                best_trades = int(be["signals"]) if be["signals"] is not None else 0
+                best_str = f"best(ev={best_ev:.3f}, prec={best_prec:.3f}, trades={best_trades})"
+            elif best_so_far:
+                bs = best_so_far
+                best_ev = float(bs["ev"]) if bs["ev"] is not None else 0.0
+                best_prec = float(bs["precision"]) if bs["precision"] is not None else 0.0
+                best_trades = int(bs["signals"]) if bs["signals"] is not None else 0
+                best_str = f"best-all(ev={best_ev:.3f}, prec={best_prec:.3f}, trades={best_trades})"
             else:
                 best_str = "best n/a"
             print(
                 "[grid] {done:,}/{total:,} ({pct:4.1f}%)  {cps:,.0f}/s  "
-                "elapsed={elapsed:,.1f}s  ETA≈{eta:,.1f}s  {best}".format(
+                "elapsed={elapsed:,.1f}s  ETA≈{eta:,.1f}s  eligible={eligible:,}  {best}".format(
                     done=idx,
                     total=total_candidates,
                     pct=pct,
                     cps=cps,
                     elapsed=elapsed,
                     eta=eta,
+                    eligible=len(eligible_results),
                     best=best_str,
                 )
             )
             sys.stdout.flush()
     duration = time.time() - start
     print(f"[grid] evaluated {total_candidates} candidates in {duration:.2f}s")
-    return results
+    print(f"[grid] eligible candidates = {len(eligible_results)}/{total_candidates}")
+    return results, eligible_results
 
 
 def select_top(results: List[Dict[str, object]], top_k: int = 5) -> List[Dict[str, object]]:
@@ -524,6 +630,41 @@ def write_csv_report(path: Path, results: List[Dict[str, object]]) -> None:
             )
 
 
+def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    headers = [
+        "BUY_UPTICK_THR",
+        "BUY_SCORE_THR",
+        "BUY_SPREAD_MAX",
+        "COOLDOWN_SEC",
+        "precision",
+        "ev",
+        "trades",
+        "mean_hit_bp",
+        "mean_loss_bp",
+        "eligible",
+    ]
+    with path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.writer(fh, lineterminator="\r\n")
+        writer.writerow(headers)
+        for row in results:
+            params = row["params"]
+            writer.writerow(
+                [
+                    params.get("BUY_UPTICK_THR", ""),
+                    params.get("BUY_SCORE_THR", ""),
+                    params.get("BUY_SPREAD_MAX", ""),
+                    params.get("COOLDOWN_SEC", ""),
+                    row.get("precision"),
+                    row.get("ev"),
+                    row.get("signals"),
+                    row.get("mean_hit"),
+                    row.get("mean_miss"),
+                    int(bool(row.get("eligible"))),
+                ]
+            )
+
+
 def main() -> None:
     args = parse_args()
     dataset_id = args.DatasetId
@@ -534,41 +675,86 @@ def main() -> None:
     cv_folds = max(0, int(args.CV))
 
     db_path = resolve_db_path(dataset_id)
+    db_signature = _dataset_signature(db_path)
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
-    ensure_indexes(conn)
     columns = set(feature_columns(conn))
+    has_ts_ms = "ts_ms" in columns
+    ensure_indexes(conn, has_ts_ms)
     has_score = "score" in columns
     has_vol = "vol_surge_z" in columns
     if "f1" not in columns:
         raise SystemExit("ERROR: features_stream missing f1 (uptick) column.")
 
-    rows = load_rows(conn, dataset_id, horizons, has_vol)
+    cache_hit = load_dataset_cache(dataset_id, horizons, has_vol, has_ts_ms, db_signature)
+    if cache_hit:
+        rows, days, day_groups = cache_hit
+        print(f"[grid] dataset cache hit (rows={len(rows)})")
+    else:
+        rows = load_rows(conn, dataset_id, horizons, has_vol, has_ts_ms)
+        if not rows:
+            conn.close()
+            raise SystemExit("ERROR: No matched rows for dataset/horizons.")
+        days, day_groups = group_by_day(rows)
+        save_dataset_cache(
+            dataset_id,
+            horizons,
+            has_vol,
+            has_ts_ms,
+            db_signature,
+            rows,
+            days,
+            day_groups,
+        )
+        print(f"[grid] dataset cache stored (rows={len(rows)})")
     conn.close()
 
-    if not rows:
-        raise SystemExit("ERROR: No matched rows for dataset/horizons.")
-
-    days, day_groups = group_by_day(rows)
     params_list = grid_parameters(has_score, has_vol)
-    results = evaluate_grid(rows, days, day_groups, params_list, min_trades, ev_floor, verbose, cv_folds, max(1, int(args.ProgressStep)))
+    print(f"[grid] applying filters: MinTrades>={min_trades:,}, EVFloor>={ev_floor:.3f}")
+    all_results, eligible_results = evaluate_grid(
+        rows,
+        days,
+        day_groups,
+        params_list,
+        min_trades,
+        ev_floor,
+        verbose,
+        cv_folds,
+        max(1, int(args.ProgressStep)),
+    )
 
-    top_results = select_top(results, top_k=5)
+    key_fn = lambda r: (float(r["precision"]), float(r["ev"]), int(r["signals"]))
+
+    filtered_results = eligible_results if eligible_results else all_results
+
+    top_results = select_top(filtered_results, top_k=5)
     for idx, item in enumerate(top_results, start=1):
         params_display = {k: v for k, v in item["params"].items()}
+        eligible_flag = "✅" if item.get("eligible") else "❌"
         print(
-            "[grid-top] #%d precision=%.4f trades=%d EV=%.3f params=%s"
+            "[grid-top] #%d precision=%.4f trades=%d EV=%.3f eligible=%s params=%s"
             % (
                 idx,
                 item["precision"],
                 item["signals"],
                 item["ev"],
+                eligible_flag,
                 params_display,
             )
         )
 
-    best = top_results[0] if top_results else results[0]
-    best_is_eligible = bool(best["eligible"])
+    if eligible_results:
+        best = max(eligible_results, key=key_fn)
+        best_is_eligible = True
+    else:
+        best = max(all_results, key=key_fn)
+        best_is_eligible = False
+        print("[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.")
+        print(
+            "[grid] selecting best among all candidates for reference: "
+            f"precision={best['precision']:.3f} trades={best['signals']} ev={best['ev']:.3f}"
+        )
+
     best_params = {k: v for k, v in best["params"].items() if v is not None}
     best_payload = {
         "dataset_id": dataset_id,
@@ -579,19 +765,48 @@ def main() -> None:
         "mean_loss_bp": best["mean_miss"],
         "params": best_params,
         "eligible": best_is_eligible,
+        "min_trades": min_trades,
+        "ev_floor": ev_floor,
     }
+    if not best_is_eligible:
+        best_payload["ineligible_reason"] = (
+            f"signals={best['signals']} (need >={min_trades}), "
+            f"ev={best['ev']:.3f} (need >={ev_floor})"
+        )
 
-    out_path = Path(args.Out) if args.Out else Path(f"exports/best_thresholds_{dataset_id}.json")
+    if args.Out:
+        out_arg = Path(args.Out)
+        if out_arg.suffix.lower() == ".json":
+            out_path = out_arg
+        else:
+            out_path = out_arg / f"best_thresholds_{dataset_id}.json"
+    else:
+        out_path = Path(f"exports/best_thresholds_{dataset_id}.json")
+
     write_json(out_path, best_payload)
 
     report_path = Path(f"exports/grid_report_{dataset_id}.csv")
-    write_csv_report(report_path, results)
+    write_csv_report(report_path, all_results)
+    filtered_report_path: Optional[Path] = None
+    if eligible_results and len(eligible_results) != len(all_results):
+        filtered_report_path = Path(f"exports/grid_report_eligible_{dataset_id}.csv")
+        write_csv_report(filtered_report_path, eligible_results)
+
+    candidates_path = out_path.parent / f"grid_candidates_{dataset_id}.csv"
+    write_candidates_csv(candidates_path, filtered_results)
+    all_candidates_path = out_path.parent / f"grid_candidates_all_{dataset_id}.csv"
+    write_candidates_csv(all_candidates_path, all_results)
 
     print(f"[grid] best saved to {out_path}")
     print(f"[grid] report saved to {report_path}")
+    if filtered_report_path:
+        print(f"[grid] eligible report saved to {filtered_report_path}")
+    print(f"[grid] candidates saved to {candidates_path}")
+    print(f"[grid] all candidates saved to {all_candidates_path}")
     if not top_results or not best_is_eligible:
         print("[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.")
 
 
 if __name__ == "__main__":
     main()
+

@@ -8,12 +8,19 @@ stream_microbatch_Offline.py
 """
 
 from __future__ import annotations
-import argparse, json, sqlite3, time, queue, threading
+import argparse, json, sqlite3, time, queue, threading, sys
 from pathlib import Path
 from typing import Optional, Iterable
 
 # 既存ロジックを再利用
-import scripts.stream_microbatch as live
+try:
+    import scripts.stream_microbatch as live
+except ModuleNotFoundError:
+    pkg_dir = Path(__file__).resolve().parent
+    project_root = pkg_dir.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    import scripts.stream_microbatch as live
 
 
 class OfflineFeeder(threading.Thread):

@@ -27,7 +27,7 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 from math import exp
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from zoneinfo import ZoneInfo
@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS features_stream(
   dataset_id TEXT,
   symbol TEXT NOT NULL,
   t_exec REAL NOT NULL,
+  ts_ms INTEGER NOT NULL,
   ver TEXT NOT NULL,
   f1 REAL,
   f2 REAL,
@@ -155,7 +156,7 @@ CREATE TABLE IF NOT EXISTS features_stream(
   ask1 REAL,
   bidqty1 REAL,
   askqty1 REAL,
-  f1_delta REAL,
+  f1_delta REAL DEFAULT 0,
   PRIMARY KEY(dataset_id, symbol, t_exec)
 );
 """
@@ -335,6 +336,7 @@ def ensure_tables(db: str):
             conn.execute("CREATE INDEX IF NOT EXISTS idx_feat_ds_time ON features_stream(dataset_id, t_exec)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_push_ts ON raw_push(t_recv)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_push_symbol_ts ON raw_push(symbol, t_recv)")
+        ensure_features_schema(conn)
     finally:
         conn.close()
 
@@ -523,6 +525,7 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
     return {
         "symbol": symbol,
         "t_exec": now,
+        "ts_ms": int(round(now * 1000)),
         "ver": "feat_v1",
         "f1": f1,
         "f2": f2,
@@ -540,37 +543,71 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
 
 
 def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id: str):
+    f1_delta = d.get("f1_delta", 0.0)
+    ts_ms = d.get("ts_ms")
+    if ts_ms is None and d.get("t_exec") is not None:
+        try:
+            ts_ms = int(round(float(d["t_exec"]) * 1000))
+        except Exception:
+            ts_ms = 0
+    ts_ms = int(ts_ms or 0)
     conn.execute(
-        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             dataset_id,
             d["symbol"],
             d["t_exec"],
-            d["ver"],
-            d["f1"],
-            d["f2"],
-            d["f3"],
-            d["f4"],
-            d["f5"],
-            d["f6"],
-            d["score"],
-            d["spread_ticks"],
-            d["bid1"],
-            d["ask1"],
-            d["bidqty1"],
-            d["askqty1"],
+            ts_ms,
+            d.get("ver", "feat_v1"),
+            d.get("f1"),
+            d.get("f2"),
+            d.get("f3"),
+            d.get("f4"),
+            d.get("f5"),
+            d.get("f6"),
+            d.get("score"),
+            d.get("spread_ticks"),
+            d.get("bid1"),
+            d.get("ask1"),
+            d.get("bidqty1"),
+            d.get("askqty1"),
+            f1_delta,
         ),
     )
 
 
-def _ensure_features_schema(conn: sqlite3.Connection) -> None:
+def ensure_features_schema(conn: sqlite3.Connection) -> None:
     """Ensure backward compatible columns exist on features_stream."""
     try:
         columns = [row[1] for row in conn.execute("PRAGMA table_info(features_stream);")]
+        added_ts_ms = False
         if "f1_delta" not in columns:
-            conn.execute("ALTER TABLE features_stream ADD COLUMN f1_delta REAL;")
+            logger.info("migrating features_stream: adding f1_delta column")
+            conn.execute("ALTER TABLE features_stream ADD COLUMN f1_delta REAL DEFAULT 0")
             conn.commit()
+            logger.info("migrating features_stream: f1_delta added")
+        if "ts_ms" not in columns:
+            logger.info("migrating features_stream: adding ts_ms column")
+            conn.execute("ALTER TABLE features_stream ADD COLUMN ts_ms INTEGER")
+            conn.commit()
+            conn.execute(
+                "UPDATE features_stream SET ts_ms = CAST(t_exec * 1000 AS INTEGER) "
+                "WHERE ts_ms IS NULL OR ts_ms = 0"
+            )
+            conn.commit()
+            columns.append("ts_ms")
+            added_ts_ms = True
+        if "ts_ms" in columns:
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_feat_symbol_ts_ms ON features_stream(symbol, ts_ms)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_feat_ds_symbol_ts_ms ON features_stream(dataset_id, symbol, ts_ms)"
+            )
+            conn.commit()
+            if added_ts_ms:
+                logger.info("migrating features_stream: ts_ms column and indexes ready")
     except sqlite3.DatabaseError as exc:
         logger.warning("failed to ensure features_stream schema: %s", exc)
 
@@ -632,7 +669,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
     conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
-    _ensure_features_schema(conn)
+    ensure_features_schema(conn)
     states: Dict[str, ScoreState] = {}
     batch: list[Dict[str, Any]] = []
     last_flush = time.monotonic()
@@ -655,6 +692,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "dataset_id": dataset_id,
                 "symbol": "",
                 "t_exec": np.nan,
+                "ts_ms": 0,
                 "ver": "feat_v1",
                 "f1": 0.0,
                 "f2": 0.0,
@@ -677,6 +715,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "dataset_id",
                 "symbol",
                 "t_exec",
+                "ts_ms",
                 "ver",
                 "f1",
                 "f2",
@@ -698,8 +737,8 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
             df = df[required_cols]
             rows_to_insert = [tuple(row) for row in df.itertuples(index=False, name=None)]
             conn.executemany(
-                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 rows_to_insert,
             )
             conn.commit()

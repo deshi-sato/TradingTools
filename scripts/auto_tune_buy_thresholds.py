@@ -1,5 +1,5 @@
 # scripts/auto_tune_buy_thresholds.py
-import argparse, json, subprocess, sys, time, os
+import argparse, json, subprocess, sys, time, os, csv
 from pathlib import Path
 
 """
@@ -82,6 +82,92 @@ def run_grid(
     return result
 
 
+
+def _to_float(value, default=None):
+    try:
+        if value is None:
+            return default
+        value_str = str(value).strip()
+        if not value_str:
+            return default
+        return float(value_str)
+    except (TypeError, ValueError):
+        return default
+
+
+def _select_constrained_candidate(
+    csv_path: str,
+    dataset_id: str,
+    round_index: int,
+    base_uptick: float,
+    base_spread: float,
+    base_score: float,
+    target_trades: int,
+):
+    csv_file = Path(csv_path) if csv_path else None
+    if not csv_file or not csv_file.exists():
+        return None, None
+
+    best_row = None
+    best_key = None
+    with csv_file.open('r', encoding='utf-8-sig', newline='') as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            trades = int(_to_float(row.get('trades'), 0) or 0)
+            if trades < target_trades:
+                continue
+
+            uptick = _to_float(row.get('BUY_UPTICK_THR'), float('inf'))
+            spread = _to_float(row.get('BUY_SPREAD_MAX'), float('inf'))
+            score = _to_float(row.get('BUY_SCORE_THR'), float('inf'))
+
+            if uptick is not None and uptick > base_uptick + 1e-9:
+                continue
+            if spread is not None and spread > base_spread + 1e-9:
+                continue
+            if score is not None and score > base_score + 1e-9:
+                continue
+
+            precision = _to_float(row.get('precision'), float('-inf'))
+            ev = _to_float(row.get('ev'), float('-inf'))
+            key = (precision, ev, trades)
+            if best_row is None or key > best_key:
+                best_row = row
+                best_key = key
+
+    if best_row is None:
+        return None, None
+
+    precision = _to_float(best_row.get('precision'), 0.0)
+    ev = _to_float(best_row.get('ev'), 0.0)
+    trades = int(_to_float(best_row.get('trades'), 0) or 0)
+    mean_hit = _to_float(best_row.get('mean_hit_bp'), None)
+    mean_miss = _to_float(best_row.get('mean_loss_bp'), None)
+
+    params: dict[str, float] = {}
+    for key in ('BUY_UPTICK_THR', 'BUY_SPREAD_MAX', 'BUY_SCORE_THR', 'COOLDOWN_SEC', 'VOL_SURGE_MIN'):
+        val = best_row.get(key)
+        num = _to_float(val, None)
+        if num is not None:
+            params[key] = num
+
+    payload = {
+        'dataset_id': dataset_id,
+        'precision': precision,
+        'trades': trades,
+        'ev': ev,
+        'mean_hit_bp': mean_hit,
+        'mean_loss_bp': mean_miss,
+        'params': params,
+        'eligible': True,
+    }
+
+    out_path = Path('exports') / f"best_thresholds_filtered_{dataset_id}_round{round_index}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
+    return payload, str(out_path)
+
+
 def read_best(json_path: str) -> dict:
     if not json_path or not Path(json_path).exists():
         return {}
@@ -117,19 +203,23 @@ def main():
     #     - BUY_SPREAD_MAX を +2
     #     - BUY_SCORE_THR を -0.5
     #   の3軸を少しずつ解放（※下限・上限に注意）
+    current_uptick = float(uptick)
+    current_spread = float(spread)
+    current_score = float(score)
+    current_ev_floor = float(args.EVfloor)
     best = None
     history = []
 
     for r in range(1, rounds + 1):
-        # ガード
-        uptick_r = max(0.50, round(uptick - 0.05 * (r - 1), 3))  # 0.50未満はやりすぎ
-        spread_r = min(20, spread + 2 * (r - 1))  # 20超は無効域想定
-        score_r = max(4.0, round(score - 0.5 * (r - 1), 3))  # 4.0未満はノイズ拾いを警戒
+        uptick_r = round(current_uptick, 3)
+        spread_r = round(current_spread)
+        score_r = round(current_score, 3)
 
         print(
             f"\n==== Round {r}/{rounds}  target_trades>={target}  "
-            f"[uptick≥{uptick_r}, spread≤{spread_r}, score≥{score_r}] ===="
+            f"[uptick>={uptick_r}, spread<={spread_r}, score>={score_r}] ===="
         )
+
 
         res = run_grid(
             dataset_id=ds,
@@ -139,14 +229,32 @@ def main():
             score_thr=score_r,
             horizons=args.Horizons,
             min_trades=target,
-            ev_floor=args.EVfloor,
+            ev_floor=current_ev_floor,
             verbose=True,
         )
 
-        best_json = read_best(res.get("json", ""))
+        best_json_path = res.get("json", "")
+        best_json = read_best(best_json_path)
         if not best_json:
-            print("[auto] best json not found. 次ラウンドへ。")
+            print("[auto] best json not found; moving to next round.")
             continue
+
+        constrained_payload, constrained_json_path = _select_constrained_candidate(
+            res.get("csv", ""),
+            dataset_id=ds,
+            round_index=r,
+            base_uptick=uptick_r,
+            base_spread=spread_r,
+            base_score=score_r,
+            target_trades=target,
+        )
+        if constrained_payload:
+            print("[auto] applied base-threshold constraints to grid results.")
+            best_json = constrained_payload
+            if constrained_json_path:
+                best_json_path = constrained_json_path
+        else:
+            print("[auto] no candidate satisfied base-threshold constraints; using global best.")
 
         params = best_json.get("params", {})
         trades = best_json.get("trades", 0)
@@ -162,7 +270,7 @@ def main():
                 "precision": prec,
                 "params": params,
                 "eligible": eligible,
-                "json": res.get("json"),
+                "json": best_json_path,
             }
         )
 
@@ -171,31 +279,54 @@ def main():
         )
         print(f"[auto] params={params}")
 
-        # 目標達成チェック
         if trades is not None and trades >= target and eligible:
             best = history[-1]
-            print("\n[auto] ✅ 目標件数を満たす候補を確保しました。")
+            print("\n[auto] target met; stopping auto-tune.")
             break
 
-        # 未達だがEVが良い案をメモ（最後の保険）
-        if best is None:
+        if best is None or best.get("ev") is None or (ev is not None and ev > best.get("ev", float("-inf"))):
             best = history[-1]
 
-    # 最終採用の表示
+        adjustments = []
+
+        if trades is not None and trades < target:
+            prev_spread = current_spread
+            step = max(1, int((target - trades) / 50))
+            current_spread = min(current_spread + step * 2, 40)
+            if current_spread != prev_spread:
+                adjustments.append(f"spread {prev_spread}->{current_spread}")
+
+        if ev is not None and ev < current_ev_floor:
+            prev_uptick = current_uptick
+            prev_score = current_score
+            prev_ev_floor = current_ev_floor
+            current_uptick = min(current_uptick + 0.05, 0.95)
+            current_score = min(current_score + 0.5, 12.0)
+            current_ev_floor = max(current_ev_floor - 0.5, -20.0)
+            adjustments.append(f"uptick {prev_uptick}->{current_uptick}")
+            adjustments.append(f"score {prev_score}->{current_score}")
+            adjustments.append(f"EVfloor {prev_ev_floor}->{current_ev_floor}")
+
+        if not adjustments:
+            print("[auto] no parameter adjustments this round.")
+        else:
+            print("[auto] adjustments: " + "; ".join(adjustments))
+
+    else:
+        if best is None and history:
+            best = max(history, key=lambda r: (r.get("precision") or 0.0, r.get("ev") or float("-inf")))
     print("\n===== Auto Tune Summary =====")
     if best:
-        print(
-            f"採用 round={best['round']}  trades={best['trades']}  EV={best['ev']}  precision={best['precision']}"
-        )
-        print(f"採用 params={best['params']}")
-        print(f"採用 json={best['json']}")
+        print(f"best round={best['round']} trades={best['trades']} EV={best['ev']} precision={best['precision']}")
+        print(f"best params={best['params']}")
+        print(f"best json={best['json']}")
     else:
-        print("候補を取得できませんでした。")
+        print('No candidate reached the target criteria.')
 
-    # 履歴ログも保存
-    out = Path("exports") / f"auto_tune_summary_{ds}.json"
-    out.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[auto] 履歴を保存 -> {out}")
+    out = Path('exports') / f"auto_tune_summary_{ds}.json"
+    out.write_text(json.dumps(history, ensure_ascii=False, indent=2), encoding='utf-8')
+    print(f'[auto] summary saved -> {out}')
+
 
 
 if __name__ == "__main__":

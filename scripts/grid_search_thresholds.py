@@ -541,12 +541,12 @@ def evaluate_grid(
             "precision": agg["precision"],
             "mean_hit": agg["mean_hit"],
             "mean_miss": agg["mean_miss"],
-        "ev": agg["ev"],
-        "eligible": eligible,
-    }
-    results.append(result)
-    if eligible:
-        eligible_results.append(result)
+            "ev": agg["ev"],
+            "eligible": eligible,
+        }
+        results.append(result)
+        if eligible:
+            eligible_results.append(result)
         if best_so_far is None or result_rank_key(result) > result_rank_key(best_so_far):
             best_so_far = result
         if eligible:
@@ -587,7 +587,7 @@ def evaluate_grid(
                 best_str = "best n/a"
             print(
                 "[grid] {done:,}/{total:,} ({pct:4.1f}%)  {cps:,.0f}/s  "
-                "elapsed={elapsed:,.1f}s  ETA≈{eta:,.1f}s  eligible={eligible:,}  {best}".format(
+                "elapsed={elapsed:,.1f}s  ETA~{eta:,.1f}s  eligible={eligible:,}  {best}".format(
                     done=idx,
                     total=total_candidates,
                     pct=pct,
@@ -762,7 +762,7 @@ def main() -> None:
     top_results = select_top(filtered_results, top_k=5)
     for idx, item in enumerate(top_results, start=1):
         params_display = {k: v for k, v in item["params"].items()}
-        eligible_flag = "✅" if item.get("eligible") else "❌"
+        eligible_flag = "PASS" if item.get("eligible") else "FAIL"
         print(
             "[grid-top] #%d precision=%.4f trades=%d EV=%.3f eligible=%s params=%s"
             % (

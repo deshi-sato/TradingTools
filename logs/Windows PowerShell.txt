@@ -1,0 +1,29 @@
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> # OKパターン（ファイル名まで指定）
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> $out = "exports\EVF50_REF20251010_OFF_H20.json"
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer>
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> py -m scripts.grid_search_thresholds -DatasetId $ds -Out $out -MinTrades 50 -EVFloor -50
+usage: grid_search_thresholds.py [-h] -DatasetId DATASETID [-Horizons HORIZONS] [-MinTrades MINTRADES]
+                                 [-EVFloor EVFLOOR] [-CV CV] [-Out OUT] [-Symbols SYMBOLS] [-Verbose VERBOSE]
+                                 [-ProgressStep PROGRESSSTEP]
+grid_search_thresholds.py: error: argument -DatasetId: expected one argument
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> $ds = 'REF20251010_OFF'
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> # OKパターン（ファイル名まで指定）
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> $out = "exports\EVF50_REF20251010_OFF_H20.json"
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer>
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> py -m scripts.grid_search_thresholds -DatasetId $ds -Out $out -MinTrades 50 -EVFloor -50
+[grid] dataset cache stored (rows=287400)
+[grid] applying filters: MinTrades>=50, EVFloor>=-50.000
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  6/s  elapsed=74.3s  ETA~0.0s  eligible=441  best(ev=3.748, prec=0.509, trades=1404)
+[grid] evaluated 441 candidates in 74.34s
+[grid] eligible candidates = 441/441
+[grid-top] #1 precision=0.5085 trades=1404 EV=3.748 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.5085 trades=1404 EV=3.748 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.5085 trades=1404 EV=3.748 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.5085 trades=1404 EV=3.748 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.5085 trades=1404 EV=3.748 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 5.0}
+[grid] best saved to exports\EVF50_REF20251010_OFF_H20.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer>

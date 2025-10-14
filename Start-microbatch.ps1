@@ -5,3 +5,23 @@ py -m scripts.build_watchlist
 py -m scripts.register_watchlist -Config config\stream_settings.json -Input data\watchlist_today.csv -Max 3
 $env:NAUT_SKIP_WAL = '1'
 py -m scripts.stream_microbatch -Config config\stream_settings.json
+
+
+
+#以下はグリッドサーチ起動用
+# Start-microbatch.ps1 stream_microbatch for gridsearch
+$ds      = 'REF20251014_OFF'
+$refeed  = 'db\naut_market_20251014_refeed.db'
+
+# スキーマ補正（再実行可）
+py scripts\ensure_registry_schema.py $refeed
+py scripts\ensure_registry_schema.py db\naut_market.db
+
+# ラベル作成（唯一の -DB 指定）
+py -m scripts.build_labels_from_replay -DatasetId $ds -DB $refeed -Horizons 20 -Thresholds +8,-6
+
+# トレーニングセット生成
+py -m scripts.build_training_set -DatasetId $ds -Out ("exports\trainset_{0}.csv" -f $ds)
+
+# グリッドサーチ
+py -m scripts.grid_search_thresholds -DatasetId $ds -Horizons 20 -MinTrades 50 -EVFloor 0 -CV 0

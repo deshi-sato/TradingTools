@@ -29,6 +29,8 @@ from math import exp
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from scripts.ensure_registry_schema import ensure_registry_schema
+
 try:
     from zoneinfo import ZoneInfo
 except Exception:  # pragma: no cover - fallback when zoneinfo unavailable
@@ -104,13 +106,17 @@ def load_json_utf8(path: str):
 
 DDL_DATASET_REGISTRY = """
 CREATE TABLE IF NOT EXISTS dataset_registry (
-  dataset_id     TEXT PRIMARY KEY,
-  created_at     TEXT NOT NULL,
+  dataset_id TEXT PRIMARY KEY,
+  db_path TEXT NOT NULL,
   source_db_path TEXT NOT NULL,
+  build_tool TEXT,
+  code_version TEXT,
+  config_json TEXT DEFAULT '{}',
+  db_sha1 TEXT NOT NULL,
   source_db_sha1 TEXT NOT NULL,
-  build_tool     TEXT NOT NULL,
-  code_version   TEXT NOT NULL,
-  config_json    TEXT NOT NULL
+  regime_tag TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 """
 
@@ -279,35 +285,70 @@ def register_dataset(
     else:
         timestamp = timestamp.astimezone(JST)
     dataset_id = f"REF{timestamp.strftime('%Y%m%d_%H%M')}"
-    created_at = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+    created_at = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    updated_at = created_at
     config_json = json.dumps(config_dict, ensure_ascii=False)
-    source_db_path = str(db_path)
-    source_db_sha1 = sha1_file(db_path)
+    regime_tag = str(config_dict.get("regime_tag", ""))
 
-    conn = sqlite3.connect(source_db_path)
+    db_abs_path = db_path.resolve()
+    db_path_str = str(db_abs_path)
+    db_sha1 = sha1_file(db_abs_path)
+
+    source_db_path = config_dict.get("source_db_path")
+    if source_db_path:
+        source_db_path = str(Path(source_db_path).resolve())
+    else:
+        source_db_path = db_path_str
+    source_db_sha1 = sha1_file(Path(source_db_path)) if source_db_path else db_sha1
+    if not source_db_sha1:
+        source_db_sha1 = db_sha1
+
+    conn = sqlite3.connect(db_path_str)
     try:
+        ensure_registry_schema(db_abs_path)
         with conn:
-            conn.execute(DDL_DATASET_REGISTRY)
-            try:
-                conn.execute(
-                    """
-                    INSERT INTO dataset_registry (dataset_id, created_at, source_db_path, source_db_sha1, build_tool, code_version, config_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        dataset_id,
-                        created_at,
-                        source_db_path,
-                        source_db_sha1,
-                        "stream_microbatch.py",
-                        code_version or "unknown",
-                        config_json,
-                    ),
+            conn.execute(
+                """
+                INSERT INTO dataset_registry (
+                    dataset_id,
+                    db_path,
+                    source_db_path,
+                    build_tool,
+                    code_version,
+                    config_json,
+                    db_sha1,
+                    source_db_sha1,
+                    regime_tag,
+                    created_at,
+                    updated_at
                 )
-                inserted = True
-            except sqlite3.IntegrityError:
-                inserted = False
-        return dataset_id, inserted
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(dataset_id) DO UPDATE SET
+                    db_path=excluded.db_path,
+                    source_db_path=excluded.source_db_path,
+                    build_tool=excluded.build_tool,
+                    code_version=excluded.code_version,
+                    config_json=excluded.config_json,
+                    db_sha1=excluded.db_sha1,
+                    source_db_sha1=excluded.source_db_sha1,
+                    regime_tag=excluded.regime_tag,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    dataset_id,
+                    db_path_str,
+                    source_db_path,
+                    "stream_microbatch.py",
+                    code_version or "unknown",
+                    config_json,
+                    db_sha1,
+                    source_db_sha1,
+                    regime_tag,
+                    created_at,
+                    updated_at,
+                ),
+            )
+        return dataset_id, True
     except Exception as exc:
         logger.exception("dataset_registry registration failed: %s", exc)
         return None, False
@@ -327,6 +368,8 @@ def _get_table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
 def ensure_tables(db: str):
     conn = sqlite3.connect(db)
     try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         with conn:
             conn.execute(DDL_OB)
             conn.execute("DROP TABLE IF EXISTS tick_batch")
@@ -667,7 +710,6 @@ def _transform_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue], stop_event: threading.Event, dataset_id: str):
     conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
     ensure_features_schema(conn)
     states: Dict[str, ScoreState] = {}
@@ -859,7 +901,6 @@ class RawWS(threading.Thread):
             return
 
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         raw_batch: list[tuple[Any, Optional[str], Optional[str], str]] = []
         last_flush = time.monotonic()
@@ -977,7 +1018,6 @@ class OrderbookSaver(threading.Thread):
 
     def run(self):
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
         batch = []
         last_flush = time.monotonic()

@@ -52,7 +52,7 @@ def resolve_db_path(dataset_id: str) -> Path:
         try:
             conn = sqlite3.connect(str(path))
             cur = conn.execute(
-                "SELECT source_db_path FROM dataset_registry WHERE dataset_id=?",
+                "SELECT COALESCE(db_path, source_db_path) FROM dataset_registry WHERE dataset_id=?",
                 (dataset_id,),
             )
             row = cur.fetchone()
@@ -137,6 +137,12 @@ def run(args: argparse.Namespace) -> None:
 
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
+    has_labels = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='labels_outcome'"
+    ).fetchone()
+    if not has_labels:
+        conn.close()
+        raise SystemExit("ERROR: labels_outcome missing → run build_labels_from_replay first.")
     ensure_indexes(conn)
 
     # --- 近傍JOIN（asof）に変更 ---

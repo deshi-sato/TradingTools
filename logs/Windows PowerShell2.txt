@@ -1,0 +1,181 @@
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer> py -m scripts.auto_tune_buy_thresholds -DatasetId REF20251010_OFF -Horizons 20 -TargetTrades 50 -MaxRounds 6 -BaseUptick 0.8 -BaseSpread 20 -BaseScore 8.5 -EVfloor 2 -CV 0
+
+==== Round 1/6  target_trades>=50  [uptick>=0.8, spread<=20, score>=8.5] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.8, BUY_SPREAD_MAX=20, BUY_SCORE_THR=8.5)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=2.000
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=98.7s  ETA~0.0s  eligible=0  best-all(ev=-5.420, prec=0.466, trades=292)
+[grid] evaluated 441 candidates in 98.71s
+[grid] eligible candidates = 0/441
+[grid-top] #1 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+[grid] selecting best among all candidates for reference: precision=0.466 trades=292 ev=-5.420
+[grid] best saved to exports\best_thresholds_REF20251010_OFF.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#1 result -> trades=292  EV=-5.420147  prec=0.465753  eligible=False
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 5.0, 'COOLDOWN_SEC': 15.0}
+[auto] adjustments: uptick 0.8->0.8500000000000001; score 8.5->9.0; EVfloor 2.0->1.5
+
+==== Round 2/6  target_trades>=50  [uptick>=0.85, spread<=20, score>=9.0] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.85, BUY_SPREAD_MAX=20, BUY_SCORE_THR=9.0)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=1.500
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=99.2s  ETA~0.0s  eligible=0  best-all(ev=-5.420, prec=0.466, trades=292)
+[grid] evaluated 441 candidates in 99.19s
+[grid] eligible candidates = 0/441
+[grid-top] #1 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+[grid] selecting best among all candidates for reference: precision=0.466 trades=292 ev=-5.420
+[grid] best saved to exports\best_thresholds_REF20251010_OFF.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#2 result -> trades=292  EV=-5.420147  prec=0.465753  eligible=False
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 5.0, 'COOLDOWN_SEC': 15.0}
+[auto] adjustments: uptick 0.8500000000000001->0.9000000000000001; score 9.0->9.5; EVfloor 1.5->1.0
+
+==== Round 3/6  target_trades>=50  [uptick>=0.9, spread<=20, score>=9.5] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.9, BUY_SPREAD_MAX=20, BUY_SCORE_THR=9.5)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=1.000
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=101.0s  ETA~0.0s  eligible=0  best-all(ev=-5.420, prec=0.466, trades=292)
+[grid] evaluated 441 candidates in 100.96s
+[grid] eligible candidates = 0/441
+[grid-top] #1 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+[grid] selecting best among all candidates for reference: precision=0.466 trades=292 ev=-5.420
+[grid] best saved to exports\best_thresholds_REF20251010_OFF.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#3 result -> trades=292  EV=-5.420147  prec=0.465753  eligible=False
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 5.0, 'COOLDOWN_SEC': 15.0}
+[auto] adjustments: uptick 0.9000000000000001->0.95; score 9.5->10.0; EVfloor 1.0->0.5
+
+==== Round 4/6  target_trades>=50  [uptick>=0.95, spread<=20, score>=10.0] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.95, BUY_SPREAD_MAX=20, BUY_SCORE_THR=10.0)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=0.500
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=102.2s  ETA~0.0s  eligible=0  best-all(ev=-5.420, prec=0.466, trades=292)
+[grid] evaluated 441 candidates in 102.20s
+[grid] eligible candidates = 0/441
+[grid-top] #1 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+[grid] selecting best among all candidates for reference: precision=0.466 trades=292 ev=-5.420
+[grid] best saved to exports\best_thresholds_REF20251010_OFF.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#4 result -> trades=292  EV=-5.420147  prec=0.465753  eligible=False
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 5.0, 'COOLDOWN_SEC': 15.0}
+[auto] adjustments: uptick 0.95->0.95; score 10.0->10.5; EVfloor 0.5->0.0
+
+==== Round 5/6  target_trades>=50  [uptick>=0.95, spread<=20, score>=10.5] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.95, BUY_SPREAD_MAX=20, BUY_SCORE_THR=10.5)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=0.000
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=102.0s  ETA~0.0s  eligible=0  best-all(ev=-5.420, prec=0.466, trades=292)
+[grid] evaluated 441 candidates in 101.99s
+[grid] eligible candidates = 0/441
+[grid-top] #1 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid-top] #2 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.5}
+[grid-top] #3 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.0}
+[grid-top] #4 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 6.5}
+[grid-top] #5 precision=0.4658 trades=292 EV=-5.420 eligible=FAIL params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 15.0, 'BUY_SCORE_THR': 5.0}
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+[grid] selecting best among all candidates for reference: precision=0.466 trades=292 ev=-5.420
+[grid] best saved to exports\best_thresholds_REF20251010_OFF.json
+[grid] report saved to exports\grid_report_REF20251010_OFF.csv
+[grid] candidates saved to exports\grid_candidates_REF20251010_OFF.csv
+[grid] all candidates saved to exports\grid_candidates_all_REF20251010_OFF.csv
+[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#5 result -> trades=292  EV=-5.420147  prec=0.465753  eligible=False
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 5.0, 'COOLDOWN_SEC': 15.0}
+[auto] adjustments: uptick 0.95->0.95; score 10.5->11.0; EVfloor 0.0->-0.5
+
+==== Round 6/6  target_trades>=50  [uptick>=0.95, spread<=20, score>=11.0] ====
+
+[auto] run grid: Dataset=REF20251010_OFF  base(BUY_UPTICK_THR=0.95, BUY_SPREAD_MAX=20, BUY_SCORE_THR=11.0)
+[grid] dataset cache hit (rows=431694)
+[grid] applying filters: MinTrades>=50, EVFloor>=-0.500
+[grid] total candidates = 441
+[grid] 441/441 (100.0%)  4/s  elapsed=104.2s  ETA~0.0s  eligible=147  best(ev=-0.426, prec=0.465, trades=553)
+[grid] evaluated 441 candidates in 104.21s
+[grid] eligible candidates = 147/441
+[grid-top] #1 precision=0.4647 trades=553 EV=-0.426 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 7.0}
+[grid-top] #2 precision=0.4647 trades=553 EV=-0.426 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 20, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 7.0}
+[grid-top] #3 precision=0.4647 trades=553 EV=-0.426 eligible=PASS params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 30, 'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 7.0}
+[grid-top] #4 precision=0.4647 trades=553 EV=-0.426 eligible=PASS params={'BUY_UPTICK_THR': 0.45, 'BUY_SPREAD_MAX': 10,'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 7.0}
+[grid-top] #5 precision=0.4647 trades=553 EV=-0.426 eligible=PASS params={'BUY_UPTICK_THR': 0.45, 'BUY_SPREAD_MAX': 20,'COOLDOWN_SEC': 5.0, 'BUY_SCORE_THR': 7.0}
+
+[stderr] Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Owner\documents\desshi_signal_viewer\scripts\grid_search_thresholds.py", line 843, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Owner\documents\desshi_signal_viewer\scripts\grid_search_thresholds.py", line 828, in main
+    write_candidates_csv(candidates_path, filtered_results)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\documents\desshi_signal_viewer\scripts\grid_search_thresholds.py", line 675, in write_candidates_csv
+    with path.open("w", encoding="utf-8-sig", newline="") as fh:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'exports\\grid_candidates_REF20251010_OFF.csv'
+
+[auto] applied base-threshold constraints to grid results.
+[auto] round#6 result -> trades=553  EV=-0.426179  prec=0.464738  eligible=True
+[auto] params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 7.0, 'COOLDOWN_SEC': 5.0}
+
+[auto] target met; stopping auto-tune.
+
+===== Auto Tune Summary =====
+best round=6 trades=553 EV=-0.426179 precision=0.464738
+best params={'BUY_UPTICK_THR': 0.4, 'BUY_SPREAD_MAX': 10.0, 'BUY_SCORE_THR': 7.0, 'COOLDOWN_SEC': 5.0}
+best json=exports\best_thresholds_filtered_REF20251010_OFF_round6.json
+[auto] summary saved -> exports\auto_tune_summary_REF20251010_OFF.json
+(venv) PS C:\Users\Owner\documents\desshi_signal_viewer>

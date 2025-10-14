@@ -103,6 +103,7 @@ def _select_constrained_candidate(
     base_spread: float,
     base_score: float,
     target_trades: int,
+    ev_floor: float,
 ):
     csv_file = Path(csv_path) if csv_path else None
     if not csv_file or not csv_file.exists():
@@ -128,8 +129,8 @@ def _select_constrained_candidate(
             if score is not None and score > base_score + 1e-9:
                 continue
 
-            precision = _to_float(row.get('precision'), float('-inf'))
-            ev = _to_float(row.get('ev'), float('-inf'))
+            precision = _to_float(row.get('precision'), -float('inf'))
+            ev = _to_float(row.get('ev'), -float('inf'))
             key = (precision, ev, trades)
             if best_row is None or key > best_key:
                 best_row = row
@@ -139,10 +140,12 @@ def _select_constrained_candidate(
         return None, None
 
     precision = _to_float(best_row.get('precision'), 0.0)
-    ev = _to_float(best_row.get('ev'), 0.0)
+    ev = _to_float(best_row.get('ev'), None)
     trades = int(_to_float(best_row.get('trades'), 0) or 0)
     mean_hit = _to_float(best_row.get('mean_hit_bp'), None)
     mean_miss = _to_float(best_row.get('mean_loss_bp'), None)
+    eligible_flag = trades >= target_trades and ev is not None and ev >= ev_floor
+    ev_value = ev if ev is not None else 0.0
 
     params: dict[str, float] = {}
     for key in ('BUY_UPTICK_THR', 'BUY_SPREAD_MAX', 'BUY_SCORE_THR', 'COOLDOWN_SEC', 'VOL_SURGE_MIN'):
@@ -155,11 +158,11 @@ def _select_constrained_candidate(
         'dataset_id': dataset_id,
         'precision': precision,
         'trades': trades,
-        'ev': ev,
+        'ev': ev_value,
         'mean_hit_bp': mean_hit,
         'mean_loss_bp': mean_miss,
         'params': params,
-        'eligible': True,
+        'eligible': eligible_flag,
     }
 
     out_path = Path('exports') / f"best_thresholds_filtered_{dataset_id}_round{round_index}.json"
@@ -247,6 +250,7 @@ def main():
             base_spread=spread_r,
             base_score=score_r,
             target_trades=target,
+            ev_floor=current_ev_floor,
         )
         if constrained_payload:
             print("[auto] applied base-threshold constraints to grid results.")
@@ -258,7 +262,7 @@ def main():
 
         params = best_json.get("params", {})
         trades = best_json.get("trades", 0)
-        ev = best_json.get("ev", None)
+        ev = best_json.get("ev")
         prec = best_json.get("precision", None)
         eligible = best_json.get("eligible", False)
 

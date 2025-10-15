@@ -99,6 +99,85 @@ def _to_int(x: Any) -> int:
         return 0
 
 
+VOLUME_SPIKE_SHORT_TAU = 2.0
+VOLUME_SPIKE_LONG_TAU = 12.0
+VOLUME_SPIKE_EPS = 1e-6
+
+
+def _collect_top3_quantities(evt: Dict[str, Any]) -> tuple[Optional[float], Optional[float]]:
+    """Return (buy_top3_qty, sell_top3_qty) from various board representations."""
+    def _extract_from_lists(keys: List[str]) -> list[tuple[float, float]]:
+        levels: list[tuple[float, float]] = []
+        for key in keys:
+            data = evt.get(key)
+            if not isinstance(data, list):
+                continue
+            for row in data:
+                if not isinstance(row, dict):
+                    continue
+                price = _to_float(row.get("Price") or row.get("price"))
+                qty = _to_float(row.get("Qty") or row.get("Quantity") or row.get("qty"))
+                if price is None or qty is None:
+                    continue
+                levels.append((float(price), max(float(qty), 0.0)))
+            if levels:
+                break
+        return levels
+
+    def _extract_from_ranked(prefix: str) -> list[tuple[float, float]]:
+        levels: list[tuple[float, float]] = []
+        for idx in range(1, 11):
+            node = evt.get(f"{prefix}{idx}")
+            if not isinstance(node, dict):
+                continue
+            price = _to_float(node.get("Price") or node.get("price"))
+            qty = _to_float(node.get("Qty") or node.get("Quantity") or node.get("qty"))
+            if price is None or qty is None:
+                continue
+            levels.append((float(price), max(float(qty), 0.0)))
+        return levels
+
+    def _extract_direct(price_prefix: str, qty_prefix: str) -> list[tuple[float, float]]:
+        levels: list[tuple[float, float]] = []
+        for idx in range(1, 11):
+            qty = _to_float(evt.get(f"{qty_prefix}{idx}"))
+            price = _to_float(evt.get(f"{price_prefix}{idx}"))
+            if price is None or qty is None:
+                continue
+            levels.append((float(price), max(float(qty), 0.0)))
+        return levels
+
+    bids = (
+        _extract_from_lists(["Bids", "buys"])
+        or _extract_from_ranked("Buy")
+        or _extract_direct("BidPrice", "BidQty")
+        or _extract_direct("BuyPrice", "BuyQty")
+    )
+    asks = (
+        _extract_from_lists(["Asks", "sells"])
+        or _extract_from_ranked("Sell")
+        or _extract_direct("AskPrice", "AskQty")
+        or _extract_direct("SellPrice", "SellQty")
+    )
+
+    buy_top3 = (
+        sum(q for _, q in sorted(bids, key=lambda item: item[0], reverse=True)[:3]) if bids else None
+    )
+    sell_top3 = sum(q for _, q in sorted(asks, key=lambda item: item[0])[:3]) if asks else None
+    return buy_top3, sell_top3
+
+
+def _ema_update(prev: Optional[float], value: float, dt: float, tau: float) -> float:
+    if tau <= 0.0:
+        return value
+    if prev is None:
+        return value
+    if dt <= 0.0:
+        return prev
+    alpha = 1.0 - exp(-dt / tau)
+    return prev + alpha * (value - prev)
+
+
 def load_json_utf8(path: str):
     with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
@@ -162,6 +241,7 @@ CREATE TABLE IF NOT EXISTS features_stream(
   ask1 REAL,
   bidqty1 REAL,
   askqty1 REAL,
+  v_spike REAL DEFAULT 0,
   f1_delta REAL DEFAULT 0,
   PRIMARY KEY(dataset_id, symbol, t_exec)
 );
@@ -184,6 +264,7 @@ FEATURE_COLUMNS = (
     "ask1",
     "bidqty1",
     "askqty1",
+    "v_spike",
     "f1_delta",
 )
 
@@ -486,6 +567,10 @@ class ScoreState:
         self.ask_prev: float = 0.0
         self.b1_prev: float = 1.0
         self.a1_prev: float = 1.0
+        self.buy_top3_prev: float = 0.0
+        self.sell_top3_prev: float = 0.0
+        self.vol_ema_short: Optional[float] = None
+        self.vol_ema_long: Optional[float] = None
 
 
 def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.0) -> Dict[str, Any]:
@@ -506,6 +591,16 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
     # 論理解釈: Ask 側が BidQty 系、Bid 側が AskQty 系に入ってくる
     a1 = _qty(["BidQty1", "BidQty"], nested="Buy1")
     b1 = _qty(["AskQty1", "AskQty"], nested="Sell1")
+
+    buy_top3_opt, sell_top3_opt = _collect_top3_quantities(evt)
+    buy_incr = 0.0
+    sell_incr = 0.0
+    if buy_top3_opt is not None:
+        buy_incr = max(buy_top3_opt - st.buy_top3_prev, 0.0)
+    if sell_top3_opt is not None:
+        sell_incr = max(sell_top3_opt - st.sell_top3_prev, 0.0)
+    volume_pulse = max(0.0, buy_incr) + max(0.0, sell_incr)
+    v_spike = 0.0
 
     spread_raw = evt.get("SpreadTicks")
     if spread_raw is None:
@@ -538,6 +633,22 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
         dt = 0.1
 
     st.bid_prev, st.ask_prev, st.b1_prev, st.a1_prev = bid, ask, b1, a1
+    if st.vol_ema_short is None:
+        st.vol_ema_short = volume_pulse
+    else:
+        st.vol_ema_short = _ema_update(st.vol_ema_short, volume_pulse, dt, VOLUME_SPIKE_SHORT_TAU)
+    if st.vol_ema_long is None:
+        st.vol_ema_long = volume_pulse
+    else:
+        st.vol_ema_long = _ema_update(st.vol_ema_long, volume_pulse, dt, VOLUME_SPIKE_LONG_TAU)
+    if st.vol_ema_long and st.vol_ema_long > VOLUME_SPIKE_EPS:
+        v_spike = max(0.0, min(10.0, st.vol_ema_short / max(st.vol_ema_long, VOLUME_SPIKE_EPS)))
+    else:
+        v_spike = 0.0
+    if buy_top3_opt is not None:
+        st.buy_top3_prev = buy_top3_opt
+    if sell_top3_opt is not None:
+        st.sell_top3_prev = sell_top3_opt
 
     spread_abs = max(0.0, ask - bid)
     mid = (ask + bid) * 0.5 if (ask and bid) else 0.0
@@ -582,6 +693,7 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
         "ask1": ask,
         "bidqty1": b1,
         "askqty1": a1,
+        "v_spike": v_spike,
     }
 
 
@@ -595,8 +707,8 @@ def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id:
             ts_ms = 0
     ts_ms = int(ts_ms or 0)
     conn.execute(
-        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,f1_delta) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             dataset_id,
             d["symbol"],
@@ -615,6 +727,7 @@ def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id:
             d.get("ask1"),
             d.get("bidqty1"),
             d.get("askqty1"),
+            d.get("v_spike"),
             f1_delta,
         ),
     )
@@ -625,6 +738,11 @@ def ensure_features_schema(conn: sqlite3.Connection) -> None:
     try:
         columns = [row[1] for row in conn.execute("PRAGMA table_info(features_stream);")]
         added_ts_ms = False
+        if "v_spike" not in columns:
+            logger.info("migrating features_stream: adding v_spike column")
+            conn.execute("ALTER TABLE features_stream ADD COLUMN v_spike REAL DEFAULT 0")
+            conn.commit()
+            columns.append("v_spike")
         if "f1_delta" not in columns:
             logger.info("migrating features_stream: adding f1_delta column")
             conn.execute("ALTER TABLE features_stream ADD COLUMN f1_delta REAL DEFAULT 0")
@@ -748,6 +866,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "ask1": 0.0,
                 "bidqty1": 0.0,
                 "askqty1": 0.0,
+                "v_spike": 0.0,
                 "f1_delta": 0.0,
             }
             for col, default in defaults.items():
@@ -771,6 +890,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "ask1",
                 "bidqty1",
                 "askqty1",
+                "v_spike",
                 "f1_delta",
             ]
             missing = [col for col in required_cols if col not in df.columns]
@@ -779,8 +899,8 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
             df = df[required_cols]
             rows_to_insert = [tuple(row) for row in df.itertuples(index=False, name=None)]
             conn.executemany(
-                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,f1_delta) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,f1_delta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 rows_to_insert,
             )
             conn.commit()

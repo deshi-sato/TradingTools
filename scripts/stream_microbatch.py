@@ -29,6 +29,8 @@ from math import exp
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from dateutil import parser as dateutil_parser
+
 from scripts.ensure_registry_schema import ensure_registry_schema
 
 try:
@@ -102,6 +104,9 @@ def _to_int(x: Any) -> int:
 VOLUME_SPIKE_SHORT_TAU = 2.0
 VOLUME_SPIKE_LONG_TAU = 12.0
 VOLUME_SPIKE_EPS = 1e-6
+V_RATE_ALPHA_SHORT = 0.4
+V_RATE_ALPHA_LONG = 0.1
+V_RATE_EPS = 1e-6
 
 
 def _collect_top3_quantities(evt: Dict[str, Any]) -> tuple[Optional[float], Optional[float]]:
@@ -178,6 +183,70 @@ def _ema_update(prev: Optional[float], value: float, dt: float, tau: float) -> f
     return prev + alpha * (value - prev)
 
 
+def _parse_volume_timestamp(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return float(value)
+        except Exception:
+            return None
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            dt = dateutil_parser.isoparse(text)
+        except Exception:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=JST)
+        return dt.timestamp()
+    return None
+
+
+def _update_volume_rate(state: "ScoreState", evt: Dict[str, Any], fallback_ts: float) -> None:
+    vol_raw = evt.get("TradingVolume")
+    if vol_raw is None:
+        return
+    vol_now = _to_float(vol_raw)
+    if vol_now is None:
+        return
+    ts_raw = evt.get("TradingVolumeTime")
+    ts_now = _parse_volume_timestamp(ts_raw)
+    if ts_now is None:
+        ts_now = fallback_ts
+    prev_ts = state.vol_prev_ts
+    prev_vol = state.vol_prev_total
+    if prev_ts is None or prev_vol is None:
+        state.vol_prev_total = vol_now
+        state.vol_prev_ts = ts_now
+        if state.vol_rate_ema_short is None:
+            state.vol_rate_ema_short = 0.0
+        if state.vol_rate_ema_long is None:
+            state.vol_rate_ema_long = 0.0
+        state.v_rate = 0.0
+        return
+    dv = max(0.0, vol_now - prev_vol)
+    dt = max(1e-3, ts_now - prev_ts)
+    rate = dv / dt
+    if state.vol_rate_ema_short is None:
+        state.vol_rate_ema_short = rate
+    else:
+        state.vol_rate_ema_short = (1.0 - V_RATE_ALPHA_SHORT) * state.vol_rate_ema_short + V_RATE_ALPHA_SHORT * rate
+    if state.vol_rate_ema_long is None:
+        state.vol_rate_ema_long = rate
+    else:
+        state.vol_rate_ema_long = (1.0 - V_RATE_ALPHA_LONG) * state.vol_rate_ema_long + V_RATE_ALPHA_LONG * rate
+    denom = max(state.vol_rate_ema_long, V_RATE_EPS)
+    if denom > 0:
+        state.v_rate = max(0.0, state.vol_rate_ema_short / denom)
+    else:
+        state.v_rate = 0.0
+    state.vol_prev_total = vol_now
+    state.vol_prev_ts = ts_now
+
+
 def load_json_utf8(path: str):
     with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
@@ -242,6 +311,7 @@ CREATE TABLE IF NOT EXISTS features_stream(
   bidqty1 REAL,
   askqty1 REAL,
   v_spike REAL DEFAULT 0,
+  v_rate REAL DEFAULT 0,
   f1_delta REAL DEFAULT 0,
   PRIMARY KEY(dataset_id, symbol, t_exec)
 );
@@ -265,6 +335,7 @@ FEATURE_COLUMNS = (
     "bidqty1",
     "askqty1",
     "v_spike",
+    "v_rate",
     "f1_delta",
 )
 
@@ -571,6 +642,11 @@ class ScoreState:
         self.sell_top3_prev: float = 0.0
         self.vol_ema_short: Optional[float] = None
         self.vol_ema_long: Optional[float] = None
+        self.vol_prev_total: Optional[float] = None
+        self.vol_prev_ts: Optional[float] = None
+        self.vol_rate_ema_short: Optional[float] = None
+        self.vol_rate_ema_long: Optional[float] = None
+        self.v_rate: float = 0.0
 
 
 def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.0) -> Dict[str, Any]:
@@ -694,6 +770,7 @@ def calc_feats(st: ScoreState, evt: Dict[str, Any], now: float, tau: float = 20.
         "bidqty1": b1,
         "askqty1": a1,
         "v_spike": v_spike,
+        "v_rate": st.v_rate if st.v_rate is not None else 0.0,
     }
 
 
@@ -707,8 +784,8 @@ def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id:
             ts_ms = 0
     ts_ms = int(ts_ms or 0)
     conn.execute(
-        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,f1_delta) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,v_rate,f1_delta) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             dataset_id,
             d["symbol"],
@@ -728,6 +805,7 @@ def insert_features_row(conn: sqlite3.Connection, d: Dict[str, Any], dataset_id:
             d.get("bidqty1"),
             d.get("askqty1"),
             d.get("v_spike"),
+            d.get("v_rate"),
             f1_delta,
         ),
     )
@@ -743,6 +821,11 @@ def ensure_features_schema(conn: sqlite3.Connection) -> None:
             conn.execute("ALTER TABLE features_stream ADD COLUMN v_spike REAL DEFAULT 0")
             conn.commit()
             columns.append("v_spike")
+        if "v_rate" not in columns:
+            logger.info("migrating features_stream: adding v_rate column")
+            conn.execute("ALTER TABLE features_stream ADD COLUMN v_rate REAL DEFAULT 0")
+            conn.commit()
+            columns.append("v_rate")
         if "f1_delta" not in columns:
             logger.info("migrating features_stream: adding f1_delta column")
             conn.execute("ALTER TABLE features_stream ADD COLUMN f1_delta REAL DEFAULT 0")
@@ -867,6 +950,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "bidqty1": 0.0,
                 "askqty1": 0.0,
                 "v_spike": 0.0,
+                "v_rate": 0.0,
                 "f1_delta": 0.0,
             }
             for col, default in defaults.items():
@@ -891,6 +975,7 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 "bidqty1",
                 "askqty1",
                 "v_spike",
+                "v_rate",
                 "f1_delta",
             ]
             missing = [col for col in required_cols if col not in df.columns]
@@ -899,8 +984,8 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
             df = df[required_cols]
             rows_to_insert = [tuple(row) for row in df.itertuples(index=False, name=None)]
             conn.executemany(
-                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,f1_delta) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO features_stream(dataset_id,symbol,t_exec,ts_ms,ver,f1,f2,f3,f4,f5,f6,score,spread_ticks,bid1,ask1,bidqty1,askqty1,v_spike,v_rate,f1_delta) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 rows_to_insert,
             )
             conn.commit()
@@ -942,6 +1027,9 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
                 except Exception:
                     pass
 
+            now = time.time()
+            _update_volume_rate(state, evt, now)
+
             is_board = "BidPrice" in evt and "AskPrice" in evt
             if is_board and board_q is not None:
                 ask_price = _to_float(evt.get("BidPrice"))
@@ -977,7 +1065,6 @@ def features_worker(buf: PushBuffer, db_path: str, board_q: Optional[queue.Queue
             if not is_board:
                 continue
 
-            now = time.time()
             try:
                 feats = calc_feats(state, evt, now)
             except Exception as exc:

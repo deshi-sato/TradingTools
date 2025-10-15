@@ -23,13 +23,14 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Any
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+import numpy as np
 import pandas as pd
 
 JST = timezone(timedelta(hours=9))
 
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 CACHE_DIR = Path("out/grid_cache")
 
 
@@ -46,6 +47,7 @@ class DataRow:
     spread_ticks: Optional[float]
     vol_surge: Optional[float]
     v_spike: Optional[float]
+    v_rate: Optional[float]
     group: str
 
 
@@ -155,6 +157,7 @@ def load_rows(
     has_vol_surge: bool,
     use_ts_ms: bool,
     has_v_spike: bool,
+    has_v_rate: bool,
     symbols: Optional[Sequence[str]] = None,
 ) -> List[DataRow]:
     if not horizons:
@@ -174,6 +177,8 @@ def load_rows(
         select_parts.append("f.vol_surge_z AS vol_surge_z")
     if has_v_spike:
         select_parts.append("f.v_spike AS v_spike")
+    if has_v_rate:
+        select_parts.append("f.v_rate AS v_rate")
     join_condition = "f.symbol = l.symbol"
     if use_ts_ms:
         join_condition += " AND f.ts_ms = l.ts"
@@ -217,6 +222,8 @@ def load_rows(
         numeric_optional.append("vol_surge_z")
     if has_v_spike:
         numeric_optional.append("v_spike")
+    if has_v_rate:
+        numeric_optional.append("v_rate")
     for col in numeric_optional:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -245,6 +252,7 @@ def load_rows(
                 if hasattr(row, "vol_surge_z")
                 else None,
                 v_spike=_opt(getattr(row, "v_spike", None)) if has_v_spike else None,
+                v_rate=_opt(getattr(row, "v_rate", None)) if has_v_rate else None,
                 group=row.group,
             )
         )
@@ -273,6 +281,7 @@ def _build_cache_key(
     has_vol: bool,
     has_ts_ms: bool,
     has_v_spike: bool,
+    has_v_rate: bool,
     db_signature: str,
     symbols: Optional[Sequence[str]],
 ) -> str:
@@ -282,6 +291,7 @@ def _build_cache_key(
         "has_vol": has_vol,
         "has_ts_ms": has_ts_ms,
         "has_v_spike": has_v_spike,
+        "has_v_rate": has_v_rate,
         "db_signature": db_signature,
         "symbols": list(symbols) if symbols else [],
         "version": CACHE_VERSION,
@@ -301,10 +311,13 @@ def load_dataset_cache(
     has_vol: bool,
     has_ts_ms: bool,
     has_v_spike: bool,
+    has_v_rate: bool,
     db_signature: str,
     symbols: Optional[Sequence[str]],
 ) -> Optional[Tuple[List[DataRow], List[str], Dict[str, List[int]]]]:
-    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, db_signature, symbols)
+    key = _build_cache_key(
+        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols
+    )
     path = _cache_path(key)
     if not path.exists():
         return None
@@ -330,13 +343,16 @@ def save_dataset_cache(
     has_vol: bool,
     has_ts_ms: bool,
     has_v_spike: bool,
+    has_v_rate: bool,
     db_signature: str,
     symbols: Optional[Sequence[str]],
     rows: Sequence[DataRow],
     days: Sequence[str],
     day_groups: Dict[str, List[int]],
 ) -> None:
-    key = _build_cache_key(dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, db_signature, symbols)
+    key = _build_cache_key(
+        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols
+    )
     path = _cache_path(key)
     payload = {
         "meta": {
@@ -346,6 +362,7 @@ def save_dataset_cache(
             "has_vol": has_vol,
             "has_ts_ms": has_ts_ms,
             "has_v_spike": has_v_spike,
+            "has_v_rate": has_v_rate,
             "db_signature": db_signature,
             "symbols": list(symbols) if symbols else [],
             "row_count": len(rows),
@@ -386,7 +403,7 @@ def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params:
     spread_max = params["BUY_SPREAD_MAX"]
     cooldown = params["COOLDOWN_SEC"]
     vol_thr = params.get("VOL_SURGE_MIN")
-    v_spike_thr = params.get("VOLUME_SPIKE_THR")
+    v_rate_thr = params.get("VOLUME_SPIKE_THR")
 
     for idx in sorted_idx:
         row = rows[idx]
@@ -400,8 +417,8 @@ def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params:
         if vol_thr is not None:
             if row.vol_surge is None or row.vol_surge < vol_thr:
                 continue
-        if v_spike_thr is not None:
-            if row.v_spike is None or row.v_spike < v_spike_thr:
+        if v_rate_thr is not None:
+            if row.v_rate is None or row.v_rate < v_rate_thr:
                 continue
         last = last_fire.get(row.symbol)
         if last is not None and (row.ts_sec - last) < cooldown:
@@ -489,13 +506,13 @@ def evaluate_params(
     return aggregate_metrics(fold_metrics)
 
 
-def grid_parameters(has_score: bool, has_vol: bool, has_v_spike: bool) -> List[Dict[str, float]]:
+def grid_parameters(has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rate: bool) -> List[Dict[str, float]]:
     upticks = [round(0.40 + 0.05 * i, 2) for i in range(7)]
     spreads = [10, 20, 30]
     cooldowns = [5.0, 10.0, 15.0]
     scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
     vols = [0.0, 0.5, 1.0] if has_vol else [None]
-    spikes = [1.05, 1.15, 1.30] if has_v_spike else [None]
+    spikes = [1.6, 1.9, 2.2] if has_v_rate else [None]
 
     params_list: List[Dict[str, float]] = []
     for u in upticks:
@@ -692,6 +709,8 @@ def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
         "BUY_SCORE_THR",
         "BUY_SPREAD_MAX",
         "COOLDOWN_SEC",
+        "VOL_SURGE_MIN",
+        "VOLUME_SPIKE_THR",
         "precision",
         "ev",
         "trades",
@@ -710,6 +729,8 @@ def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
                     params.get("BUY_SCORE_THR", ""),
                     params.get("BUY_SPREAD_MAX", ""),
                     params.get("COOLDOWN_SEC", ""),
+                    params.get("VOL_SURGE_MIN", ""),
+                    params.get("VOLUME_SPIKE_THR", ""),
                     row.get("precision"),
                     row.get("ev"),
                     row.get("signals"),
@@ -718,6 +739,25 @@ def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
                     int(bool(row.get("eligible"))),
                 ]
             )
+
+
+def compute_v_rate_summary(rows: Sequence[DataRow]) -> Dict[str, float]:
+    values = [
+        float(r.v_rate)
+        for r in rows
+        if r.v_rate is not None and not math.isnan(float(r.v_rate))
+    ]
+    if not values:
+        return {}
+    arr = np.asarray(values, dtype=float)
+    return {
+        "count": int(arr.size),
+        "mean": float(np.mean(arr)),
+        "p50": float(np.quantile(arr, 0.5)),
+        "p95": float(np.quantile(arr, 0.95)),
+        "p99": float(np.quantile(arr, 0.99)),
+        "max": float(np.max(arr)),
+    }
 
 
 def main() -> None:
@@ -740,17 +780,20 @@ def main() -> None:
     has_score = "score" in columns
     has_vol = "vol_surge_z" in columns
     has_v_spike = "v_spike" in columns
+    has_v_rate = "v_rate" in columns
     if "f1" not in columns:
         raise SystemExit("ERROR: features_stream missing f1 (uptick) column.")
 
     cache_hit = load_dataset_cache(
-        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, db_signature, symbols_filter
+        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols_filter
     )
     if cache_hit:
         rows, days, day_groups = cache_hit
         print(f"[grid] dataset cache hit (rows={len(rows)})")
     else:
-        rows = load_rows(conn, dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, symbols_filter)
+        rows = load_rows(
+            conn, dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, symbols_filter
+        )
         if not rows:
             conn.close()
             raise SystemExit("ERROR: No matched rows for dataset/horizons.")
@@ -761,6 +804,7 @@ def main() -> None:
             has_vol,
             has_ts_ms,
             has_v_spike,
+            has_v_rate,
             db_signature,
             symbols_filter,
             rows,
@@ -770,7 +814,20 @@ def main() -> None:
         print(f"[grid] dataset cache stored (rows={len(rows)})")
     conn.close()
 
-    params_list = grid_parameters(has_score, has_vol, has_v_spike)
+    v_rate_summary: Dict[str, float] = compute_v_rate_summary(rows) if has_v_rate else {}
+    if v_rate_summary:
+        print(
+            "[grid] v_rate stats: p50=%.2f p95=%.2f p99=%.2f max=%.2f (n=%d)"
+            % (
+                v_rate_summary["p50"],
+                v_rate_summary["p95"],
+                v_rate_summary["p99"],
+                v_rate_summary["max"],
+                v_rate_summary["count"],
+            )
+        )
+
+    params_list = grid_parameters(has_score, has_vol, has_v_spike, has_v_rate)
     if symbols_filter:
         print(f"[grid] symbol filter: {', '.join(symbols_filter)}")
     print(f"[grid] applying filters: MinTrades>={min_trades:,}, EVFloor>={ev_floor:.3f}")
@@ -830,6 +887,8 @@ def main() -> None:
         "eligible": best_is_eligible,
         "min_trades": min_trades,
         "ev_floor": ev_floor,
+        "v_rate_summary": v_rate_summary,
+        "has_v_rate": has_v_rate,
     }
     if not best_is_eligible:
         best_payload["ineligible_reason"] = (

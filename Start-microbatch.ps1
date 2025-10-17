@@ -10,8 +10,7 @@ py -m scripts.stream_microbatch -Config config\stream_settings.json
 
 #以下はグリッドサーチ起動用
 # Start-microbatch.ps1 stream_microbatch for gridsearch
-$ds      = 'REF20251014_OFF'
-$refeed  = 'db\naut_market_20251014_refeed.db'
+py scripts\resolve_gridsearch_target.py | Invoke-Expression
 
 # スキーマ補正（再実行可）
 py scripts\ensure_registry_schema.py $refeed

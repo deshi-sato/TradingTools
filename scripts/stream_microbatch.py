@@ -900,9 +900,15 @@ def _transform_features(df: pd.DataFrame) -> pd.DataFrame:
             scores = df["score"].astype(float).to_numpy()
             low = float(np.nanpercentile(scores, 1))
             high = float(np.nanpercentile(scores, 99))
-            denom = max(high - low, 1e-9)
-            scaled = np.clip((scores - low) / denom * 10.0, 0.0, 10.0)
-            df["score"] = scaled
+            if not np.isfinite(low) or not np.isfinite(high):
+                raise ValueError("score percentiles invalid")
+            if abs(high - low) < 1e-6:
+                # distribution is effectively flat; keep original values
+                pass
+            else:
+                denom = high - low
+                scaled = np.clip((scores - low) / denom * 10.0, 0.0, 10.0)
+                df["score"] = scaled
         except Exception:
             pass
 

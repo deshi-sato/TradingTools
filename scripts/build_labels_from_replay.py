@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import hashlib
 import json
 import os
 import sqlite3
@@ -22,7 +23,104 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+try:
+    from scripts.ensure_registry_schema import ensure_registry_schema
+except Exception:  # pragma: no cover - fallback when package import fails
+    ensure_registry_schema = None  # type: ignore
+
 REGISTRY_DB_DEFAULT = os.path.join("db", "naut_market.db")
+
+
+def sha1_file(path: Path) -> str:
+    h = hashlib.sha1()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def ensure_dataset_registry_entry(db_path: Path, dataset_id: str) -> None:
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dataset_registry (
+                dataset_id TEXT PRIMARY KEY,
+                db_path TEXT NOT NULL,
+                source_db_path TEXT NOT NULL,
+                build_tool TEXT,
+                code_version TEXT,
+                config_json TEXT DEFAULT '{}',
+                db_sha1 TEXT NOT NULL,
+                source_db_sha1 TEXT NOT NULL,
+                regime_tag TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        hit = conn.execute(
+            "SELECT 1 FROM dataset_registry WHERE dataset_id=? LIMIT 1", (dataset_id,)
+        ).fetchone()
+        if hit:
+            return
+        now = time.strftime("%Y-%m-%d %H:%M:%S")
+        sha1 = sha1_file(db_path)
+        config_json = json.dumps({"autofill": True}, ensure_ascii=False)
+        conn.execute(
+            """
+            INSERT INTO dataset_registry (
+                dataset_id,
+                db_path,
+                source_db_path,
+                build_tool,
+                code_version,
+                config_json,
+                db_sha1,
+                source_db_sha1,
+                regime_tag,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                dataset_id,
+                str(db_path),
+                str(db_path),
+                "build_labels_from_replay.py",
+                "unknown",
+                config_json,
+                sha1,
+                sha1,
+                "",
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        print(f"[labels] dataset_registry entry created for {dataset_id}")
+    finally:
+        conn.close()
+
+
+def resolve_effective_dataset_id(conn: sqlite3.Connection, requested_id: str) -> Tuple[str, Optional[str]]:
+    hit = conn.execute(
+        "SELECT 1 FROM features_stream WHERE dataset_id=? LIMIT 1", (requested_id,)
+    ).fetchone()
+    if hit:
+        return requested_id, None
+    rows = conn.execute(
+        "SELECT dataset_id, COUNT(*) FROM features_stream GROUP BY dataset_id ORDER BY COUNT(*) DESC"
+    ).fetchall()
+    for row in rows:
+        ds_id = row[0]
+        if ds_id:
+            ds_str = str(ds_id)
+            return ds_str, requested_id
+    return requested_id, None
 
 
 def _registry_lookup(dataset_id: str, registry_db: str) -> Optional[str]:
@@ -326,6 +424,23 @@ def run_job(args: argparse.Namespace) -> None:
         raise SystemExit(f"ERROR: dataset_id {dataset_id} not found in any refeed DB.")
 
     db_path = Path(db_path_str).resolve()
+    if ensure_registry_schema is not None:
+        try:
+            ensure_registry_schema(db_path)
+        except SystemExit:
+            pass
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute(LABELS_DDL)
+
+    resolved_id, original_id = resolve_effective_dataset_id(conn, dataset_id)
+    if original_id is not None and resolved_id != original_id:
+        print(f"[labels] dataset_id override: requested {original_id} -> {resolved_id}")
+    dataset_id = resolved_id
+
+    ensure_dataset_registry_entry(db_path, dataset_id)
     dataset_meta = load_dataset_meta(db_path, dataset_id)
     print("===== build_labels_from_replay =====")
     print(f"[labels] dataset_id={dataset_id}")
@@ -336,12 +451,6 @@ def run_job(args: argparse.Namespace) -> None:
     if dataset_meta is not None:
         created_at = dataset_meta["created_at"] if "created_at" in dataset_meta.keys() else None
         print(f"[labels] dataset_created_at={created_at}")
-
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA synchronous=NORMAL;")
-    conn.execute(LABELS_DDL)
 
     feature_rows = fetch_features(conn, dataset_id)
     total_inserted = 0

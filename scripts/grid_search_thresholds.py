@@ -20,7 +20,7 @@ import sqlite3
 import sys
 import time
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -30,8 +30,42 @@ import pandas as pd
 
 JST = timezone(timedelta(hours=9))
 
-CACHE_VERSION = 3
+CACHE_VERSION = 4
 CACHE_DIR = Path("out/grid_cache")
+MAX_HOLD_DEFAULT = 20.0
+PATH_STEP_MS = 500
+SPREAD_SPIKE_TICKS = 2
+
+def _pref_params_key(p: Dict[str, float]) -> tuple:
+    return (
+        float(p.get("BUY_UPTICK_THR", -1e9)),
+        float(p.get("BUY_SCORE_THR", -1e9)),
+        float(p.get("VOLUME_SPIKE_THR", -1e9)),
+        -float(p.get("BUY_SPREAD_MAX", 1e9)),
+        float(p.get("TP_BP", -1e9)),
+        -float(p.get("SL_BP", 1e9)),
+    )
+
+def _safe_float(value: Any) -> Optional[float]:
+    try:
+        if value is None:
+            return None
+        val = float(value)
+        if np.isnan(val):
+            return None
+        return val
+    except (TypeError, ValueError):
+        return None
+
+
+@dataclass
+class PathPoint:
+    ts_ms: int
+    dt: float
+    mid: float
+    v_rate: Optional[float]
+    f1_delta: Optional[float]
+    spread_ticks: Optional[float]
 
 
 @dataclass
@@ -48,7 +82,12 @@ class DataRow:
     vol_surge: Optional[float]
     v_spike: Optional[float]
     v_rate: Optional[float]
+    entry_bid: Optional[float]
+    entry_ask: Optional[float]
+    entry_mid: Optional[float]
+    entry_f1_delta: Optional[float]
     group: str
+    path: List[PathPoint] = field(default_factory=list)
 
 
 def parse_args() -> argparse.Namespace:
@@ -172,6 +211,9 @@ def load_rows(
         "f.f1 AS f1",
         "f.score AS score",
         "f.spread_ticks AS spread_ticks",
+        "f.bid1 AS bid1",
+        "f.ask1 AS ask1",
+        "f.f1_delta AS f1_delta",
     ]
     if has_vol_surge:
         select_parts.append("f.vol_surge_z AS vol_surge_z")
@@ -217,7 +259,7 @@ def load_rows(
     df["ts_sec"] = df["ts_ms"].astype("float64") / 1000.0
     df["horizon_sec"] = df["horizon_sec"].astype("int64")
     df["label"] = df["label"].astype("int64")
-    numeric_optional = ["f1", "score", "spread_ticks"]
+    numeric_optional = ["f1", "score", "spread_ticks", "bid1", "ask1", "f1_delta"]
     if has_vol_surge:
         numeric_optional.append("vol_surge_z")
     if has_v_spike:
@@ -237,6 +279,17 @@ def load_rows(
 
     rows: List[DataRow] = []
     for row in df.itertuples(index=False, name="Row"):
+        entry_bid = _opt(getattr(row, "bid1", None))
+        entry_ask = _opt(getattr(row, "ask1", None))
+        entry_mid: Optional[float] = None
+        if (
+            entry_bid is not None
+            and entry_ask is not None
+            and entry_bid > 0
+            and entry_ask > 0
+        ):
+            entry_mid = (entry_bid + entry_ask) * 0.5
+        entry_f1_delta = _opt(getattr(row, "f1_delta", None))
         rows.append(
             DataRow(
                 symbol=row.symbol,
@@ -248,15 +301,138 @@ def load_rows(
                 uptick=_opt(getattr(row, "f1", None)),
                 score=_opt(getattr(row, "score", None)),
                 spread_ticks=_opt(getattr(row, "spread_ticks", None)),
-                vol_surge=_opt(getattr(row, "vol_surge_z", None))
-                if hasattr(row, "vol_surge_z")
-                else None,
+                vol_surge=(
+                    _opt(getattr(row, "vol_surge_z", None))
+                    if hasattr(row, "vol_surge_z")
+                    else None
+                ),
                 v_spike=_opt(getattr(row, "v_spike", None)) if has_v_spike else None,
                 v_rate=_opt(getattr(row, "v_rate", None)) if has_v_rate else None,
+                entry_bid=entry_bid,
+                entry_ask=entry_ask,
+                entry_mid=entry_mid,
+                entry_f1_delta=entry_f1_delta,
                 group=row.group,
             )
         )
     return rows
+
+
+def attach_paths(
+    conn: sqlite3.Connection,
+    dataset_id: str,
+    rows: Sequence[DataRow],
+    max_hold_sec: float = MAX_HOLD_DEFAULT,
+    step_ms: int = PATH_STEP_MS,
+) -> None:
+    if not rows:
+        return
+    symbols = sorted({row.symbol for row in rows})
+    if not symbols:
+        return
+    max_hold_ms = int(max_hold_sec * 1000)
+    min_ts = min(row.ts_ms for row in rows) - 1000
+    max_ts = max(row.ts_ms for row in rows) + max_hold_ms + 1000
+    symbol_placeholders = ",".join(["?"] * len(symbols))
+    sql = f"""
+        SELECT symbol, ts_ms, bid1, ask1, spread_ticks, v_rate, f1_delta
+          FROM features_stream
+         WHERE dataset_id = ?
+           AND symbol IN ({symbol_placeholders})
+           AND ts_ms BETWEEN ? AND ?
+         ORDER BY symbol, ts_ms
+    """
+    params: List[Any] = [dataset_id] + symbols + [min_ts, max_ts]
+    df = pd.read_sql_query(sql, conn, params=params)
+    if df.empty:
+        return
+    for col in ("bid1", "ask1", "spread_ticks", "v_rate", "f1_delta"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    df["mid"] = (df["bid1"] + df["ask1"]) * 0.5
+    grouped = {sym: frame for sym, frame in df.groupby("symbol")}
+
+    for row in rows:
+        frame = grouped.get(row.symbol)
+        path: List[PathPoint] = []
+        entry_mid = row.entry_mid
+        if entry_mid is None or entry_mid <= 0:
+            row.path = path
+            continue
+        entry_spread = row.spread_ticks
+        entry_point = PathPoint(
+            ts_ms=row.ts_ms,
+            dt=0.0,
+            mid=float(entry_mid),
+            v_rate=row.v_rate,
+            f1_delta=row.entry_f1_delta,
+            spread_ticks=entry_spread,
+        )
+        path.append(entry_point)
+        if frame is None or frame.empty:
+            row.path = path
+            continue
+        start_ts = row.ts_ms
+        end_ts = start_ts + max_hold_ms
+        segment = frame[(frame["ts_ms"] >= start_ts) & (frame["ts_ms"] <= end_ts)]
+        if segment.empty:
+            row.path = path
+            continue
+        last_added_ts = start_ts
+        last_mid = entry_mid
+        last_v_rate = row.v_rate
+        last_f1_delta = row.entry_f1_delta
+        last_spread = entry_spread
+        for rec in segment.itertuples(index=False):
+            ts = int(getattr(rec, "ts_ms", start_ts))
+            if ts < start_ts:
+                continue
+            if ts - last_added_ts < step_ms and ts != start_ts:
+                continue
+            mid_val = _safe_float(getattr(rec, "mid", None))
+            if mid_val is None or mid_val <= 0:
+                mid_val = last_mid
+            if mid_val is None or mid_val <= 0:
+                continue
+            v_rate_val = _safe_float(getattr(rec, "v_rate", None))
+            if v_rate_val is None:
+                v_rate_val = last_v_rate
+            f1_delta_val = _safe_float(getattr(rec, "f1_delta", None))
+            if f1_delta_val is None:
+                f1_delta_val = last_f1_delta
+            spread_val = _safe_float(getattr(rec, "spread_ticks", None))
+            if spread_val is None:
+                spread_val = last_spread
+            dt = (ts - start_ts) / 1000.0
+            path.append(
+                PathPoint(
+                    ts_ms=ts,
+                    dt=dt,
+                    mid=float(mid_val),
+                    v_rate=v_rate_val,
+                    f1_delta=f1_delta_val,
+                    spread_ticks=spread_val,
+                )
+            )
+            last_added_ts = ts
+            last_mid = mid_val
+            last_v_rate = v_rate_val
+            last_f1_delta = f1_delta_val
+            last_spread = spread_val
+            if dt >= max_hold_sec:
+                break
+        if path[-1].dt < max_hold_sec and last_mid is not None and last_mid > 0:
+            path.append(
+                PathPoint(
+                    ts_ms=start_ts + max_hold_ms,
+                    dt=max_hold_sec,
+                    mid=float(last_mid),
+                    v_rate=last_v_rate,
+                    f1_delta=last_f1_delta,
+                    spread_ticks=last_spread,
+                )
+            )
+        row.path = path
 
 
 def group_by_day(rows: Sequence[DataRow]) -> Tuple[List[str], Dict[str, List[int]]]:
@@ -316,7 +492,14 @@ def load_dataset_cache(
     symbols: Optional[Sequence[str]],
 ) -> Optional[Tuple[List[DataRow], List[str], Dict[str, List[int]]]]:
     key = _build_cache_key(
-        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols
+        dataset_id,
+        horizons,
+        has_vol,
+        has_ts_ms,
+        has_v_spike,
+        has_v_rate,
+        db_signature,
+        symbols,
     )
     path = _cache_path(key)
     if not path.exists():
@@ -351,7 +534,14 @@ def save_dataset_cache(
     day_groups: Dict[str, List[int]],
 ) -> None:
     key = _build_cache_key(
-        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols
+        dataset_id,
+        horizons,
+        has_vol,
+        has_ts_ms,
+        has_v_spike,
+        has_v_rate,
+        db_signature,
+        symbols,
     )
     path = _cache_path(key)
     payload = {
@@ -375,7 +565,9 @@ def save_dataset_cache(
         pickle.dump(payload, fh, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def make_day_folds(days: Sequence[str], day_groups: Dict[str, List[int]], cv: int) -> List[List[str]]:
+def make_day_folds(
+    days: Sequence[str], day_groups: Dict[str, List[int]], cv: int
+) -> List[List[str]]:
     if cv <= 1 or len(days) <= 1:
         return [list(days)]
     cv = max(2, min(cv, len(days)))
@@ -389,14 +581,99 @@ def make_day_folds(days: Sequence[str], day_groups: Dict[str, List[int]], cv: in
     return [fold for fold in folds if fold]
 
 
-def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params: Dict[str, Optional[float]]) -> Dict[str, float]:
+def _compute_ret_bp(entry_mid: float, current_mid: float) -> float:
+    if entry_mid <= 0 or current_mid <= 0:
+        return 0.0
+    return (current_mid / entry_mid - 1.0) * 10000.0
+
+
+def simulate_trade(
+    row: DataRow, params: Dict[str, Optional[float]]
+) -> Tuple[float, str]:
+    entry_mid = row.entry_mid
+    if entry_mid is None or entry_mid <= 0:
+        fallback = row.ret_bp if row.ret_bp is not None else 0.0
+        return fallback, "fallback"
+
+    path = getattr(row, "path", []) or []
+    if not path:
+        fallback = row.ret_bp if row.ret_bp is not None else 0.0
+        return fallback, "no_path"
+
+    tp_bp = float(params.get("TP_BP", 15.0))
+    sl_bp = float(params.get("SL_BP", 8.0))
+    stall_vrate = params.get("STALL_VRATE_THR")
+    stall_f1_thr = float(params.get("STALL_F1_THR", 0.0))
+    stall_n = int(params.get("STALL_N", 2))
+    max_hold_sec = float(params.get("MAX_HOLD_SEC", MAX_HOLD_DEFAULT))
+
+    consecutive_stall = 0
+    prev_spread = path[0].spread_ticks
+    prev_mid = entry_mid
+
+    for point in path[1:]:
+        current_mid = point.mid if point.mid and point.mid > 0 else prev_mid
+        if current_mid is None or current_mid <= 0:
+            continue
+        ret_bp = _compute_ret_bp(entry_mid, current_mid)
+        if ret_bp >= tp_bp:
+            return ret_bp, "tp"
+        if ret_bp <= -sl_bp:
+            return ret_bp, "sl"
+
+        spread = point.spread_ticks if point.spread_ticks is not None else prev_spread
+        if (
+            spread is not None
+            and prev_spread is not None
+            and (spread - prev_spread) >= SPREAD_SPIKE_TICKS
+        ):
+            return ret_bp, "spread"
+        prev_spread = spread
+
+        if stall_vrate is not None:
+            v_rate = point.v_rate if point.v_rate is not None else row.v_rate
+            if v_rate is not None:
+                f1_delta = (
+                    point.f1_delta
+                    if point.f1_delta is not None
+                    else (row.entry_f1_delta if row.entry_f1_delta is not None else 0.0)
+                )
+                if v_rate < stall_vrate and f1_delta <= stall_f1_thr:
+                    consecutive_stall += 1
+                    if consecutive_stall >= stall_n:
+                        return ret_bp, "stall"
+                else:
+                    consecutive_stall = 0
+            else:
+                consecutive_stall = 0
+
+        if point.dt >= max_hold_sec:
+            return ret_bp, "timeout"
+
+        prev_mid = current_mid
+
+    last_point = path[-1]
+    last_mid = last_point.mid if last_point.mid and last_point.mid > 0 else prev_mid
+    if last_mid is None or last_mid <= 0:
+        last_mid = entry_mid
+    ret_bp = _compute_ret_bp(entry_mid, last_mid)
+    return ret_bp, "timeout"
+
+
+def evaluate_on_indices(
+    rows: Sequence[DataRow], indices: Sequence[int], params: Dict[str, Optional[float]]
+) -> Dict[str, float]:
     last_fire: Dict[str, float] = {}
     signals = 0
     hits = 0
     sum_hit = 0.0
     sum_miss = 0.0
     loss_count = 0
-    sorted_idx = sorted(indices, key=lambda i: (rows[i].symbol, rows[i].ts_ms, rows[i].horizon_sec))
+    sum_ret = 0.0
+    exit_counts: Dict[str, float] = defaultdict(float)
+    sorted_idx = sorted(
+        indices, key=lambda i: (rows[i].symbol, rows[i].ts_ms, rows[i].horizon_sec)
+    )
 
     uptick_thr = params["BUY_UPTICK_THR"]
     score_thr = params.get("BUY_SCORE_THR")
@@ -426,11 +703,14 @@ def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params:
         # Signal accepted
         last_fire[row.symbol] = row.ts_sec
         signals += 1
-        if row.label == 1:
+        ret_bp, exit_reason = simulate_trade(row, params)
+        exit_counts[exit_reason] += 1
+        sum_ret += ret_bp
+        if ret_bp > 0:
             hits += 1
-            sum_hit += row.ret_bp
-        else:
-            sum_miss += abs(row.ret_bp)
+            sum_hit += ret_bp
+        elif ret_bp < 0:
+            sum_miss += abs(ret_bp)
             loss_count += 1
 
     return {
@@ -439,6 +719,8 @@ def evaluate_on_indices(rows: Sequence[DataRow], indices: Sequence[int], params:
         "sum_hit": sum_hit,
         "sum_miss": sum_miss,
         "loss_count": float(loss_count),
+        "sum_ret": sum_ret,
+        "exit_counts": dict(exit_counts),
     }
 
 
@@ -448,6 +730,16 @@ def aggregate_metrics(fold_metrics: Sequence[Dict[str, float]]) -> Dict[str, flo
     sum_hit = sum(m["sum_hit"] for m in fold_metrics)
     sum_miss = sum(m["sum_miss"] for m in fold_metrics)
     loss_count = sum(m["loss_count"] for m in fold_metrics)
+    sum_ret = sum(m.get("sum_ret", 0.0) for m in fold_metrics)
+    exit_counts_total: Dict[str, float] = defaultdict(float)
+    for m in fold_metrics:
+        exits = m.get("exit_counts", {})
+        if isinstance(exits, dict):
+            for reason, cnt in exits.items():
+                try:
+                    exit_counts_total[reason] += float(cnt)
+                except (TypeError, ValueError):
+                    continue
 
     if total_signals <= 0:
         precision = 0.0
@@ -460,7 +752,7 @@ def aggregate_metrics(fold_metrics: Sequence[Dict[str, float]]) -> Dict[str, flo
     if total_signals <= 0:
         ev = float("-inf")
     else:
-        ev = mean_hit * precision - mean_miss * (1.0 - precision)
+        ev = sum_ret / total_signals
 
     return {
         "signals": total_signals,
@@ -469,11 +761,22 @@ def aggregate_metrics(fold_metrics: Sequence[Dict[str, float]]) -> Dict[str, flo
         "mean_hit": mean_hit,
         "mean_miss": mean_miss,
         "ev": ev,
+        "loss_count": loss_count,
+        "sum_ret": sum_ret,
+        "exit_counts": dict(exit_counts_total),
     }
 
 
 def _zero_metrics() -> Dict[str, float]:
-    return {"signals": 0.0, "hits": 0.0, "sum_hit": 0.0, "sum_miss": 0.0, "loss_count": 0.0}
+    return {
+        "signals": 0.0,
+        "hits": 0.0,
+        "sum_hit": 0.0,
+        "sum_miss": 0.0,
+        "loss_count": 0.0,
+        "sum_ret": 0.0,
+        "exit_counts": {},
+    }
 
 
 def evaluate_params(
@@ -506,13 +809,20 @@ def evaluate_params(
     return aggregate_metrics(fold_metrics)
 
 
-def grid_parameters(has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rate: bool) -> List[Dict[str, float]]:
+def grid_parameters(
+    has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rate: bool
+) -> List[Dict[str, float]]:
     upticks = [round(0.40 + 0.05 * i, 2) for i in range(7)]
+    scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
     spreads = [10, 20, 30]
     cooldowns = [5.0, 10.0, 15.0]
-    scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
     vols = [0.0, 0.5, 1.0] if has_vol else [None]
-    spikes = [1.6, 1.9, 2.2] if has_v_rate else [None]
+    volume_spike_thresholds = [1.6, 1.9, 2.2] if has_v_rate else [None]
+    stall_vrate_thresholds = [1.1, 1.3, 1.5] if has_v_rate else [None]
+    tp_candidates = [12.0, 15.0, 20.0]
+    sl_candidates = [6.0, 8.0, 10.0]
+    stall_f1_values = [0.0]
+    stall_n_values = [2]
 
     params_list: List[Dict[str, float]] = []
     for u in upticks:
@@ -520,19 +830,31 @@ def grid_parameters(has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rat
             for c in cooldowns:
                 for sc in scores:
                     for v in vols:
-                        for spike in spikes:
-                            params: Dict[str, Optional[float]] = {
-                                "BUY_UPTICK_THR": u,
-                                "BUY_SPREAD_MAX": s,
-                                "COOLDOWN_SEC": float(c),
-                            }
-                            if sc is not None:
-                                params["BUY_SCORE_THR"] = sc
-                            if v is not None:
-                                params["VOL_SURGE_MIN"] = v
-                            if spike is not None:
-                                params["VOLUME_SPIKE_THR"] = spike
-                            params_list.append(params)
+                        for spike in volume_spike_thresholds:
+                            for stall_v in stall_vrate_thresholds:
+                                for tp in tp_candidates:
+                                    for sl in sl_candidates:
+                                        for stall_f1 in stall_f1_values:
+                                            for stall_n in stall_n_values:
+                                                params: Dict[str, Optional[float]] = {
+                                                    "BUY_UPTICK_THR": u,
+                                                    "BUY_SPREAD_MAX": s,
+                                                    "COOLDOWN_SEC": float(c),
+                                                    "TP_BP": float(tp),
+                                                    "SL_BP": float(sl),
+                                                    "STALL_F1_THR": float(stall_f1),
+                                                    "STALL_N": int(stall_n),
+                                                    "MAX_HOLD_SEC": MAX_HOLD_DEFAULT,
+                                                }
+                                                if sc is not None:
+                                                    params["BUY_SCORE_THR"] = sc
+                                                if v is not None:
+                                                    params["VOL_SURGE_MIN"] = v
+                                                if has_v_rate and spike is not None:
+                                                    params["VOLUME_SPIKE_THR"] = spike
+                                                if has_v_rate and stall_v is not None:
+                                                    params["STALL_VRATE_THR"] = stall_v
+                                                params_list.append(params)
     return params_list
 
 
@@ -553,13 +875,14 @@ def evaluate_grid(
     step = max(1, progress_step)
     start = time.time()
 
-    def result_rank_key(item: Dict[str, object]) -> Tuple[int, float, int, float]:
-        eligible_score = 1 if item["eligible"] else 0
+    def result_rank_key(item: Dict[str, object]) -> tuple:
+        p = item["params"]
         return (
-            eligible_score,
+            1 if item["eligible"] else 0,
             float(item["precision"]),
             int(item["signals"]),
             float(item["ev"]),
+            *_pref_params_key(p),
         )
 
     best_so_far: Optional[Dict[str, object]] = None
@@ -580,14 +903,20 @@ def evaluate_grid(
             "mean_miss": agg["mean_miss"],
             "ev": agg["ev"],
             "eligible": eligible,
+            "exit_counts": agg.get("exit_counts", {}),
+            "sum_ret": agg.get("sum_ret", 0.0),
         }
         results.append(result)
         if eligible:
             eligible_results.append(result)
-        if best_so_far is None or result_rank_key(result) > result_rank_key(best_so_far):
+        if best_so_far is None or result_rank_key(result) > result_rank_key(
+            best_so_far
+        ):
             best_so_far = result
         if eligible:
-            if best_eligible is None or result_rank_key(result) > result_rank_key(best_eligible):
+            if best_eligible is None or result_rank_key(result) > result_rank_key(
+                best_eligible
+            ):
                 best_eligible = result
         if verbose:
             progress = (idx / total_candidates) * 100.0
@@ -611,13 +940,17 @@ def evaluate_grid(
             if best_eligible:
                 be = best_eligible
                 best_ev = float(be["ev"]) if be["ev"] is not None else 0.0
-                best_prec = float(be["precision"]) if be["precision"] is not None else 0.0
+                best_prec = (
+                    float(be["precision"]) if be["precision"] is not None else 0.0
+                )
                 best_trades = int(be["signals"]) if be["signals"] is not None else 0
                 best_str = f"best(ev={best_ev:.3f}, prec={best_prec:.3f}, trades={best_trades})"
             elif best_so_far:
                 bs = best_so_far
                 best_ev = float(bs["ev"]) if bs["ev"] is not None else 0.0
-                best_prec = float(bs["precision"]) if bs["precision"] is not None else 0.0
+                best_prec = (
+                    float(bs["precision"]) if bs["precision"] is not None else 0.0
+                )
                 best_trades = int(bs["signals"]) if bs["signals"] is not None else 0
                 best_str = f"best-all(ev={best_ev:.3f}, prec={best_prec:.3f}, trades={best_trades})"
             else:
@@ -643,18 +976,16 @@ def evaluate_grid(
 
 
 def select_top(results: List[Dict[str, object]], top_k: int = 5) -> List[Dict[str, object]]:
-    def sort_key(item: Dict[str, object]) -> Tuple[float, int, float]:
+    def sort_key(item: Dict[str, object]) -> tuple:
+        p = item["params"]
         return (
             float(item["precision"]),
             int(item["signals"]),
             float(item["ev"]),
+            *_pref_params_key(p),
         )
-
     eligible = [r for r in results if r["eligible"]]
-    if eligible:
-        ordered = sorted(eligible, key=sort_key, reverse=True)
-    else:
-        ordered = sorted(results, key=sort_key, reverse=True)
+    ordered = sorted(eligible or results, key=sort_key, reverse=True)
     return ordered[:top_k]
 
 
@@ -673,6 +1004,12 @@ def write_csv_report(path: Path, results: List[Dict[str, object]]) -> None:
         "COOLDOWN_SEC",
         "VOL_SURGE_MIN",
         "VOLUME_SPIKE_THR",
+        "TP_BP",
+        "SL_BP",
+        "STALL_VRATE_THR",
+        "STALL_F1_THR",
+        "STALL_N",
+        "MAX_HOLD_SEC",
     ]
     headers = [
         "precision",
@@ -682,12 +1019,17 @@ def write_csv_report(path: Path, results: List[Dict[str, object]]) -> None:
         "mean_hit_bp",
         "mean_loss_bp",
         "eligible",
+        "sum_ret_bp",
     ] + param_keys
     with path.open("w", encoding="utf-8-sig", newline="") as fh:
         writer = csv.writer(fh, lineterminator="\r\n")
         writer.writerow(headers)
         for row in results:
             params = row["params"]
+            param_values = []
+            for key in param_keys:
+                val = params.get(key, "")
+                param_values.append("" if val is None else val)
             writer.writerow(
                 [
                     "%.6f" % row["precision"],
@@ -697,20 +1039,28 @@ def write_csv_report(path: Path, results: List[Dict[str, object]]) -> None:
                     "%.6f" % row["mean_hit"],
                     "%.6f" % row["mean_miss"],
                     int(bool(row["eligible"])),
+                    "%.6f" % row.get("sum_ret", 0.0),
                 ]
-                + [params.get(key, "") for key in param_keys]
+                + param_values
             )
 
 
 def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    headers = [
+    param_keys = [
         "BUY_UPTICK_THR",
         "BUY_SCORE_THR",
         "BUY_SPREAD_MAX",
         "COOLDOWN_SEC",
         "VOL_SURGE_MIN",
         "VOLUME_SPIKE_THR",
+        "TP_BP",
+        "SL_BP",
+        "STALL_VRATE_THR",
+        "STALL_F1_THR",
+        "STALL_N",
+    ]
+    headers = param_keys + [
         "precision",
         "ev",
         "trades",
@@ -723,14 +1073,13 @@ def write_candidates_csv(path: Path, results: List[Dict[str, object]]) -> None:
         writer.writerow(headers)
         for row in results:
             params = row["params"]
+            param_values = []
+            for key in param_keys:
+                val = params.get(key, "")
+                param_values.append("" if val is None else val)
             writer.writerow(
-                [
-                    params.get("BUY_UPTICK_THR", ""),
-                    params.get("BUY_SCORE_THR", ""),
-                    params.get("BUY_SPREAD_MAX", ""),
-                    params.get("COOLDOWN_SEC", ""),
-                    params.get("VOL_SURGE_MIN", ""),
-                    params.get("VOLUME_SPIKE_THR", ""),
+                param_values
+                + [
                     row.get("precision"),
                     row.get("ev"),
                     row.get("signals"),
@@ -785,18 +1134,35 @@ def main() -> None:
         raise SystemExit("ERROR: features_stream missing f1 (uptick) column.")
 
     cache_hit = load_dataset_cache(
-        dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, db_signature, symbols_filter
+        dataset_id,
+        horizons,
+        has_vol,
+        has_ts_ms,
+        has_v_spike,
+        has_v_rate,
+        db_signature,
+        symbols_filter,
     )
     if cache_hit:
         rows, days, day_groups = cache_hit
+        if rows and not getattr(rows[0], "path", None):
+            attach_paths(conn, dataset_id, rows, MAX_HOLD_DEFAULT, PATH_STEP_MS)
         print(f"[grid] dataset cache hit (rows={len(rows)})")
     else:
         rows = load_rows(
-            conn, dataset_id, horizons, has_vol, has_ts_ms, has_v_spike, has_v_rate, symbols_filter
+            conn,
+            dataset_id,
+            horizons,
+            has_vol,
+            has_ts_ms,
+            has_v_spike,
+            has_v_rate,
+            symbols_filter,
         )
         if not rows:
             conn.close()
             raise SystemExit("ERROR: No matched rows for dataset/horizons.")
+        attach_paths(conn, dataset_id, rows, MAX_HOLD_DEFAULT, PATH_STEP_MS)
         days, day_groups = group_by_day(rows)
         save_dataset_cache(
             dataset_id,
@@ -814,7 +1180,9 @@ def main() -> None:
         print(f"[grid] dataset cache stored (rows={len(rows)})")
     conn.close()
 
-    v_rate_summary: Dict[str, float] = compute_v_rate_summary(rows) if has_v_rate else {}
+    v_rate_summary: Dict[str, float] = (
+        compute_v_rate_summary(rows) if has_v_rate else {}
+    )
     if v_rate_summary:
         print(
             "[grid] v_rate stats: p50=%.2f p95=%.2f p99=%.2f max=%.2f (n=%d)"
@@ -830,7 +1198,9 @@ def main() -> None:
     params_list = grid_parameters(has_score, has_vol, has_v_spike, has_v_rate)
     if symbols_filter:
         print(f"[grid] symbol filter: {', '.join(symbols_filter)}")
-    print(f"[grid] applying filters: MinTrades>={min_trades:,}, EVFloor>={ev_floor:.3f}")
+    print(
+        f"[grid] applying filters: MinTrades>={min_trades:,}, EVFloor>={ev_floor:.3f}"
+    )
     all_results, eligible_results = evaluate_grid(
         rows,
         days,
@@ -843,7 +1213,12 @@ def main() -> None:
         max(1, int(args.ProgressStep)),
     )
 
-    key_fn = lambda r: (float(r["precision"]), float(r["ev"]), int(r["signals"]))
+    key_fn = lambda r: (
+        float(r["precision"]),
+        float(r["ev"]),
+        int(r["signals"]),
+        *_pref_params_key(r["params"]),
+    )
 
     filtered_results = eligible_results if eligible_results else all_results
 
@@ -869,7 +1244,9 @@ def main() -> None:
     else:
         best = max(all_results, key=key_fn)
         best_is_eligible = False
-        print("[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.")
+        print(
+            "[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints."
+        )
         print(
             "[grid] selecting best among all candidates for reference: "
             f"precision={best['precision']:.3f} trades={best['signals']} ev={best['ev']:.3f}"
@@ -889,6 +1266,7 @@ def main() -> None:
         "ev_floor": ev_floor,
         "v_rate_summary": v_rate_summary,
         "has_v_rate": has_v_rate,
+        "exit_counts": best.get("exit_counts", {}),
     }
     if not best_is_eligible:
         best_payload["ineligible_reason"] = (
@@ -926,9 +1304,10 @@ def main() -> None:
     print(f"[grid] candidates saved to {candidates_path}")
     print(f"[grid] all candidates saved to {all_candidates_path}")
     if not top_results or not best_is_eligible:
-        print("[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints.")
+        print(
+            "[grid] warning: no parameter set satisfied MinTrades/EVFloor constraints."
+        )
 
 
 if __name__ == "__main__":
     main()
-

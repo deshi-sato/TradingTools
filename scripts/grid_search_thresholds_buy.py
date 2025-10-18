@@ -812,15 +812,31 @@ def evaluate_params(
 def grid_parameters(
     has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rate: bool
 ) -> List[Dict[str, float]]:
-    upticks = [round(0.40 + 0.05 * i, 2) for i in range(7)]
-    scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
-    spreads = [10, 20, 30]
-    cooldowns = [5.0, 10.0, 15.0]
-    vols = [0.0, 0.5, 1.0] if has_vol else [None]
-    volume_spike_thresholds = [1.6, 1.9, 2.2] if has_v_rate else [None]
-    stall_vrate_thresholds = [1.1, 1.3, 1.5] if has_v_rate else [None]
-    tp_candidates = [12.0, 15.0, 20.0]
-    sl_candidates = [6.0, 8.0, 10.0]
+#    upticks = [round(0.40 + 0.05 * i, 2) for i in range(7)]
+#    scores = [round(5.0 + 0.5 * i, 1) for i in range(7)] if has_score else [None]
+#    spreads = [10, 20, 30]
+#    cooldowns = [5.0, 10.0, 15.0]
+#    vols = [0.0, 0.5, 1.0] if has_vol else [None]
+#    volume_spike_thresholds = [1.6, 1.9, 2.2] if has_v_rate else [None]
+#    stall_vrate_thresholds = [1.1, 1.3, 1.5] if has_v_rate else [None]
+#    tp_candidates = [12.0, 15.0, 20.0]
+#    sl_candidates = [6.0, 8.0, 10.0]
+#    stall_f1_values = [0.0]
+#    stall_n_values = [2]
+    try:
+        prev = json.load(open("exports/best_thresholds_buy_latest.json"))["params"]
+        base = float(prev.get("BUY_UPTICK_THR", 0.7))
+        upticks = [base - 0.1, base, base + 0.1]
+    except Exception:
+        upticks = [0.6, 0.7, 0.8]  # 初回のみ固定
+    scores = [6, 7, 8]
+    spreads = [10]
+    cooldowns = [5.0]
+    vols = [None]
+    volume_spike_thresholds = [1.89, 1.91, 1.93]
+    stall_vrate_thresholds = [1.65]
+    tp_candidates = [15.0]
+    sl_candidates = [10.0]
     stall_f1_values = [0.0]
     stall_n_values = [2]
 

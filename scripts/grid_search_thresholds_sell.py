@@ -864,7 +864,12 @@ def grid_parameters(
     has_score: bool, has_vol: bool, has_v_spike: bool, has_v_rate: bool
 ) -> List[Dict[str, float]]:
 #    downticks = [0.50, 0.55, 0.60, 0.65]
-    downticks = [0.01, 0.02, 0.04, 0.06, 0.08]
+    try:
+        prev = json.load(open("exports/best_thresholds_sell_latest.json"))["params"]
+        base = float(prev.get("SELL_UPTICK_THR", 0.04))
+        downticks = [base - 0.03, base - 0.02, base, base + 0.2, base + 0.2]
+    except Exception:
+        downticks = [0.01, 0.02, 0.04, 0.06, 0.08]
     scores = [5.0, 5.5, 6.0] if has_score else [None]
 #    spreads = [15, 20, 25, 30]
     spreads = [40]

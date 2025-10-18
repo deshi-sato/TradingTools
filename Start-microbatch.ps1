@@ -23,4 +23,4 @@ py -m scripts.build_labels_from_replay -DatasetId $ds -DB $refeed -Horizons 20 -
 py -m scripts.build_training_set -DatasetId $ds -Out ("exports\trainset_{0}.csv" -f $ds)
 
 # グリッドサーチ
-py -m scripts.grid_search_thresholds -DatasetId $ds -Horizons 20 -MinTrades 50 -EVFloor 0 -CV 0
+py -m scripts.grid_search_thresholds_buy -DatasetId $ds -Horizons 20 -MinTrades 50 -EVFloor 0 -CV 0

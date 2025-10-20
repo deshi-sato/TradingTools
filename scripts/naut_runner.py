@@ -146,11 +146,19 @@ def now_ts() -> float:
     return time.time()
 
 
+def normalize_symbol(symbol: str) -> str:
+    s = str(symbol or "").strip()
+    if not s:
+        return s
+    return s.split(".", 1)[0]
+
+
 @dataclass(frozen=True)
 class RunnerConfig:
     features_db: str
     ops_db: str
     symbols: List[str]
+    symbols_original: List[str] = field(default_factory=list)
     poll_interval_sec: float = 1.0
     initial_cash: float = 10_000_000.0
     fee_rate_bps: float = 0.0
@@ -176,6 +184,13 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         raise SystemExit(f"Runner config missing symbols: {config_path}") from exc
     if not isinstance(symbols_raw, list) or not symbols_raw:
         raise SystemExit("Runner config requires non-empty list of symbols")
+    symbols_clean = [normalize_symbol(sym) for sym in symbols_raw]
+    seen: set[str] = set()
+    symbols_norm: List[str] = []
+    for sym in symbols_clean:
+        if sym and sym not in seen:
+            seen.add(sym)
+            symbols_norm.append(sym)
     features_db = resolve_path(payload.get("features_db", "naut_market.db"))
     ops_db = resolve_path(payload.get("ops_db", "naut_ops.db"))
     log_path = payload.get("log_path", "logs/naut_runner.log")
@@ -184,7 +199,8 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
-        symbols=[str(sym) for sym in symbols_raw],
+        symbols=symbols_norm,
+        symbols_original=[str(sym) for sym in symbols_raw],
         poll_interval_sec=float(payload.get("poll_interval_sec", 1.0)),
         initial_cash=float(payload.get("initial_cash", 10_000_000.0)),
         fee_rate_bps=float(payload.get("fee_rate_bps", 0.0)),
@@ -423,7 +439,6 @@ LIMIT ?
         except Exception:
             pass
 
-
 class NautRunner:
     def __init__(
         self,
@@ -444,6 +459,7 @@ class NautRunner:
         self.ledger = ledger
         self.poller = poller
         self.trade_logger = trade_logger
+        self.display_symbols = config.symbols_original or config.symbols
         self.flatten_at = flatten_at
         self.flatten_triggered = False
         self.killswitch_path = killswitch_path
@@ -465,7 +481,7 @@ class NautRunner:
         self.loss_limit_engaged = False
 
     def run(self) -> None:
-        logger.info("Runner loop start symbols=%s", ",".join(self.config.symbols))
+        logger.info("Runner loop start symbols=%s", ",".join(self.display_symbols))
         try:
             while not self.stop_requested:
                 loop_start = now_ts()
@@ -808,10 +824,6 @@ def main() -> None:
         logger.info("Runner stop requested by KeyboardInterrupt")
     finally:
         runner.shutdown()
-
-
-if __name__ == "__main__":
-    main()
 
 
 @dataclass
@@ -1266,6 +1278,7 @@ CREATE TABLE IF NOT EXISTS orders_log(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ts REAL NOT NULL,
   symbol TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'runner',
   side TEXT NOT NULL,
   action TEXT NOT NULL,
   qty REAL NOT NULL,
@@ -1281,6 +1294,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_log_symbol_ts ON orders_log(symbol, ts);
 """
 
     ORDERS_LOG_COLUMNS = {
+        "px": "REAL",
+        "type": "TEXT",
         "meta": "TEXT",
         "thr_md5": "TEXT",
         "dataset_id": "TEXT",
@@ -1310,6 +1325,14 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
 """
 
     PAPER_PAIRS_COLUMNS = {
+        "order_id": "TEXT",
+        "symbol": "TEXT",
+        "side": "TEXT",
+        "qty": "REAL",
+        "entry_px": "REAL",
+        "sl_px": "REAL",
+        "tp_px": "REAL",
+        "opened_at": "REAL DEFAULT 0",
         "exit_px": "REAL",
         "exit_reason": "TEXT",
         "closed_at": "REAL",
@@ -1339,6 +1362,39 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             self.conn.commit()
             return
         existing = {row["name"] for row in self.conn.execute(f"PRAGMA table_info({name})")}
+        if name == "orders_log" and "px" not in existing:
+            if "price" in existing:
+                try:
+                    self.conn.execute("ALTER TABLE orders_log RENAME COLUMN price TO px")
+                    existing.add("px")
+                except sqlite3.OperationalError as exc:
+                    logger.debug("orders_log price->px rename failed: %s", exc)
+            if "px" not in existing:
+                self.conn.execute("ALTER TABLE orders_log ADD COLUMN px REAL")
+                existing.add("px")
+        if name == "orders_log" and "reason" not in existing:
+            if "meta" in existing:
+                try:
+                    self.conn.execute("ALTER TABLE orders_log ADD COLUMN reason TEXT")
+                    existing.add("reason")
+                except sqlite3.OperationalError as exc:
+                    logger.debug("orders_log add reason column failed: %s", exc)
+        if name == "orders_log" and "reason" in existing:
+            columns = dict(columns)
+            columns.pop("reason", None)
+        if name == "orders_log" and "type" not in existing:
+            self.conn.execute("ALTER TABLE orders_log ADD COLUMN type TEXT DEFAULT 'runner'")
+            existing.add("type")
+        if name == "paper_pairs" and "order_id" not in existing:
+            self.conn.execute("ALTER TABLE paper_pairs ADD COLUMN order_id TEXT")
+            existing.add("order_id")
+            columns = dict(columns)
+            columns.pop("order_id", None)
+        if name == "paper_pairs" and "opened_at" not in existing:
+            self.conn.execute("ALTER TABLE paper_pairs ADD COLUMN opened_at REAL DEFAULT 0")
+            existing.add("opened_at")
+            columns = dict(columns)
+            columns.pop("opened_at", None)
         for column, ddl in columns.items():
             if column not in existing:
                 self.conn.execute(f"ALTER TABLE {name} ADD COLUMN {column} {ddl}")
@@ -1353,32 +1409,37 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
         qty: float,
         px: float,
         reason: str,
-        profile_meta: Dict[str, str],
-        extra_meta: Dict[str, Any],
-    ) -> None:
-        meta_json = self._meta_json(profile_meta, extra_meta)
+        profile_meta: dict,
+        order_meta: dict,
+    ):
+        meta = dict(order_meta or {})
+        meta["order_id"] = order_id
+
         self.conn.execute(
             """
-            INSERT INTO orders_log(
+            INSERT INTO orders_log (
                 ts, symbol, side, action, qty, px, reason,
                 thr_md5, dataset_id, schema_version, mode, meta
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                ts,
-                symbol,
-                side,
-                ACTION_ENTRY,
-                qty,
-                px,
-                reason,
-                profile_meta["thr_md5"],
-                profile_meta["dataset_id"],
-                profile_meta["schema_version"],
-                profile_meta["mode"],
-                meta_json,
+                ts,                # ts
+                symbol,            # symbol
+                side,              # side
+                "entry",           # action
+                qty,               # qty
+                px,                # px
+                reason,            # reason
+                profile_meta.get("thr_md5",""),
+                profile_meta.get("dataset_id",""),
+                profile_meta.get("schema_version",""),
+                profile_meta.get("mode",""),
+                json.dumps(meta, ensure_ascii=False, sort_keys=True),
             ),
         )
+
+        # paper_pairs は渡された値で明示的にINSERT（変数未定義を解消）
         self.conn.execute(
             """
             INSERT INTO paper_pairs(
@@ -1399,48 +1460,43 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
                 symbol,
                 side,
                 qty,
-                extra_meta.get("entry_px", px),
-                extra_meta.get("sl_px", px),
-                extra_meta.get("tp_px", px),
+                px,
+                order_meta.get("sl_px", px),
+                order_meta.get("tp_px", px),
                 ts,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
+                0.0, 0.0, 0.0, 0.0,
             ),
         )
         self.conn.commit()
 
-    def log_exit(
-        self,
-        order_id: str,
-        summary: ExitSummary,
-        profile_meta: Dict[str, str],
-        extra_meta: Dict[str, Any],
-    ) -> None:
-        meta_json = self._meta_json(profile_meta, extra_meta)
+    def log_exit(self, order_id: str, summary, profile_meta: dict, extra_meta: dict):
+        meta = dict(extra_meta or {})
+        meta["order_id"] = order_id
+
         self.conn.execute(
             """
-            INSERT INTO orders_log(
+            INSERT INTO orders_log (
                 ts, symbol, side, action, qty, px, reason,
                 thr_md5, dataset_id, schema_version, mode, meta
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 summary.exit_ts,
                 summary.symbol,
                 summary.side,
-                ACTION_EXIT,
+                "exit",
                 summary.qty,
                 summary.exit_px,
                 summary.exit_reason,
-                profile_meta["thr_md5"],
-                profile_meta["dataset_id"],
-                profile_meta["schema_version"],
-                profile_meta["mode"],
-                meta_json,
+                profile_meta.get("thr_md5",""),
+                profile_meta.get("dataset_id",""),
+                profile_meta.get("schema_version",""),
+                profile_meta.get("mode",""),
+                json.dumps(meta, ensure_ascii=False, sort_keys=True),
             ),
         )
+
         self.conn.execute(
             """
             UPDATE paper_pairs
@@ -1472,3 +1528,6 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             self.conn.close()
         except Exception:
             pass
+
+if __name__ == "__main__":
+    main()

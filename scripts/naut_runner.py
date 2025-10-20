@@ -174,6 +174,7 @@ class RunnerConfig:
     log_path: str = "logs/naut_runner.log"
     timezone: str = "Asia/Tokyo"
     killswitch_check_interval_sec: float = 5.0
+    market_window: Optional[str] = None
 
 
 def load_runner_config(config_path: Path) -> RunnerConfig:
@@ -216,6 +217,7 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         log_path=log_path,
         timezone=str(payload.get("timezone", "Asia/Tokyo")),
         killswitch_check_interval_sec=float(payload.get("killswitch_check_interval_sec", 5.0)),
+        market_window=str(payload.get("market_window", "") or "") or None,
     )
 
 
@@ -775,6 +777,10 @@ def main() -> None:
     config_path = Path(resolve_path(args.config))
     runner_config = load_runner_config(config_path)
     configure_logging(runner_config.log_path, bool(args.verbose))
+    if args.broker == "paper" and runner_config.market_window:
+        logger.info("Ignoring market_window config in paper mode: %s", runner_config.market_window)
+    elif runner_config.market_window:
+        logger.info("market_window configured=%s (not enforced by current runner)", runner_config.market_window)
 
     threshold_path = Path(resolve_path(args.thr))
     threshold_profile = load_threshold_profile(threshold_path)

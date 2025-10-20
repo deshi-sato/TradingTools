@@ -14,7 +14,6 @@ py scripts\resolve_gridsearch_target.py | Invoke-Expression
 
 # スキーマ補正（再実行可）
 py scripts\ensure_registry_schema.py $refeed
-py scripts\ensure_registry_schema.py db\naut_market.db
 
 # ラベル作成（唯一の -DB 指定）
 py -m scripts.build_labels_from_replay -DatasetId $ds -DB $refeed -Horizons 20 -Thresholds +8,-6

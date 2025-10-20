@@ -1,7 +1,7 @@
 param(
     [string[]]$Symbols = @('7011', '429A', '4592'),
     [string]$ThresholdPath = 'exports\best_thresholds_buy_REF20251017_0840.json',
-    [string]$FeaturesDb = 'db\naut_market_20251020_refeed.db',
+    [string]$FeaturesDb = 'db\naut_market.db',
     [string]$OpsDb = 'db\naut_ops.db',
     [string]$ConfigPath = 'config\naut_runner_paper_20251020.json'
 )

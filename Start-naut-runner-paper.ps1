@@ -1,9 +1,10 @@
 param(
-    [string[]]$Symbols = @('7011', '429A', '4592'),
+    [string[]]$Symbols = @('3692', '4592', '2586'),
     [string]$ThresholdPath = 'exports\best_thresholds_buy_REF20251017_0840.json',
-    [string]$FeaturesDb = 'db\naut_market.db',
+    [string]$FeaturesDb = 'db\naut_market_20251021_refeed.db',
     [string]$OpsDb = 'db\naut_ops.db',
-    [string]$ConfigPath = 'config\naut_runner_paper_20251020.json'
+    [string]$ConfigPath = 'config\naut_runner_paper_20251021.json',
+    [string]$PolicyPath = 'config\policy.default.json'
 )
 
 $runnerConfig = [ordered]@{
@@ -34,4 +35,5 @@ py -m scripts.naut_runner `
     --broker paper `
     --thr $ThresholdPath `
     --config $ConfigPath `
+    --policy $PolicyPath `
     --verbose 1

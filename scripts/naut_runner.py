@@ -46,6 +46,72 @@ logger = logging.getLogger(__name__)
 _singleton_handle: Optional[int] = None
 _pidfile_path: Optional[Path] = None
 
+# ファイル先頭付近にユーティリティを追加
+def _load_json_optional(path_str: str) -> dict:
+    if not path_str:
+        return {}
+    p = Path(resolve_path(path_str))
+    if not p.exists():
+        logger.warning("Policy file not found: %s", p)
+        return {}
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        logger.exception("Failed to load policy JSON: %s", p)
+        return {}
+
+
+def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
+    # 対応キーだけ反映（未知キーは無視）
+    # lot_size/min_qty は RunnerConfig の min_lot に反映
+    lot_size = safe_int(pol.get("lot_size"))
+    min_qty = safe_int(pol.get("min_qty"))
+    min_lot = safe_int(min_qty if min_qty is not None else lot_size, cfg.min_lot)
+
+    return RunnerConfig(
+        features_db=cfg.features_db,
+        ops_db=cfg.ops_db,
+        symbols=cfg.symbols,
+        symbols_original=cfg.symbols_original,
+        poll_interval_sec=cfg.poll_interval_sec,
+        initial_cash=safe_float(pol.get("initial_cash"), cfg.initial_cash),
+        fee_rate_bps=cfg.fee_rate_bps,
+        slippage_ticks=cfg.slippage_ticks,
+        tick_size=cfg.tick_size,
+        tick_value=cfg.tick_value,
+        min_lot=min_lot if min_lot is not None else cfg.min_lot,
+        risk_per_trade_pct=safe_float(
+            pol.get("risk_per_trade_pct"), cfg.risk_per_trade_pct
+        ),
+        max_cash_per_trade=safe_float(
+            pol.get("max_cash_per_trade"), cfg.max_cash_per_trade
+        ),
+        max_concurrent_positions=cfg.max_concurrent_positions,
+        daily_loss_limit_pct=safe_float(
+            pol.get("daily_loss_limit_pct"), cfg.daily_loss_limit_pct
+        ),
+        stats_interval_sec=cfg.stats_interval_sec,
+        stop_loss_ticks=cfg.stop_loss_ticks,
+        log_path=cfg.log_path,
+        timezone=cfg.timezone,
+        killswitch_check_interval_sec=cfg.killswitch_check_interval_sec,
+        market_window=cfg.market_window,
+        per_symbol_cooldown_sec=safe_float(
+            pol.get("per_symbol_cooldown_sec"), cfg.per_symbol_cooldown_sec
+        )
+        or cfg.per_symbol_cooldown_sec,
+        signal_gap_sec=safe_float(pol.get("signal_gap_sec"), cfg.signal_gap_sec)
+        or cfg.signal_gap_sec,
+        confirm_ticks=int(
+            safe_int(pol.get("confirm_ticks"), cfg.confirm_ticks) or cfg.confirm_ticks
+        ),
+        min_sl_gap_yen=safe_float(pol.get("min_sl_gap_yen"), cfg.min_sl_gap_yen)
+        or cfg.min_sl_gap_yen,
+        min_tp_gap_yen=safe_float(pol.get("min_tp_gap_yen"), cfg.min_tp_gap_yen)
+        or cfg.min_tp_gap_yen,
+    )
+
 
 def _cleanup_pid() -> None:
     global _singleton_handle, _pidfile_path
@@ -160,7 +226,8 @@ class RunnerConfig:
     symbols: List[str]
     symbols_original: List[str] = field(default_factory=list)
     poll_interval_sec: float = 1.0
-    initial_cash: float = 10_000_000.0
+    initial_cash: float = 1_500_000.0
+    max_cash_per_trade: float = 1_000_000.0
     fee_rate_bps: float = 0.0
     slippage_ticks: float = 0.0
     tick_size: float = 0.1
@@ -168,13 +235,19 @@ class RunnerConfig:
     min_lot: int = 100
     risk_per_trade_pct: float = 0.01
     max_concurrent_positions: int = 1
-    daily_loss_limit_pct: float = 0.05
+    daily_loss_limit_pct: float = 0.01
     stats_interval_sec: float = 300.0
     stop_loss_ticks: float = 5.0
     log_path: str = "logs/naut_runner.log"
     timezone: str = "Asia/Tokyo"
     killswitch_check_interval_sec: float = 5.0
     market_window: Optional[str] = None
+    # Anti-spam / guard rails
+    per_symbol_cooldown_sec: float = 30.0
+    signal_gap_sec: float = 20.0
+    confirm_ticks: int = 3
+    min_sl_gap_yen: float = 1.0
+    min_tp_gap_yen: float = 1.5
 
 
 def load_runner_config(config_path: Path) -> RunnerConfig:
@@ -203,7 +276,7 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         symbols=symbols_norm,
         symbols_original=[str(sym) for sym in symbols_raw],
         poll_interval_sec=float(payload.get("poll_interval_sec", 1.0)),
-        initial_cash=float(payload.get("initial_cash", 10_000_000.0)),
+        initial_cash=float(payload.get("initial_cash", 1_500_000.0)),
         fee_rate_bps=float(payload.get("fee_rate_bps", 0.0)),
         slippage_ticks=float(payload.get("slippage_ticks", 0.0)),
         tick_size=float(payload.get("tick_size", 0.1)),
@@ -211,13 +284,20 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         min_lot=int(payload.get("min_lot", 100)),
         risk_per_trade_pct=float(payload.get("risk_per_trade_pct", 0.01)),
         max_concurrent_positions=int(payload.get("max_concurrent_positions", 1)),
-        daily_loss_limit_pct=float(payload.get("daily_loss_limit_pct", 0.05)),
+        daily_loss_limit_pct=float(payload.get("daily_loss_limit_pct", 0.01)),
         stats_interval_sec=float(payload.get("stats_interval_sec", 300.0)),
         stop_loss_ticks=float(payload.get("stop_loss_ticks", 5.0)),
         log_path=log_path,
         timezone=str(payload.get("timezone", "Asia/Tokyo")),
-        killswitch_check_interval_sec=float(payload.get("killswitch_check_interval_sec", 5.0)),
+        killswitch_check_interval_sec=float(
+            payload.get("killswitch_check_interval_sec", 5.0)
+        ),
         market_window=str(payload.get("market_window", "") or "") or None,
+        per_symbol_cooldown_sec=float(payload.get("per_symbol_cooldown_sec", 30.0)),
+        signal_gap_sec=float(payload.get("signal_gap_sec", 20.0)),
+        confirm_ticks=int(payload.get("confirm_ticks", 3)),
+        min_sl_gap_yen=float(payload.get("min_sl_gap_yen", 1.0)),
+        min_tp_gap_yen=float(payload.get("min_tp_gap_yen", 1.5)),
     )
 
 
@@ -254,7 +334,9 @@ def load_threshold_profile(path: Path) -> ThresholdProfile:
     raw = load_json_utf8(str(path))
     json_md5 = str(raw.get("md5", computed_md5))
     if json_md5 != computed_md5:
-        logger.warning("Threshold md5 mismatch: file=%s payload=%s", computed_md5, json_md5)
+        logger.warning(
+            "Threshold md5 mismatch: file=%s payload=%s", computed_md5, json_md5
+        )
     mode_raw = str(raw.get("mode", raw.get("MODE", SIDE_BUY))).upper()
     created_at = str(raw.get("created_at", datetime.utcnow().isoformat()))
     known = {
@@ -281,9 +363,13 @@ def load_threshold_profile(path: Path) -> ThresholdProfile:
         uptick_thr=float(raw.get("UPTICK_THR", raw.get("uptick_thr", 0.0))),
         score_thr=float(raw.get("SCORE_THR", raw.get("score_thr", 0.0))),
         spread_max=float(raw.get("SPREAD_MAX", raw.get("spread_max", 0.0))),
-        volume_spike_thr=float(raw.get("VOLUME_SPIKE_THR", raw.get("volume_spike_thr", 0.0))),
+        volume_spike_thr=float(
+            raw.get("VOLUME_SPIKE_THR", raw.get("volume_spike_thr", 0.0))
+        ),
         cooldown_sec=float(raw.get("COOLDOWN_SEC", raw.get("cooldown_sec", 0.0))),
-        runner_max_hold_sec=float(raw.get("RUNNER_MAX_HOLD_SEC", raw.get("runner_max_hold_sec", 0.0))),
+        runner_max_hold_sec=float(
+            raw.get("RUNNER_MAX_HOLD_SEC", raw.get("runner_max_hold_sec", 0.0))
+        ),
         rr_tp_sl=float(raw.get("RR_TP_SL", raw.get("rr_tp_sl", 2.0))) or 1.0,
         extras=extras,
     )
@@ -328,7 +414,9 @@ class Policy:
         uptick = self._extract(row, ("uptick_ratio", "uptick", "f1"))
         downtick = self._extract(row, ("downtick_ratio", "downtick", "f2"))
         spread = self._extract(row, ("spread_ticks", "spread", "spread_tick"))
-        volume = self._extract(row, ("volume_rate", "v_rate", "volume_spike", "volume_ratio"))
+        volume = self._extract(
+            row, ("volume_rate", "v_rate", "volume_spike", "volume_ratio")
+        )
 
         context = {
             "symbol": symbol,
@@ -358,7 +446,9 @@ class Policy:
             sl_distance = self.config.stop_loss_ticks * self.config.tick_size
             if sl_distance <= 0:
                 return PolicyDecision(False, reason="sl_distance", context=context)
-            tp_distance = max(self.profile.rr_tp_sl * sl_distance, self.config.tick_size)
+            tp_distance = max(
+                self.profile.rr_tp_sl * sl_distance, self.config.tick_size
+            )
             sl_px = entry_price - sl_distance
             tp_px = entry_price + tp_distance
         else:
@@ -377,13 +467,17 @@ class Policy:
             sl_distance = self.config.stop_loss_ticks * self.config.tick_size
             if sl_distance <= 0:
                 return PolicyDecision(False, reason="sl_distance", context=context)
-            tp_distance = max(self.profile.rr_tp_sl * sl_distance, self.config.tick_size)
+            tp_distance = max(
+                self.profile.rr_tp_sl * sl_distance, self.config.tick_size
+            )
             sl_px = entry_price + sl_distance
             tp_px = entry_price - tp_distance
 
         context["sl_px"] = sl_px
         context["tp_px"] = tp_px
-        return PolicyDecision(True, entry_price, sl_px, tp_px, reason="signal", context=context)
+        return PolicyDecision(
+            True, entry_price, sl_px, tp_px, reason="signal", context=context
+        )
 
     @staticmethod
     def _extract(row: Dict[str, Any], keys: Iterable[str]) -> Optional[float]:
@@ -424,7 +518,9 @@ class FeaturePoller:
         except Exception:
             logger.debug("FeaturePoller index ensure failed", exc_info=True)
 
-    def fetch_since(self, symbol: str, last_ts: float, limit: int = 500) -> List[Dict[str, Any]]:
+    def fetch_since(
+        self, symbol: str, last_ts: float, limit: int = 500
+    ) -> List[Dict[str, Any]]:
         query = f"""
 SELECT *
 FROM {self.table}
@@ -440,6 +536,7 @@ LIMIT ?
             self.conn.close()
         except Exception:
             pass
+
 
 class NautRunner:
     def __init__(
@@ -469,6 +566,9 @@ class NautRunner:
         self.stop_requested = False
         self.cooldown_until: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
         self.last_ts: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
+        self.last_exit_ts: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
+        self.last_entry_ts: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
+        self.signal_streak: Dict[str, int] = {sym: 0 for sym in config.symbols}
         self.stats: Dict[str, Any] = {
             "polled": 0,
             "signals": 0,
@@ -478,9 +578,75 @@ class NautRunner:
             "losses": 0,
             "pnl_sum": 0.0,
         }
+        import sqlite3
+
+        if not hasattr(self, "ops_conn") or self.ops_conn is None:
+            self.ops_conn = sqlite3.connect(self.config.ops_db, check_same_thread=False)
+            try:
+                self.ops_conn.execute("PRAGMA journal_mode=WAL;")
+                self.ops_conn.execute("PRAGMA synchronous=NORMAL;")
+            except Exception:
+                pass
+        self._ensure_seen_table()
+        self.ops_conn.commit()
+        logger.info("runner_seen ready on ops_db=%s", self.config.ops_db)
         self.last_stats_log = now_ts()
         self.profile = policy.profile
         self.loss_limit_engaged = False
+
+    def _already_seen(self, symbol: str, ts_ms: int) -> bool:
+        cur = self.ops_conn.execute(
+            "SELECT 1 FROM runner_seen WHERE symbol=? AND profile_md5=? AND ts_ms=?",
+            (symbol, self.profile.md5, ts_ms),
+        )
+        return cur.fetchone() is not None
+
+    def _mark_seen(self, symbol: str, ts_ms: int) -> None:
+        self.ops_conn.execute(
+            "INSERT OR IGNORE INTO runner_seen(symbol, profile_md5, ts_ms) VALUES(?,?,?)",
+            (symbol, self.profile.md5, ts_ms),
+        )
+        self.ops_conn.commit()
+
+    def _ensure_seen_table(self):
+        try:
+            cur = self.ops_conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='runner_seen'"
+            )
+            exists = cur.fetchone() is not None
+            if exists:
+                cols = {row[1] for row in self.ops_conn.execute("PRAGMA table_info(runner_seen)")}
+                expected = {"symbol", "profile_md5", "ts_ms"}
+                if cols != expected:
+                    # 旧スキーマは落とす（主キーが違うとALTERが難しいため）
+                    self.ops_conn.execute("DROP TABLE IF EXISTS runner_seen")
+                    self.ops_conn.commit()
+            # 無ければ作る
+            self.ops_conn.execute("""
+                CREATE TABLE IF NOT EXISTS runner_seen(
+                    symbol      TEXT NOT NULL,
+                    profile_md5 TEXT NOT NULL,
+                    ts_ms       INTEGER NOT NULL,
+                    PRIMARY KEY(symbol, profile_md5, ts_ms)
+                )
+            """)
+            self.ops_conn.commit()
+        except Exception:
+            logger.exception("failed to ensure runner_seen table")
+
+    def _already_seen(self, symbol: str, ts_ms: int) -> bool:
+        cur = self.ops_conn.execute(
+            "SELECT 1 FROM runner_seen WHERE symbol=? AND profile_md5=? AND ts_ms=?",
+            (symbol, self.profile.md5, ts_ms),
+        )
+        return cur.fetchone() is not None
+
+    def _mark_seen(self, symbol: str, ts_ms: int) -> None:
+        self.ops_conn.execute(
+            "INSERT OR IGNORE INTO runner_seen(symbol, profile_md5, ts_ms) VALUES(?,?,?)",
+            (symbol, self.profile.md5, ts_ms),
+        )
+        self.ops_conn.commit()
 
     def run(self) -> None:
         logger.info("Runner loop start symbols=%s", ",".join(self.display_symbols))
@@ -507,7 +673,9 @@ class NautRunner:
                         self._check_timeouts(symbol, ts, row)
                         self._try_entry(symbol, row, ts)
                 self._maybe_log_stats(now_ts())
-                sleep_for = max(0.0, self.config.poll_interval_sec - (now_ts() - loop_start))
+                sleep_for = max(
+                    0.0, self.config.poll_interval_sec - (now_ts() - loop_start)
+                )
                 time.sleep(sleep_for)
         finally:
             open_positions = self.ledger.total_positions()
@@ -526,7 +694,9 @@ class NautRunner:
 
     def _handle_fills(self, fills: List[Fill]) -> None:
         for fill in fills:
-            summary = self.ledger.register_exit(fill.order_id, fill.exit_px, fill.exit_reason, fill.timestamp)
+            summary = self.ledger.register_exit(
+                fill.order_id, fill.exit_px, fill.exit_reason, fill.timestamp
+            )
             if not summary:
                 continue
             self.stats["exits"] += 1
@@ -535,7 +705,11 @@ class NautRunner:
                 self.stats["wins"] += 1
             elif summary.realized_pnl < 0:
                 self.stats["losses"] += 1
-            self.cooldown_until[summary.symbol] = fill.timestamp + self.policy.cooldown_sec
+            cooldown = max(
+                self.policy.cooldown_sec, self.config.per_symbol_cooldown_sec
+            )
+            self.cooldown_until[summary.symbol] = fill.timestamp + cooldown
+            self.last_exit_ts[summary.symbol] = fill.timestamp
             extra_meta = dict(fill.meta)
             extra_meta.update(
                 {
@@ -548,7 +722,9 @@ class NautRunner:
                     "min_unrealized_pnl": summary.min_unrealized,
                 }
             )
-            self.trade_logger.log_exit(fill.order_id, summary, self.profile.meta, extra_meta)
+            self.trade_logger.log_exit(
+                fill.order_id, summary, self.profile.meta, extra_meta
+            )
             logger.info(
                 "EXIT %s order=%s side=%s qty=%.0f px=%.3f reason=%s pnl=%.2f md5=%s dataset=%s schema=%s",
                 summary.symbol,
@@ -564,44 +740,84 @@ class NautRunner:
             )
 
     def _mark_positions(self, symbol: str, row: Dict[str, Any]) -> None:
-        bid = safe_float(row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px"))))
-        ask = safe_float(row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px"))))
+        bid = safe_float(
+            row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px")))
+        )
+        ask = safe_float(
+            row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px")))
+        )
         if bid is None and ask is None:
             price = safe_float(row.get("price"), safe_float(row.get("last_price")))
             bid = ask = price
         self.ledger.mark_symbol(symbol, bid, ask)
 
-    def _check_timeouts(self, symbol: str, timestamp: float, row: Dict[str, Any]) -> None:
+    def _check_timeouts(
+        self, symbol: str, timestamp: float, row: Dict[str, Any]
+    ) -> None:
         if self.policy.max_hold_sec <= 0:
             return
         timeout_candidates = [
             position
             for position in list(self.ledger.positions.values())
-            if position.symbol == symbol and (timestamp - position.opened_at) >= self.policy.max_hold_sec
+            if position.symbol == symbol
+            and (timestamp - position.opened_at) >= self.policy.max_hold_sec
         ]
         if not timeout_candidates:
             return
-        bid = safe_float(row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px"))))
-        ask = safe_float(row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px"))))
+        bid = safe_float(
+            row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px")))
+        )
+        ask = safe_float(
+            row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px")))
+        )
         fills: List[Fill] = []
         for position in timeout_candidates:
-            fill = self.broker.force_exit_order(position.order_id, timestamp, "timeout", bid, ask)
+            fill = self.broker.force_exit_order(
+                position.order_id, timestamp, "timeout", bid, ask
+            )
             if fill:
                 fills.append(fill)
         if fills:
             self._handle_fills(fills)
 
     def _try_entry(self, symbol: str, row: Dict[str, Any], timestamp: float) -> None:
+        ts_ms = int(row["ts_ms"])
+        if self._already_seen(symbol, ts_ms):
+            logger.debug("ENTRY-GATE seen: %s ts=%s", symbol, ts_ms)
+            return
         if not self.ledger.can_open(symbol):
             return
         if timestamp < self.cooldown_until.get(symbol, 0.0):
             return
+        if self.config.signal_gap_sec > 0:
+            last_entry_ts = self.last_entry_ts.get(symbol, 0.0)
+            if (
+                last_entry_ts
+                and (timestamp - last_entry_ts) < self.config.signal_gap_sec
+            ):
+                return
         if self.ledger.loss_limit_hit:
             return
         decision = self.policy.evaluate(symbol, row)
         if not decision.should_enter:
+            self.signal_streak[symbol] = 0
             return
         self.stats["signals"] += 1
+        self.signal_streak[symbol] = self.signal_streak.get(symbol, 0) + 1
+        required = max(1, int(self.config.confirm_ticks))
+        if self.signal_streak[symbol] < required:
+            return
+        # enforce minimum TP/SL distance
+        if self.mode == SIDE_BUY:
+            if (decision.entry_px - decision.sl_px) < self.config.min_sl_gap_yen:
+                decision.sl_px = decision.entry_px - self.config.min_sl_gap_yen
+            if (decision.tp_px - decision.entry_px) < self.config.min_tp_gap_yen:
+                decision.tp_px = decision.entry_px + self.config.min_tp_gap_yen
+        else:
+            if (decision.sl_px - decision.entry_px) < self.config.min_sl_gap_yen:
+                decision.sl_px = decision.entry_px + self.config.min_sl_gap_yen
+            if (decision.entry_px - decision.tp_px) < self.config.min_tp_gap_yen:
+                decision.tp_px = decision.entry_px - self.config.min_tp_gap_yen
         qty = self.ledger.compute_order_size(decision.entry_px, decision.sl_px)
         if qty <= 0:
             logger.debug("Skip entry %s qty=%s (sizing filtered)", symbol, qty)
@@ -652,7 +868,10 @@ class NautRunner:
             self.profile.meta,
             order_meta,
         )
+        self._mark_seen(symbol, ts_ms)
         self.stats["entries"] += 1
+        self.last_entry_ts[symbol] = timestamp
+        self.signal_streak[symbol] = 0
         logger.info(
             "ENTRY %s order=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f score=%s md5=%s dataset=%s schema=%s",
             symbol,
@@ -696,7 +915,11 @@ class NautRunner:
             self.loss_limit_engaged = True
             drawdown_pct = 0.0
             if self.ledger.initial_cash > 0:
-                drawdown_pct = (self.ledger.initial_cash - self.ledger.equity) / self.ledger.initial_cash * 100
+                drawdown_pct = (
+                    (self.ledger.initial_cash - self.ledger.equity)
+                    / self.ledger.initial_cash
+                    * 100
+                )
             logger.error(
                 "Daily loss limit hit: equity=%.2f initial=%.2f drawdown=%.2f%% -> flatten",
                 self.ledger.equity,
@@ -711,7 +934,9 @@ class NautRunner:
         if fills:
             self._handle_fills(fills)
         else:
-            logger.warning("Flatten requested (%s) but broker returned no fills", reason)
+            logger.warning(
+                "Flatten requested (%s) but broker returned no fills", reason
+            )
 
     def _maybe_log_stats(self, now: float) -> None:
         if now - self.last_stats_log < self.config.stats_interval_sec:
@@ -763,24 +988,68 @@ def configure_logging(log_path: str, verbose: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Naut Runner IFDOCO executor")
     parser.add_argument("--mode", choices=[SIDE_BUY, SIDE_SELL], required=True)
-    parser.add_argument("--thr", required=True, help="Path to best_thresholds_*_latest.json")
+    parser.add_argument(
+        "--thr", required=True, help="Path to best_thresholds_*_latest.json"
+    )
     parser.add_argument("--broker", choices=["paper", "live"], default="paper")
-    parser.add_argument("--dry-run", type=int, choices=[0, 1], default=1, help="Live only: 0=live orders, 1=dry-run")
+    parser.add_argument(
+        "--dry-run",
+        type=int,
+        choices=[0, 1],
+        default=1,
+        help="Live only: 0=live orders, 1=dry-run",
+    )
     parser.add_argument("--config", required=True, help="Runner config JSON")
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=0)
-    parser.add_argument("--flatten-at", dest="flatten_at", help="HH:MM local time to flatten positions")
-    parser.add_argument("--killswitch", default=str(REPO_ROOT / "runtime" / "stop.flag"))
+    parser.add_argument(
+        "--flatten-at", dest="flatten_at", help="HH:MM local time to flatten positions"
+    )
+    parser.add_argument(
+        "--killswitch", default=str(REPO_ROOT / "runtime" / "stop.flag")
+    )
+    parser.add_argument(
+        "--policy",
+        type=str,
+        default="",
+        help="Optional policy.json path to override sizing/risk",
+    )
     args = parser.parse_args()
 
     singleton_guard(f"naut_runner_{args.mode.lower()}_{args.broker}")
 
     config_path = Path(resolve_path(args.config))
     runner_config = load_runner_config(config_path)
+    policy_dict = _load_json_optional(args.policy)
+    if policy_dict:
+        runner_config = _apply_policy_overrides(runner_config, policy_dict)
+        logger.info(
+            "POLICY loaded: max_cash_per_trade=%.0f risk_per_trade_pct=%.4f min_lot=%d daily_loss_limit_pct=%.4f initial_cash=%.0f",
+            runner_config.max_cash_per_trade,
+            runner_config.risk_per_trade_pct,
+            runner_config.min_lot,
+            runner_config.daily_loss_limit_pct,
+            runner_config.initial_cash,
+        )
+    else:
+        logger.info(
+            "POLICY not provided. Using built-in defaults: max_cash_per_trade=%.0f risk_per_trade_pct=%.4f min_lot=%d daily_loss_limit_pct=%.4f initial_cash=%.0f",
+            runner_config.max_cash_per_trade,
+            runner_config.risk_per_trade_pct,
+            runner_config.min_lot,
+            runner_config.daily_loss_limit_pct,
+            runner_config.initial_cash,
+        )
     configure_logging(runner_config.log_path, bool(args.verbose))
     if args.broker == "paper" and runner_config.market_window:
-        logger.info("Ignoring market_window config in paper mode: %s", runner_config.market_window)
+        logger.info(
+            "Ignoring market_window config in paper mode: %s",
+            runner_config.market_window,
+        )
     elif runner_config.market_window:
-        logger.info("market_window configured=%s (not enforced by current runner)", runner_config.market_window)
+        logger.info(
+            "market_window configured=%s (not enforced by current runner)",
+            runner_config.market_window,
+        )
 
     threshold_path = Path(resolve_path(args.thr))
     threshold_profile = load_threshold_profile(threshold_path)
@@ -898,11 +1167,29 @@ class Ledger:
         risk_per_unit = abs(entry_px - sl_px) * self.config.tick_value
         if risk_per_unit <= 0:
             return 0
+
         equity = max(self.equity, 0.0)
-        risk_cash = equity * self.config.risk_per_trade_pct
-        if risk_cash <= 0:
-            return 0
-        raw_qty = risk_cash / max(risk_per_unit, 1e-9)
+
+        # --- リスク％での上限（従来通り）
+        risk_cash = (
+            equity * self.config.risk_per_trade_pct
+            if self.config.risk_per_trade_pct > 0
+            else float("inf")
+        )
+        qty_risk = risk_cash / max(risk_per_unit, 1e-9)
+
+        # --- 現金上限（100万円デフォルト）
+        cash_cap = (
+            float(self.config.max_cash_per_trade)
+            if getattr(self.config, "max_cash_per_trade", 0) > 0
+            else float("inf")
+        )
+        qty_cash = cash_cap / max(entry_px, 1e-9)
+
+        # --- 最小制約（必要ならブローカー上限もここに追加）
+        raw_qty = min(qty_risk, qty_cash)
+
+        # --- ロット丸め（既存ロジック踏襲）
         min_lot = max(1, self.config.min_lot)
         lots = math.floor(raw_qty / min_lot)
         qty = lots * min_lot
@@ -940,7 +1227,9 @@ class Ledger:
         self._update_equity()
         return position
 
-    def mark_symbol(self, symbol: str, bid: Optional[float], ask: Optional[float]) -> None:
+    def mark_symbol(
+        self, symbol: str, bid: Optional[float], ask: Optional[float]
+    ) -> None:
         for position in list(self.positions.values()):
             if position.symbol != symbol:
                 continue
@@ -954,7 +1243,11 @@ class Ledger:
         if not position:
             return
         position.last_mark_px = mark_px
-        diff = (mark_px - position.entry_px) if position.side == SIDE_BUY else (position.entry_px - mark_px)
+        diff = (
+            (mark_px - position.entry_px)
+            if position.side == SIDE_BUY
+            else (position.entry_px - mark_px)
+        )
         pnl = diff * position.qty * self.config.tick_value
         position.unrealized = pnl
         position.max_unrealized = max(position.max_unrealized, pnl)
@@ -962,12 +1255,18 @@ class Ledger:
         self._recalc_unrealized()
         self._update_equity()
 
-    def register_exit(self, order_id: str, exit_px: float, reason: str, exit_ts: float) -> Optional[ExitSummary]:
+    def register_exit(
+        self, order_id: str, exit_px: float, reason: str, exit_ts: float
+    ) -> Optional[ExitSummary]:
         position = self.positions.pop(order_id, None)
         if not position:
             return None
         self.positions_by_symbol.pop(position.symbol, None)
-        diff = (exit_px - position.entry_px) if position.side == SIDE_BUY else (position.entry_px - exit_px)
+        diff = (
+            (exit_px - position.entry_px)
+            if position.side == SIDE_BUY
+            else (position.entry_px - exit_px)
+        )
         gross_realized = diff * position.qty * self.config.tick_value
         fees = self._calc_fees(position.entry_px, exit_px, position.qty)
         net_realized = gross_realized - fees
@@ -1002,7 +1301,9 @@ class Ledger:
         return notional * bps
 
     def _recalc_unrealized(self) -> None:
-        self.unrealized_pnl = sum(position.unrealized for position in self.positions.values())
+        self.unrealized_pnl = sum(
+            position.unrealized for position in self.positions.values()
+        )
 
     def _update_equity(self) -> None:
         equity = self.equity
@@ -1122,8 +1423,12 @@ class PaperBroker(Broker):
         symbol = row.get("symbol")
         if not symbol:
             return []
-        bid = safe_float(row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px"))))
-        ask = safe_float(row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px"))))
+        bid = safe_float(
+            row.get("bid1"), safe_float(row.get("bid"), safe_float(row.get("bid_px")))
+        )
+        ask = safe_float(
+            row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px")))
+        )
         fills: List[Fill] = []
         for order in list(self._orders.values()):
             if order.symbol != symbol:
@@ -1183,7 +1488,9 @@ class PaperBroker(Broker):
     def list_open_orders(self) -> List[PaperOrder]:
         return list(self._orders.values())
 
-    def _finalize(self, order: PaperOrder, exit_px: float, reason: str, timestamp: float) -> Fill:
+    def _finalize(
+        self, order: PaperOrder, exit_px: float, reason: str, timestamp: float
+    ) -> Fill:
         self._orders.pop(order.order_id, None)
         meta = dict(order.meta)
         meta["exit_reason"] = reason
@@ -1229,7 +1536,9 @@ class LiveBroker(Broker):
                 tp_px,
                 json.dumps(meta, ensure_ascii=False, sort_keys=True),
             )
-            return self._paper_delegate.place_ifdoco(symbol, side, qty, entry_px, sl_px, tp_px, meta, opened_at)
+            return self._paper_delegate.place_ifdoco(
+                symbol, side, qty, entry_px, sl_px, tp_px, meta, opened_at
+            )
         # TODO: Wire live execution via market entry + immediate stop/limit legs, with retry/cancel/status
         # flows and request throttling aligned to broker API constraints.
         self._sequence += 1
@@ -1261,8 +1570,12 @@ class LiveBroker(Broker):
         ask: Optional[float] = None,
     ) -> Optional[Fill]:
         if self.dry_run and self._paper_delegate:
-            return self._paper_delegate.force_exit_order(order_id, timestamp, reason, bid, ask)
-        logger.warning("[LIVE] force_exit_order stub order_id=%s reason=%s", order_id, reason)
+            return self._paper_delegate.force_exit_order(
+                order_id, timestamp, reason, bid, ask
+            )
+        logger.warning(
+            "[LIVE] force_exit_order stub order_id=%s reason=%s", order_id, reason
+        )
         return None
 
     def force_exit_all(self, reason: str, timestamp: float) -> List[Fill]:
@@ -1358,20 +1671,32 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
         atexit.register(self.close)
 
     def _ensure_schema(self) -> None:
-        self._ensure_table("orders_log", self.ORDERS_LOG_CREATE, self.ORDERS_LOG_COLUMNS)
-        self._ensure_table("paper_pairs", self.PAPER_PAIRS_CREATE, self.PAPER_PAIRS_COLUMNS)
+        self._ensure_table(
+            "orders_log", self.ORDERS_LOG_CREATE, self.ORDERS_LOG_COLUMNS
+        )
+        self._ensure_table(
+            "paper_pairs", self.PAPER_PAIRS_CREATE, self.PAPER_PAIRS_COLUMNS
+        )
 
-    def _ensure_table(self, name: str, create_sql: str, columns: Dict[str, str]) -> None:
-        cur = self.conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,))
+    def _ensure_table(
+        self, name: str, create_sql: str, columns: Dict[str, str]
+    ) -> None:
+        cur = self.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        )
         if cur.fetchone() is None:
             self.conn.executescript(create_sql)
             self.conn.commit()
             return
-        existing = {row["name"] for row in self.conn.execute(f"PRAGMA table_info({name})")}
+        existing = {
+            row["name"] for row in self.conn.execute(f"PRAGMA table_info({name})")
+        }
         if name == "orders_log" and "px" not in existing:
             if "price" in existing:
                 try:
-                    self.conn.execute("ALTER TABLE orders_log RENAME COLUMN price TO px")
+                    self.conn.execute(
+                        "ALTER TABLE orders_log RENAME COLUMN price TO px"
+                    )
                     existing.add("px")
                 except sqlite3.OperationalError as exc:
                     logger.debug("orders_log price->px rename failed: %s", exc)
@@ -1389,7 +1714,9 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             columns = dict(columns)
             columns.pop("reason", None)
         if name == "orders_log" and "type" not in existing:
-            self.conn.execute("ALTER TABLE orders_log ADD COLUMN type TEXT DEFAULT 'runner'")
+            self.conn.execute(
+                "ALTER TABLE orders_log ADD COLUMN type TEXT DEFAULT 'runner'"
+            )
             existing.add("type")
         if name == "paper_pairs" and "order_id" not in existing:
             self.conn.execute("ALTER TABLE paper_pairs ADD COLUMN order_id TEXT")
@@ -1397,7 +1724,9 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             columns = dict(columns)
             columns.pop("order_id", None)
         if name == "paper_pairs" and "opened_at" not in existing:
-            self.conn.execute("ALTER TABLE paper_pairs ADD COLUMN opened_at REAL DEFAULT 0")
+            self.conn.execute(
+                "ALTER TABLE paper_pairs ADD COLUMN opened_at REAL DEFAULT 0"
+            )
             existing.add("opened_at")
             columns = dict(columns)
             columns.pop("opened_at", None)
@@ -1430,17 +1759,17 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                ts,                # ts
-                symbol,            # symbol
-                side,              # side
-                "entry",           # action
-                qty,               # qty
-                px,                # px
-                reason,            # reason
-                profile_meta.get("thr_md5",""),
-                profile_meta.get("dataset_id",""),
-                profile_meta.get("schema_version",""),
-                profile_meta.get("mode",""),
+                ts,  # ts
+                symbol,  # symbol
+                side,  # side
+                "entry",  # action
+                qty,  # qty
+                px,  # px
+                reason,  # reason
+                profile_meta.get("thr_md5", ""),
+                profile_meta.get("dataset_id", ""),
+                profile_meta.get("schema_version", ""),
+                profile_meta.get("mode", ""),
                 json.dumps(meta, ensure_ascii=False, sort_keys=True),
             ),
         )
@@ -1470,7 +1799,10 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
                 order_meta.get("sl_px", px),
                 order_meta.get("tp_px", px),
                 ts,
-                0.0, 0.0, 0.0, 0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
             ),
         )
         self.conn.commit()
@@ -1495,10 +1827,10 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
                 summary.qty,
                 summary.exit_px,
                 summary.exit_reason,
-                profile_meta.get("thr_md5",""),
-                profile_meta.get("dataset_id",""),
-                profile_meta.get("schema_version",""),
-                profile_meta.get("mode",""),
+                profile_meta.get("thr_md5", ""),
+                profile_meta.get("dataset_id", ""),
+                profile_meta.get("schema_version", ""),
+                profile_meta.get("mode", ""),
                 json.dumps(meta, ensure_ascii=False, sort_keys=True),
             ),
         )
@@ -1523,7 +1855,9 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
         self.conn.commit()
 
     @staticmethod
-    def _meta_json(profile_meta: Dict[str, str], extra_meta: Optional[Dict[str, Any]]) -> str:
+    def _meta_json(
+        profile_meta: Dict[str, str], extra_meta: Optional[Dict[str, Any]]
+    ) -> str:
         payload: Dict[str, Any] = dict(profile_meta)
         if extra_meta:
             payload.update(extra_meta)
@@ -1534,6 +1868,7 @@ CREATE INDEX IF NOT EXISTS idx_pairs_symbol_time ON paper_pairs(symbol, opened_a
             self.conn.close()
         except Exception:
             pass
+
 
 if __name__ == "__main__":
     main()

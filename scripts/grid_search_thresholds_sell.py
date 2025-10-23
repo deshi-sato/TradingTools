@@ -1393,6 +1393,14 @@ def main() -> None:
         print(
             "[grid-SELL] warning: no parameter set satisfied MinTrades/EVFloor constraints."
         )
+    import shutil, os
+    latest_path = os.path.join("config", "best_thresholds_sell_latest.json")
+    ref_path = f"exports/best_thresholds_sell_{dataset_id}.json"
+    if os.path.exists(ref_path):
+        shutil.copy(ref_path, latest_path)
+        print(f"Updated {latest_path} from {ref_path}")
+    else:
+        print(f"Warning: {ref_path} not found")
 
 
 if __name__ == "__main__":

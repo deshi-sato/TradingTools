@@ -31,7 +31,8 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, time as dtime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from scripts.common_config import load_json_utf8
 
@@ -63,11 +64,18 @@ def _load_json_optional(path_str: str) -> dict:
 
 
 def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
-    # 対応キーだけ反映（未知キーは無視）
-    # lot_size/min_qty は RunnerConfig の min_lot に反映
+    # policy.json overrides applied on top of config defaults
     lot_size = safe_int(pol.get("lot_size"))
     min_qty = safe_int(pol.get("min_qty"))
     min_lot = safe_int(min_qty if min_qty is not None else lot_size, cfg.min_lot)
+
+    def coalesce_float(key: str, default: float) -> float:
+        value = safe_float(pol.get(key))
+        return default if value is None else float(value)
+
+    def coalesce_int(key: str, default: int) -> int:
+        value = safe_int(pol.get(key))
+        return default if value is None else int(value)
 
     return RunnerConfig(
         features_db=cfg.features_db,
@@ -75,43 +83,33 @@ def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
         symbols=cfg.symbols,
         symbols_original=cfg.symbols_original,
         poll_interval_sec=cfg.poll_interval_sec,
-        initial_cash=safe_float(pol.get("initial_cash"), cfg.initial_cash),
+        initial_cash=coalesce_float("initial_cash", cfg.initial_cash),
         fee_rate_bps=cfg.fee_rate_bps,
         slippage_ticks=cfg.slippage_ticks,
         tick_size=cfg.tick_size,
         tick_value=cfg.tick_value,
         min_lot=min_lot if min_lot is not None else cfg.min_lot,
-        risk_per_trade_pct=safe_float(
-            pol.get("risk_per_trade_pct"), cfg.risk_per_trade_pct
-        ),
-        max_cash_per_trade=safe_float(
-            pol.get("max_cash_per_trade"), cfg.max_cash_per_trade
-        ),
+        risk_per_trade_pct=coalesce_float("risk_per_trade_pct", cfg.risk_per_trade_pct),
+        max_cash_per_trade=coalesce_float("max_cash_per_trade", cfg.max_cash_per_trade),
         max_concurrent_positions=cfg.max_concurrent_positions,
-        daily_loss_limit_pct=safe_float(
-            pol.get("daily_loss_limit_pct"), cfg.daily_loss_limit_pct
-        ),
+        daily_loss_limit_pct=coalesce_float("daily_loss_limit_pct", cfg.daily_loss_limit_pct),
         stats_interval_sec=cfg.stats_interval_sec,
         stop_loss_ticks=cfg.stop_loss_ticks,
         log_path=cfg.log_path,
         timezone=cfg.timezone,
         killswitch_check_interval_sec=cfg.killswitch_check_interval_sec,
         market_window=cfg.market_window,
-        per_symbol_cooldown_sec=safe_float(
-            pol.get("per_symbol_cooldown_sec"), cfg.per_symbol_cooldown_sec
-        )
-        or cfg.per_symbol_cooldown_sec,
-        signal_gap_sec=safe_float(pol.get("signal_gap_sec"), cfg.signal_gap_sec)
-        or cfg.signal_gap_sec,
-        confirm_ticks=int(
-            safe_int(pol.get("confirm_ticks"), cfg.confirm_ticks) or cfg.confirm_ticks
-        ),
-        min_sl_gap_yen=safe_float(pol.get("min_sl_gap_yen"), cfg.min_sl_gap_yen)
-        or cfg.min_sl_gap_yen,
-        min_tp_gap_yen=safe_float(pol.get("min_tp_gap_yen"), cfg.min_tp_gap_yen)
-        or cfg.min_tp_gap_yen,
+        stop_loss_pct=coalesce_float("stop_loss_pct", cfg.stop_loss_pct),
+        take_profit_pct=coalesce_float("take_profit_pct", cfg.take_profit_pct),
+        per_symbol_cooldown_sec=coalesce_float("per_symbol_cooldown_sec", cfg.per_symbol_cooldown_sec),
+        signal_gap_sec=coalesce_float("signal_gap_sec", cfg.signal_gap_sec),
+        confirm_ticks=coalesce_int("confirm_ticks", cfg.confirm_ticks),
+        exit_on_special_quote=cfg.exit_on_special_quote,
+        block_signs=cfg.block_signs,
+        reopen_sign=cfg.reopen_sign,
+        disable_minutes_after_special=cfg.disable_minutes_after_special,
+        open_delay_sec=cfg.open_delay_sec,
     )
-
 
 def _cleanup_pid() -> None:
     global _singleton_handle, _pidfile_path
@@ -219,6 +217,25 @@ def normalize_symbol(symbol: str) -> str:
     return s.split(".", 1)[0]
 
 
+DEFAULT_BLOCK_SIGNS: Tuple[str, ...] = (
+    "0000",
+    "0102",
+    "0103",
+    "0107",
+    "0108",
+    "0109",
+    "0116",
+    "0117",
+    "0118",
+    "0119",
+    "0120",
+)
+
+
+def _coerce_sign(value: Any) -> str:
+    return str(value or "").strip()
+
+
 @dataclass(frozen=True)
 class RunnerConfig:
     features_db: str
@@ -242,12 +259,31 @@ class RunnerConfig:
     timezone: str = "Asia/Tokyo"
     killswitch_check_interval_sec: float = 5.0
     market_window: Optional[str] = None
+    stop_loss_pct: float = 0.5
+    take_profit_pct: float = 1.0
     # Anti-spam / guard rails
     per_symbol_cooldown_sec: float = 30.0
     signal_gap_sec: float = 20.0
     confirm_ticks: int = 3
-    min_sl_gap_yen: float = 1.0
-    min_tp_gap_yen: float = 1.5
+    exit_on_special_quote: bool = True
+    block_signs: Tuple[str, ...] = DEFAULT_BLOCK_SIGNS
+    reopen_sign: str = "0101"
+    disable_minutes_after_special: float = 15.0
+    open_delay_sec: float = 60.0
+
+
+def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
+    value = _coerce_sign(sign)
+    if not value:
+        return True
+    return value in cfg.block_signs
+
+
+def _is_general(sign: Any, cfg: RunnerConfig) -> bool:
+    reopen_sign = _coerce_sign(cfg.reopen_sign)
+    if not reopen_sign:
+        return False
+    return _coerce_sign(sign) == reopen_sign
 
 
 def load_runner_config(config_path: Path) -> RunnerConfig:
@@ -270,6 +306,27 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     log_path = payload.get("log_path", "logs/naut_runner.log")
     if not Path(log_path).is_absolute():
         log_path = str((REPO_ROOT / log_path).resolve())
+    exit_on_special_quote = bool(payload.get("exit_on_special_quote", True))
+    raw_block_signs = payload.get("block_signs", DEFAULT_BLOCK_SIGNS)
+    if raw_block_signs is None:
+        raw_block_signs = DEFAULT_BLOCK_SIGNS
+    if isinstance(raw_block_signs, (list, tuple, set)):
+        block_source = raw_block_signs
+    else:
+        block_source = [raw_block_signs]
+    block_signs_clean: List[str] = []
+    for sign in block_source:
+        sign_str = _coerce_sign(sign)
+        if sign_str:
+            block_signs_clean.append(sign_str)
+    block_signs = (
+        tuple(block_signs_clean) if block_signs_clean else DEFAULT_BLOCK_SIGNS
+    )
+    reopen_sign = _coerce_sign(payload.get("reopen_sign", "0101")) or "0101"
+    disable_minutes_after_special = float(
+        payload.get("disable_minutes_after_special", 15.0)
+    )
+    open_delay_sec = max(0.0, float(payload.get("open_delay_sec", 60.0)))
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -293,11 +350,16 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
             payload.get("killswitch_check_interval_sec", 5.0)
         ),
         market_window=str(payload.get("market_window", "") or "") or None,
+        stop_loss_pct=float(payload.get("stop_loss_pct", 0.5)),
+        take_profit_pct=float(payload.get("take_profit_pct", 1.0)),
         per_symbol_cooldown_sec=float(payload.get("per_symbol_cooldown_sec", 30.0)),
         signal_gap_sec=float(payload.get("signal_gap_sec", 20.0)),
         confirm_ticks=int(payload.get("confirm_ticks", 3)),
-        min_sl_gap_yen=float(payload.get("min_sl_gap_yen", 1.0)),
-        min_tp_gap_yen=float(payload.get("min_tp_gap_yen", 1.5)),
+        exit_on_special_quote=exit_on_special_quote,
+        block_signs=block_signs,
+        reopen_sign=reopen_sign,
+        disable_minutes_after_special=disable_minutes_after_special,
+        open_delay_sec=open_delay_sec,
     )
 
 
@@ -433,6 +495,15 @@ class Policy:
         if volume is None:
             volume = 0.0
 
+        stop_pct = max(self.config.stop_loss_pct, 0.0)
+        take_pct = self.config.take_profit_pct
+        if take_pct <= 0:
+            take_pct = stop_pct * max(self.profile.rr_tp_sl, 1.0)
+        if stop_pct <= 0 or take_pct <= 0:
+            return PolicyDecision(False, reason="stop_pct", context=context)
+        stop_pct *= 0.01
+        take_pct *= 0.01
+
         if self.mode == SIDE_BUY:
             score_thr = abs(self.profile.score_thr)
             if score is None or score < score_thr:
@@ -443,14 +514,8 @@ class Policy:
                 return PolicyDecision(False, reason="spread", context=context)
             if volume < self.profile.volume_spike_thr:
                 return PolicyDecision(False, reason="volume", context=context)
-            sl_distance = self.config.stop_loss_ticks * self.config.tick_size
-            if sl_distance <= 0:
-                return PolicyDecision(False, reason="sl_distance", context=context)
-            tp_distance = max(
-                self.profile.rr_tp_sl * sl_distance, self.config.tick_size
-            )
-            sl_px = entry_price - sl_distance
-            tp_px = entry_price + tp_distance
+            sl_px = entry_price * (1.0 - stop_pct)
+            tp_px = entry_price * (1.0 + take_pct)
         else:
             raw_thr = self.profile.score_thr
             # SELL thresholds sometimes persist as positive magnitudes; normalise to the
@@ -464,14 +529,9 @@ class Policy:
                 return PolicyDecision(False, reason="spread", context=context)
             if volume < self.profile.volume_spike_thr:
                 return PolicyDecision(False, reason="volume", context=context)
-            sl_distance = self.config.stop_loss_ticks * self.config.tick_size
-            if sl_distance <= 0:
-                return PolicyDecision(False, reason="sl_distance", context=context)
-            tp_distance = max(
-                self.profile.rr_tp_sl * sl_distance, self.config.tick_size
-            )
-            sl_px = entry_price + sl_distance
-            tp_px = entry_price - tp_distance
+            sl_px = entry_price * (1.0 + stop_pct)
+            tp_pct = take_pct
+            tp_px = entry_price * (1.0 - tp_pct)
 
         context["sl_px"] = sl_px
         context["tp_px"] = tp_px
@@ -537,6 +597,20 @@ LIMIT ?
         except Exception:
             pass
 
+    def latest_timestamps(self, symbols: Iterable[str]) -> Dict[str, float]:
+        latest: Dict[str, float] = {}
+        for sym in symbols:
+            try:
+                cur = self.conn.execute(
+                    f"SELECT MAX(t_exec) FROM {self.table} WHERE symbol=?",
+                    (sym,),
+                )
+                row = cur.fetchone()
+                latest[sym] = float(row[0]) if row and row[0] is not None else 0.0
+            except Exception:
+                latest[sym] = 0.0
+        return latest
+
 
 class NautRunner:
     def __init__(
@@ -550,6 +624,8 @@ class NautRunner:
         trade_logger: TradeLogger,
         flatten_at: Optional[dtime],
         killswitch_path: Path,
+        broker_label: str,
+        replay_from_start: bool,
     ):
         self.mode = mode.upper()
         self.config = config
@@ -558,6 +634,8 @@ class NautRunner:
         self.ledger = ledger
         self.poller = poller
         self.trade_logger = trade_logger
+        self.broker_label = broker_label.lower()
+        self.replay_from_start = replay_from_start
         self.display_symbols = config.symbols_original or config.symbols
         self.flatten_at = flatten_at
         self.flatten_triggered = False
@@ -569,6 +647,25 @@ class NautRunner:
         self.last_exit_ts: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
         self.last_entry_ts: Dict[str, float] = {sym: 0.0 for sym in config.symbols}
         self.signal_streak: Dict[str, int] = {sym: 0 for sym in config.symbols}
+        self.disabled_symbols: Set[str] = set()
+        self.entry_gate_reasons: Dict[str, Optional[str]] = {sym: None for sym in config.symbols}
+        if self._should_seek_tail():
+            latest_map = self.poller.latest_timestamps(self.config.symbols)
+            for sym, ts in latest_map.items():
+                if ts is not None:
+                    self.last_ts[sym] = ts
+            logger.info(
+                "Stream seeked to tail (mode=%s, replay_from_start=%s) symbols=%s",
+                self.broker_label,
+                self.replay_from_start,
+                ", ".join(f"{sym}@{self.last_ts[sym]:.3f}" for sym in self.config.symbols),
+            )
+        else:
+            logger.info(
+                "Stream starting from head (mode=%s, replay_from_start=%s)",
+                self.broker_label,
+                self.replay_from_start,
+            )
         self.stats: Dict[str, Any] = {
             "polled": 0,
             "signals": 0,
@@ -593,6 +690,11 @@ class NautRunner:
         self.last_stats_log = now_ts()
         self.profile = policy.profile
         self.loss_limit_engaged = False
+
+    def _should_seek_tail(self) -> bool:
+        if self.broker_label == "live":
+            return True
+        return not self.replay_from_start
 
     def _already_seen(self, symbol: str, ts_ms: int) -> bool:
         cur = self.ops_conn.execute(
@@ -659,6 +761,12 @@ class NautRunner:
                 if self.stop_requested:
                     break
                 for symbol in self.config.symbols:
+                    if symbol in self.disabled_symbols:
+                        disable_until = self.cooldown_until.get(symbol, 0.0)
+                        if disable_until and loop_start >= disable_until:
+                            self.disabled_symbols.discard(symbol)
+                        else:
+                            continue
                     rows = self.poller.fetch_since(symbol, self.last_ts[symbol])
                     if not rows:
                         continue
@@ -725,6 +833,15 @@ class NautRunner:
             self.trade_logger.log_exit(
                 fill.order_id, summary, self.profile.meta, extra_meta
             )
+            if summary.exit_reason == "special_quote_exit":
+                minutes_from_meta = safe_int(
+                    fill.meta.get("disable_minutes_after_special")
+                )
+                default_minutes = int(
+                    max(0.0, float(self.config.disable_minutes_after_special))
+                )
+                minutes = minutes_from_meta if minutes_from_meta is not None else default_minutes
+                self._disable_symbol_temporarily(summary.symbol, minutes, fill.timestamp)
             logger.info(
                 "EXIT %s order=%s side=%s qty=%.0f px=%.3f reason=%s pnl=%.2f md5=%s dataset=%s schema=%s",
                 summary.symbol,
@@ -738,6 +855,22 @@ class NautRunner:
                 self.profile.dataset_id,
                 self.profile.schema_version,
             )
+
+    def _disable_symbol_temporarily(self, symbol: str, minutes: int, now: float) -> None:
+        duration_minutes = max(0, int(minutes))
+        if duration_minutes <= 0:
+            return
+        disable_until = now + duration_minutes * 60
+        current_until = self.cooldown_until.get(symbol, 0.0)
+        self.cooldown_until[symbol] = max(current_until, disable_until)
+        self.disabled_symbols.add(symbol)
+        logger.info(
+            "DISABLE %s for %d min due to special quote.", symbol, duration_minutes
+        )
+        try:
+            self.watchlist_manager.unregister(symbol)  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
     def _mark_positions(self, symbol: str, row: Dict[str, Any]) -> None:
         bid = safe_float(
@@ -780,11 +913,79 @@ class NautRunner:
         if fills:
             self._handle_fills(fills)
 
+    def _log_entry_gate_once(
+        self, symbol: str, reason: str, message: str, *args: Any
+    ) -> None:
+        previous = self.entry_gate_reasons.get(symbol)
+        if previous == reason:
+            return
+        self.entry_gate_reasons[symbol] = reason
+        transition = f"{previous or 'none'} -> {reason}"
+        detail = message % args if args else message
+        logger.debug("ENTRY-GATE %s (%s): %s", transition, symbol, detail)
+
+    def _clear_entry_gate(self, symbol: str) -> None:
+        previous = self.entry_gate_reasons.get(symbol)
+        if previous is None:
+            return
+        logger.debug("ENTRY-GATE %s -> none (%s): restored", previous, symbol)
+        self.entry_gate_reasons[symbol] = None
+
     def _try_entry(self, symbol: str, row: Dict[str, Any], timestamp: float) -> None:
         ts_ms = int(row["ts_ms"])
         if self._already_seen(symbol, ts_ms):
             logger.debug("ENTRY-GATE seen: %s ts=%s", symbol, ts_ms)
             return
+        if symbol in self.disabled_symbols:
+            self._mark_seen(symbol, ts_ms)
+            return
+        bid_sign = _coerce_sign(row.get("BidSign") or row.get("bid_sign"))
+        ask_sign = _coerce_sign(row.get("AskSign") or row.get("ask_sign"))
+        reopen_sign = _coerce_sign(self.config.reopen_sign)
+        block_signs = set(self.config.block_signs)
+        if bid_sign in block_signs or ask_sign in block_signs:
+            self._log_entry_gate_once(
+                symbol,
+                "quote_sign_block",
+                "ENTRY-GATE blocked by quote sign: symbol=%s bid=%s ask=%s",
+                symbol,
+                bid_sign or "-",
+                ask_sign or "-",
+            )
+            self._mark_seen(symbol, ts_ms)
+            self.signal_streak[symbol] = 0
+            return
+        if reopen_sign and (bid_sign != reopen_sign or ask_sign != reopen_sign):
+            self._log_entry_gate_once(
+                symbol,
+                "quote_sign_mismatch",
+                "ENTRY-GATE blocked by quote sign: symbol=%s bid=%s ask=%s",
+                symbol,
+                bid_sign or "-",
+                ask_sign or "-",
+            )
+            self._mark_seen(symbol, ts_ms)
+            self.signal_streak[symbol] = 0
+            return
+        open_delay = max(0.0, float(self.config.open_delay_sec))
+        if open_delay > 0:
+            market_open_dt = datetime.fromtimestamp(timestamp).replace(
+                hour=9, minute=0, second=0, microsecond=0
+            )
+            market_open_ts = market_open_dt.timestamp()
+            block_until = market_open_ts + open_delay
+            if timestamp < block_until:
+                remaining = max(0.0, block_until - timestamp)
+                self._log_entry_gate_once(
+                    symbol,
+                    "open_delay",
+                    "ENTRY-GATE open delay active (%.1fs)",
+                    remaining,
+                )
+                self._mark_seen(symbol, ts_ms)
+                self.signal_streak[symbol] = 0
+                return
+        self._clear_entry_gate(symbol)
         if not self.ledger.can_open(symbol):
             return
         if timestamp < self.cooldown_until.get(symbol, 0.0):
@@ -807,26 +1008,28 @@ class NautRunner:
         required = max(1, int(self.config.confirm_ticks))
         if self.signal_streak[symbol] < required:
             return
-        # enforce minimum TP/SL distance
-        if self.mode == SIDE_BUY:
-            if (decision.entry_px - decision.sl_px) < self.config.min_sl_gap_yen:
-                decision.sl_px = decision.entry_px - self.config.min_sl_gap_yen
-            if (decision.tp_px - decision.entry_px) < self.config.min_tp_gap_yen:
-                decision.tp_px = decision.entry_px + self.config.min_tp_gap_yen
-        else:
-            if (decision.sl_px - decision.entry_px) < self.config.min_sl_gap_yen:
-                decision.sl_px = decision.entry_px + self.config.min_sl_gap_yen
-            if (decision.entry_px - decision.tp_px) < self.config.min_tp_gap_yen:
-                decision.tp_px = decision.entry_px - self.config.min_tp_gap_yen
         qty = self.ledger.compute_order_size(decision.entry_px, decision.sl_px)
         if qty <= 0:
-            logger.debug("Skip entry %s qty=%s (sizing filtered)", symbol, qty)
+            self._mark_seen(symbol, ts_ms)
+            if symbol not in self.disabled_symbols:
+                self.disabled_symbols.add(symbol)
+                logger.warning(
+                    "Disable symbol %s: sizing filtered qty=%.0f (entry_px=%.3f sl=%.3f)",
+                    symbol,
+                    qty,
+                    decision.entry_px,
+                    decision.sl_px,
+                )
             return
+        if symbol in self.disabled_symbols:
+            self.disabled_symbols.discard(symbol)
         order_meta = {
             "thr_md5": self.profile.md5,
             "dataset_id": self.profile.dataset_id,
             "schema_version": self.profile.schema_version,
             "mode": self.profile.mode,
+            "stop_loss_pct": self.config.stop_loss_pct,
+            "take_profit_pct": self.config.take_profit_pct,
             "score": decision.context.get("score"),
             "uptick_ratio": decision.context.get("uptick_ratio"),
             "downtick_ratio": decision.context.get("downtick_ratio"),
@@ -1002,6 +1205,11 @@ def main() -> None:
     parser.add_argument("--config", required=True, help="Runner config JSON")
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=0)
     parser.add_argument(
+        "--replay-from-start",
+        action="store_true",
+        help="In paper mode, read features_stream from the beginning instead of tail.",
+    )
+    parser.add_argument(
         "--flatten-at", dest="flatten_at", help="HH:MM local time to flatten positions"
     )
     parser.add_argument(
@@ -1078,6 +1286,8 @@ def main() -> None:
         trade_logger=trade_logger,
         flatten_at=flatten_at,
         killswitch_path=killswitch_path,
+        broker_label=args.broker,
+        replay_from_start=bool(args.replay_from_start),
     )
 
     logger.info(
@@ -1429,6 +1639,8 @@ class PaperBroker(Broker):
         ask = safe_float(
             row.get("ask1"), safe_float(row.get("ask"), safe_float(row.get("ask_px")))
         )
+        bid_sign = _coerce_sign(row.get("BidSign") or row.get("bid_sign"))
+        ask_sign = _coerce_sign(row.get("AskSign") or row.get("ask_sign"))
         fills: List[Fill] = []
         for order in list(self._orders.values()):
             if order.symbol != symbol:
@@ -1437,6 +1649,44 @@ class PaperBroker(Broker):
                 order.last_bid = bid
             if ask is not None:
                 order.last_ask = ask
+            if self.config.exit_on_special_quote:
+                if _is_special(bid_sign, self.config) or _is_special(
+                    ask_sign, self.config
+                ):
+                    if not order.meta.get("pending_special_exit"):
+                        logger.debug(
+                            "special_quote detected: reserve exit for %s bid=%s ask=%s",
+                            order.symbol,
+                            bid_sign or "-",
+                            ask_sign or "-",
+                        )
+                    order.meta["pending_special_exit"] = True
+                    order.meta["frozen"] = True
+                    continue
+                if (
+                    order.meta.get("pending_special_exit")
+                    and _is_general(bid_sign, self.config)
+                    and _is_general(ask_sign, self.config)
+                ):
+                    basis = order.last_bid if order.side == SIDE_BUY else order.last_ask
+                    if basis is None:
+                        logger.debug(
+                            "special_quote exit pending: missing quote for %s",
+                            order.symbol,
+                        )
+                        continue
+                    minutes = int(
+                        max(0.0, float(self.config.disable_minutes_after_special))
+                    )
+                    order.meta["pending_special_exit"] = False
+                    order.meta["special_quote_exit"] = True
+                    order.meta["disable_minutes_after_special"] = minutes
+                    fill = self._finalize(order, basis, "special_quote_exit", timestamp)
+                    logger.debug(
+                        "special_quote exit filled: %s px=%.3f", order.symbol, basis
+                    )
+                    fills.append(fill)
+                    continue
             exit_reason = None
             exit_px = None
             if order.side == SIDE_BUY:

@@ -1,7 +1,10 @@
+cd C:\Users\Owner\documents\desshi_signal_viewer
+C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
+
 param(
-    [string[]]$Symbols = @('3692', '4592', '2586'),
-    [string]$ThresholdPath = 'exports\best_thresholds_buy_REF20251017_0840.json',
-    [string]$FeaturesDb = 'db\naut_market_20251021_refeed.db',
+    [string[]]$Symbols = @('3905', '338A', '215A'),
+    [string]$ThresholdPath = 'exports\best_thresholds_buy_REF20251021_0857.json',
+    [string]$FeaturesDb = 'db\naut_market.db',
     [string]$OpsDb = 'db\naut_ops.db',
     [string]$ConfigPath = 'config\naut_runner_paper_20251021.json',
     [string]$PolicyPath = 'config\policy.default.json'

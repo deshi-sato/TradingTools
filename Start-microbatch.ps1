@@ -1,3 +1,6 @@
+cd C:\Users\Owner\documents\desshi_signal_viewer
+C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
+
 # Start-microbatch.ps1 stream_microbatch for smoketest
 py -m scripts.kabus_login_wait -Config config\stream_settings.json
 py -m scripts.build_fallback_scraper --no-browser

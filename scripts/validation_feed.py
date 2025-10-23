@@ -4,9 +4,9 @@
 """
 validation_feed.py
 
-Replay features_stream rows from a refeed database into a fresh validation
-database while rebasing timestamps to "now". The tool is intended to drive
-paper-mode runners against historical orderbook ticks as if they were live.
+Replay features_stream and raw_push rows from a refeed database into a fresh
+validation database while rebasing timestamps to "now". The tool is intended
+to drive paper-mode runners against historical orderbook ticks as if they were live.
 
 Usage (PowerShell):
 
@@ -24,13 +24,20 @@ import logging
 import sqlite3
 import time
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 DEFAULT_DATASET_ID = "VALIDATION_FEED"
 REFEED_GLOB = "naut_market_*_refeed.db"
 DB_ROOT = Path("db")
 
 SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS raw_push(
+  t_recv REAL NOT NULL,
+  topic TEXT,
+  symbol TEXT,
+  payload TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS features_stream(
   dataset_id   TEXT NOT NULL,
   symbol       TEXT NOT NULL,
@@ -55,7 +62,11 @@ CREATE TABLE IF NOT EXISTS features_stream(
 );
 """
 
-INDEX_SQL = "CREATE INDEX IF NOT EXISTS idx_features_stream_symbol_ts ON features_stream(symbol, t_exec);"
+INDEX_SQL = (
+    "CREATE INDEX IF NOT EXISTS idx_features_stream_symbol_ts ON features_stream(symbol, t_exec);",
+    "CREATE INDEX IF NOT EXISTS idx_raw_push_ts ON raw_push(t_recv);",
+    "CREATE INDEX IF NOT EXISTS idx_raw_push_symbol_ts ON raw_push(symbol, t_recv);",
+)
 
 
 def resolve_latest_refeed(db_root: Path = DB_ROOT) -> Path:
@@ -67,7 +78,8 @@ def resolve_latest_refeed(db_root: Path = DB_ROOT) -> Path:
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL)
-    conn.execute(INDEX_SQL)
+    for statement in INDEX_SQL:
+        conn.execute(statement)
     conn.commit()
 
 
@@ -79,6 +91,18 @@ def iter_features(conn: sqlite3.Connection) -> Iterator[Dict[str, float]]:
                bidqty1, askqty1, v_spike, v_rate, f1_delta
         FROM features_stream
         ORDER BY t_exec ASC
+    """
+    conn.row_factory = sqlite3.Row
+    cur = conn.execute(query)
+    for row in cur:
+        yield dict(row)
+
+
+def iter_raw_push(conn: sqlite3.Connection) -> Iterator[Dict[str, Any]]:
+    query = """
+        SELECT t_recv, topic, symbol, payload
+        FROM raw_push
+        ORDER BY t_recv ASC
     """
     conn.row_factory = sqlite3.Row
     cur = conn.execute(query)
@@ -146,35 +170,57 @@ def main() -> None:
     dest_conn.execute("PRAGMA synchronous=NORMAL;")
     ensure_schema(dest_conn)
 
-    rows = iter_features(src_conn)
+    feature_iter = iter_features(src_conn)
+    raw_iter = iter_raw_push(src_conn)
+    next_feature = next(feature_iter, None)
+    next_raw = next(raw_iter, None)
+
     seen_pairs: set[Tuple[str, float]] = set()
 
     max_rows = args.limit if args.limit and args.limit > 0 else None
-    first_original_ts: Optional[float] = None
-    rows_streamed = 0
+    features_streamed = 0
+    raw_streamed = 0
+    baseline_ts: Optional[float] = None
     start_wall = time.time() + max(0.0, args.start_delay)
-    target_wall = start_wall
     speed = max(0.0, args.speed)
 
     if args.start_delay > 0:
         logging.info("Initial delay %.2fs before streaming.", args.start_delay)
         time.sleep(args.start_delay)
 
-    for row in rows:
-        orig_t = float(row.get("t_exec") or 0.0)
-        symbol = str(row.get("symbol") or "")
-        if not symbol:
-            continue
-        key = (symbol, orig_t)
-        if key in seen_pairs:
-            continue
-        seen_pairs.add(key)
+    while next_feature is not None or next_raw is not None:
+        use_feature = False
+        feature_ts: Optional[float] = None
+        raw_ts: Optional[float] = None
 
-        if first_original_ts is None:
-            first_original_ts = orig_t
-            offset = 0.0
+        if next_feature is not None:
+            feature_ts = float(next_feature.get("t_exec") or 0.0)
+        if next_raw is not None:
+            raw_ts = float(next_raw.get("t_recv") or 0.0)
+
+        if next_feature is not None and (next_raw is None or (feature_ts or 0.0) <= (raw_ts or float("inf"))):
+            row = next_feature
+            original_ts = feature_ts or 0.0
+            use_feature = True
+            symbol = str(row.get("symbol") or "")
+            if not symbol:
+                next_feature = next(feature_iter, None)
+                continue
+            key = (symbol, original_ts)
+            if key in seen_pairs:
+                next_feature = next(feature_iter, None)
+                continue
         else:
-            offset = max(0.0, orig_t - first_original_ts)
+            row = next_raw
+            original_ts = raw_ts or 0.0
+
+        if row is None:
+            break
+
+        if baseline_ts is None:
+            baseline_ts = original_ts
+
+        offset = max(0.0, original_ts - baseline_ts)
 
         if speed > 0:
             target_wall = start_wall + offset / speed
@@ -185,46 +231,68 @@ def main() -> None:
         else:
             target_wall = time.time()
 
-        new_t_exec = target_wall
-        ts_ms = int(round(new_t_exec * 1000))
+        if use_feature:
+            new_t_exec = target_wall
+            ts_ms = int(round(new_t_exec * 1000))
+            dest_conn.execute(
+                """
+                INSERT INTO features_stream(
+                    dataset_id, symbol, t_exec, ts_ms, ver, f1, f2, f3, f4, f5, f6,
+                    score, spread_ticks, bid1, ask1, bidqty1, askqty1, v_spike, v_rate, f1_delta
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    args.dataset_id,
+                    row.get("symbol"),
+                    new_t_exec,
+                    ts_ms,
+                    row.get("ver"),
+                    row.get("f1"),
+                    row.get("f2"),
+                    row.get("f3"),
+                    row.get("f4"),
+                    row.get("f5"),
+                    row.get("f6"),
+                    row.get("score"),
+                    row.get("spread_ticks"),
+                    row.get("bid1"),
+                    row.get("ask1"),
+                    row.get("bidqty1"),
+                    row.get("askqty1"),
+                    row.get("v_spike"),
+                    row.get("v_rate"),
+                    row.get("f1_delta"),
+                ),
+            )
+            dest_conn.commit()
+            features_streamed += 1
+            seen_pairs.add(key)
+            next_feature = next(feature_iter, None)
+            if max_rows and features_streamed >= max_rows:
+                break
+        else:
+            dest_conn.execute(
+                """
+                INSERT INTO raw_push(t_recv, topic, symbol, payload)
+                VALUES(?,?,?,?)
+                """,
+                (
+                    target_wall,
+                    row.get("topic"),
+                    row.get("symbol"),
+                    row.get("payload"),
+                ),
+            )
+            dest_conn.commit()
+            raw_streamed += 1
+            next_raw = next(raw_iter, None)
 
-        dest_conn.execute(
-            """
-            INSERT INTO features_stream(
-                dataset_id, symbol, t_exec, ts_ms, ver, f1, f2, f3, f4, f5, f6,
-                score, spread_ticks, bid1, ask1, bidqty1, askqty1, v_spike, v_rate, f1_delta
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                args.dataset_id,
-                symbol,
-                new_t_exec,
-                ts_ms,
-                row.get("ver"),
-                row.get("f1"),
-                row.get("f2"),
-                row.get("f3"),
-                row.get("f4"),
-                row.get("f5"),
-                row.get("f6"),
-                row.get("score"),
-                row.get("spread_ticks"),
-                row.get("bid1"),
-                row.get("ask1"),
-                row.get("bidqty1"),
-                row.get("askqty1"),
-                row.get("v_spike"),
-                row.get("v_rate"),
-                row.get("f1_delta"),
-            ),
-        )
-        dest_conn.commit()
-        rows_streamed += 1
-
-        if max_rows and rows_streamed >= max_rows:
-            break
-
-    logging.info("Replay complete rows=%d dest=%s", rows_streamed, dest_path)
+    logging.info(
+        "Replay complete features=%d raw_push=%d dest=%s",
+        features_streamed,
+        raw_streamed,
+        dest_path,
+    )
     src_conn.close()
     dest_conn.close()
 

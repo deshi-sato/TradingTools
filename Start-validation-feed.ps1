@@ -1,3 +1,6 @@
+cd C:\Users\Owner\documents\desshi_signal_viewer
+C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
+
 param(
     [string]$Source = '',
     [string]$Dest = 'db\naut_market.db',

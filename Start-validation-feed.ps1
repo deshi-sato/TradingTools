@@ -2,10 +2,10 @@ cd C:\Users\Owner\documents\desshi_signal_viewer
 C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
 
 param(
-    [string]$Source = '',
-    [string]$Dest = 'db\naut_market.db',
+    [string]$Source = 'db\naut_market_20251022_refeed.db',
+    [string]$Dest = 'db\naut_market_refeed.db',
     [string]$DatasetId = 'VALIDATION_FEED',
-    [double]$Speed = 1.0,
+    [double]$Speed = 2.0,
     [double]$StartDelay = 0.0,
     [int]$Limit = 0
 )

@@ -29,7 +29,7 @@ import sqlite3
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, time as dtime
+from datetime import UTC, datetime, time as dtime, timezone, timedelta
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
@@ -43,6 +43,17 @@ ACTION_ENTRY = "entry"
 ACTION_EXIT = "exit"
 
 logger = logging.getLogger(__name__)
+
+class DataTimeFormatter(logging.Formatter):
+    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
+        data_ts = getattr(record, "data_ts", None)
+        if data_ts is not None:
+            try:
+                dt = datetime.fromtimestamp(float(data_ts))
+                return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
+            except (TypeError, ValueError, OSError):
+                pass
+        return super().formatTime(record, datefmt)
 
 _singleton_handle: Optional[int] = None
 _pidfile_path: Optional[Path] = None
@@ -286,6 +297,80 @@ def _is_general(sign: Any, cfg: RunnerConfig) -> bool:
     return _coerce_sign(sign) == reopen_sign
 
 
+def _format_sign_code(sign: Any) -> str:
+    code = _coerce_sign(sign)
+    if len(code) == 4 and code.isdigit():
+        return code
+    if len(code) >= 4:
+        return code[:4]
+    if code:
+        return code.zfill(4) if code.isdigit() else code.rjust(4, "_")
+    return "----"
+
+
+def _format_epoch_hms(ts: Any) -> str:
+    try:
+        return datetime.fromtimestamp(float(ts)).strftime("%H:%M:%S")
+    except (TypeError, ValueError, OSError):
+        return "--:--:--"
+
+
+def _log_extra(data_ts: float) -> Dict[str, float]:
+    return {"data_ts": data_ts} if data_ts and data_ts > 0.0 else {}
+
+
+def parse_current_price_time(raw: Any) -> Optional[float]:
+    if raw is None:
+        return None
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.decode("utf-8", errors="ignore")
+    value = str(raw).strip()
+    if not value:
+        return None
+    if " " in value and "T" not in value:
+        value = value.replace(" ", "T", 1)
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    if len(value) >= 5 and (value[-5] in "+-") and value[-3] != ":":
+        value = value[:-2] + ":" + value[-2:]
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone(timedelta(hours=9)))
+    return dt.timestamp()
+
+
+class RunnerClock:
+    def __init__(self) -> None:
+        self.last_ts: float = 0.0
+
+    def update_from_row(
+        self, row: Dict[str, Any], fallback_wall_ts: Optional[float]
+    ) -> float:
+        candidate = parse_current_price_time(
+            row.get("CurrentPriceTime") or row.get("current_price_time")
+        )
+        if candidate is None:
+            candidate = safe_float(row.get("t_recv"))
+        if candidate is None:
+            candidate = safe_float(row.get("t_exec"))
+        if candidate is None:
+            candidate = fallback_wall_ts
+        if candidate is None:
+            candidate = self.last_ts or 0.0
+        if self.last_ts and candidate < self.last_ts:
+            candidate = self.last_ts
+        self.last_ts = float(candidate)
+        return self.last_ts
+
+    def now(self, fallback_wall_ts: Optional[float] = None) -> float:
+        if self.last_ts > 0.0:
+            return self.last_ts
+        return fallback_wall_ts if fallback_wall_ts is not None else 0.0
+
+
 def load_runner_config(config_path: Path) -> RunnerConfig:
     payload = load_json_utf8(str(config_path))
     try:
@@ -400,7 +485,7 @@ def load_threshold_profile(path: Path) -> ThresholdProfile:
             "Threshold md5 mismatch: file=%s payload=%s", computed_md5, json_md5
         )
     mode_raw = str(raw.get("mode", raw.get("MODE", SIDE_BUY))).upper()
-    created_at = str(raw.get("created_at", datetime.utcnow().isoformat()))
+    created_at = str(raw.get("created_at", datetime.now(UTC).isoformat()))
     known = {
         "DATASET_ID",
         "SCHEMA_VERSION",
@@ -581,13 +666,23 @@ class FeaturePoller:
     def fetch_since(
         self, symbol: str, last_ts: float, limit: int = 500
     ) -> List[Dict[str, Any]]:
-        query = f"""
-SELECT *
-FROM {self.table}
-WHERE symbol=? AND t_exec>?
-ORDER BY t_exec ASC
-LIMIT ?
-"""
+        query = """
+        SELECT fs.*,
+            json_extract(r.payload, '$.BidSign') AS BidSign,
+            json_extract(r.payload, '$.AskSign') AS AskSign,
+            json_extract(r.payload, '$.CurrentPriceTime') AS CurrentPriceTime
+        FROM features_stream AS fs
+        LEFT JOIN raw_push AS r
+        ON r.symbol = fs.symbol
+        AND r.t_recv = (
+        SELECT t_recv FROM raw_push
+        WHERE symbol = fs.symbol AND t_recv <= fs.t_exec
+        ORDER BY t_recv DESC LIMIT 1
+        )
+        WHERE fs.symbol=? AND fs.t_exec>?
+        ORDER BY fs.t_exec ASC
+        LIMIT ?
+        """
         cur = self.conn.execute(query, (symbol, last_ts, limit))
         return [dict(row) for row in cur.fetchall()]
 
@@ -649,6 +744,7 @@ class NautRunner:
         self.signal_streak: Dict[str, int] = {sym: 0 for sym in config.symbols}
         self.disabled_symbols: Set[str] = set()
         self.entry_gate_reasons: Dict[str, Optional[str]] = {sym: None for sym in config.symbols}
+        self.clock = RunnerClock()
         if self._should_seek_tail():
             latest_map = self.poller.latest_timestamps(self.config.symbols)
             for sym, ts in latest_map.items():
@@ -687,7 +783,7 @@ class NautRunner:
         self._ensure_seen_table()
         self.ops_conn.commit()
         logger.info("runner_seen ready on ops_db=%s", self.config.ops_db)
-        self.last_stats_log = now_ts()
+        self.last_stats_log = 0.0
         self.profile = policy.profile
         self.loss_limit_engaged = False
 
@@ -754,35 +850,61 @@ class NautRunner:
         logger.info("Runner loop start symbols=%s", ",".join(self.display_symbols))
         try:
             while not self.stop_requested:
-                loop_start = now_ts()
-                self._check_flatten()
-                self._check_killswitch(loop_start)
+                wall_loop_start = now_ts()
+                data_now = self.clock.now()
+                if data_now > 0.0:
+                    self._check_flatten(data_now)
+                self._check_killswitch(wall_loop_start)
                 self._handle_loss_limit()
                 if self.stop_requested:
                     break
+                latest_data_ts = data_now
+                processed_row = False
                 for symbol in self.config.symbols:
-                    if symbol in self.disabled_symbols:
-                        disable_until = self.cooldown_until.get(symbol, 0.0)
-                        if disable_until and loop_start >= disable_until:
-                            self.disabled_symbols.discard(symbol)
-                        else:
-                            continue
                     rows = self.poller.fetch_since(symbol, self.last_ts[symbol])
                     if not rows:
                         continue
                     for row in rows:
-                        ts = safe_float(row.get("t_exec"), loop_start) or loop_start
-                        self.last_ts[symbol] = max(self.last_ts[symbol], ts)
+                        wall_now = now_ts()
+                        data_ts = self.clock.update_from_row(row, wall_now)
+                        latest_data_ts = data_ts
+                        processed_row = True
+                        row_exec_ts = safe_float(row.get("t_exec"))
+                        if row_exec_ts is None:
+                            row_exec_ts = data_ts
+                        self.last_ts[symbol] = max(self.last_ts[symbol], row_exec_ts)
                         self.stats["polled"] += 1
-                        fills = self.broker.process_tick(row, ts)
+                        self._mark_positions(symbol, row)
+                        self._check_flatten(data_ts)
+                        if self.stop_requested:
+                            break
+                        disable_until = self.cooldown_until.get(symbol, 0.0)
+                        if symbol in self.disabled_symbols:
+                            if disable_until and data_ts >= disable_until:
+                                self.disabled_symbols.discard(symbol)
+                            elif disable_until and data_ts < disable_until:
+                                continue
+                            else:
+                                self.disabled_symbols.discard(symbol)
+                        fills = self.broker.process_tick(row, data_ts)
                         if fills:
                             self._handle_fills(fills)
-                        self._mark_positions(symbol, row)
-                        self._check_timeouts(symbol, ts, row)
-                        self._try_entry(symbol, row, ts)
-                self._maybe_log_stats(now_ts())
+                            if self.stop_requested:
+                                break
+                        self._check_timeouts(symbol, data_ts, row)
+                        if self.stop_requested:
+                            break
+                        self._try_entry(symbol, row, data_ts)
+                        if self.stop_requested:
+                            break
+                    if self.stop_requested:
+                        break
+                if self.stop_requested:
+                    break
+                if processed_row and latest_data_ts > 0.0:
+                    self._maybe_log_stats(latest_data_ts)
                 sleep_for = max(
-                    0.0, self.config.poll_interval_sec - (now_ts() - loop_start)
+                    0.0, self.config.poll_interval_sec - (now_ts() - wall_loop_start)
                 )
                 time.sleep(sleep_for)
         finally:
@@ -799,7 +921,6 @@ class NautRunner:
             self.trade_logger.close()
         except Exception:
             pass
-
     def _handle_fills(self, fills: List[Fill]) -> None:
         for fill in fills:
             summary = self.ledger.register_exit(
@@ -841,10 +962,14 @@ class NautRunner:
                     max(0.0, float(self.config.disable_minutes_after_special))
                 )
                 minutes = minutes_from_meta if minutes_from_meta is not None else default_minutes
-                self._disable_symbol_temporarily(summary.symbol, minutes, fill.timestamp)
+                self._disable_symbol_temporarily(
+                    summary.symbol, minutes, fill.timestamp
+                )
+            exit_time = _format_epoch_hms(summary.exit_ts)
             logger.info(
-                "EXIT %s order=%s side=%s qty=%.0f px=%.3f reason=%s pnl=%.2f md5=%s dataset=%s schema=%s",
+                "EXIT %s @%s order=%s side=%s qty=%.0f px=%.3f reason=%s pnl=%.2f md5=%s dataset=%s schema=%s",
                 summary.symbol,
+                exit_time,
                 summary.order_id,
                 summary.side,
                 summary.qty,
@@ -854,18 +979,24 @@ class NautRunner:
                 self.profile.md5,
                 self.profile.dataset_id,
                 self.profile.schema_version,
+                extra=_log_extra(summary.exit_ts),
             )
 
-    def _disable_symbol_temporarily(self, symbol: str, minutes: int, now: float) -> None:
+    def _disable_symbol_temporarily(
+        self, symbol: str, minutes: int, data_ts: float
+    ) -> None:
         duration_minutes = max(0, int(minutes))
         if duration_minutes <= 0:
             return
-        disable_until = now + duration_minutes * 60
+        disable_until = data_ts + duration_minutes * 60
         current_until = self.cooldown_until.get(symbol, 0.0)
         self.cooldown_until[symbol] = max(current_until, disable_until)
         self.disabled_symbols.add(symbol)
         logger.info(
-            "DISABLE %s for %d min due to special quote.", symbol, duration_minutes
+            "DISABLE %s for %d min due to special quote.",
+            symbol,
+            duration_minutes,
+            extra=_log_extra(data_ts),
         )
         try:
             self.watchlist_manager.unregister(symbol)  # type: ignore[attr-defined]
@@ -885,7 +1016,7 @@ class NautRunner:
         self.ledger.mark_symbol(symbol, bid, ask)
 
     def _check_timeouts(
-        self, symbol: str, timestamp: float, row: Dict[str, Any]
+        self, symbol: str, data_ts: float, row: Dict[str, Any]
     ) -> None:
         if self.policy.max_hold_sec <= 0:
             return
@@ -893,7 +1024,7 @@ class NautRunner:
             position
             for position in list(self.ledger.positions.values())
             if position.symbol == symbol
-            and (timestamp - position.opened_at) >= self.policy.max_hold_sec
+            and (data_ts - position.opened_at) >= self.policy.max_hold_sec
         ]
         if not timeout_candidates:
             return
@@ -906,7 +1037,7 @@ class NautRunner:
         fills: List[Fill] = []
         for position in timeout_candidates:
             fill = self.broker.force_exit_order(
-                position.order_id, timestamp, "timeout", bid, ask
+                position.order_id, data_ts, "timeout", bid, ask
             )
             if fill:
                 fills.append(fill)
@@ -914,27 +1045,44 @@ class NautRunner:
             self._handle_fills(fills)
 
     def _log_entry_gate_once(
-        self, symbol: str, reason: str, message: str, *args: Any
+        self, symbol: str, reason: str, data_ts: float, detail: str
     ) -> None:
         previous = self.entry_gate_reasons.get(symbol)
         if previous == reason:
             return
         self.entry_gate_reasons[symbol] = reason
         transition = f"{previous or 'none'} -> {reason}"
-        detail = message % args if args else message
-        logger.debug("ENTRY-GATE %s (%s): %s", transition, symbol, detail)
+        event_time = _format_epoch_hms(data_ts)
+        logger.debug(
+            "ENTRY-GATE %s (%s) @%s: %s",
+            transition,
+            symbol,
+            event_time,
+            detail,
+            extra=_log_extra(data_ts),
+        )
 
-    def _clear_entry_gate(self, symbol: str) -> None:
+    def _clear_entry_gate(self, symbol: str, data_ts: float) -> None:
         previous = self.entry_gate_reasons.get(symbol)
         if previous is None:
             return
-        logger.debug("ENTRY-GATE %s -> none (%s): restored", previous, symbol)
+        event_time = _format_epoch_hms(data_ts)
+        logger.debug(
+            "ENTRY-GATE %s -> none (%s) @%s: restored",
+            previous,
+            symbol,
+            event_time,
+            extra=_log_extra(data_ts),
+        )
         self.entry_gate_reasons[symbol] = None
 
-    def _try_entry(self, symbol: str, row: Dict[str, Any], timestamp: float) -> None:
+    def _try_entry(self, symbol: str, row: Dict[str, Any], data_ts: float) -> None:
         ts_ms = int(row["ts_ms"])
+        event_time = _format_epoch_hms(data_ts)
         if self._already_seen(symbol, ts_ms):
-            logger.debug("ENTRY-GATE seen: %s ts=%s", symbol, ts_ms)
+            logger.debug(
+                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
+            )
             return
         if symbol in self.disabled_symbols:
             self._mark_seen(symbol, ts_ms)
@@ -944,57 +1092,46 @@ class NautRunner:
         reopen_sign = _coerce_sign(self.config.reopen_sign)
         block_signs = set(self.config.block_signs)
         if bid_sign in block_signs or ask_sign in block_signs:
-            self._log_entry_gate_once(
-                symbol,
-                "quote_sign_block",
-                "ENTRY-GATE blocked by quote sign: symbol=%s bid=%s ask=%s",
-                symbol,
-                bid_sign or "-",
-                ask_sign or "-",
-            )
+            detail = f"blocked by quote sign code={_format_sign_code(bid_sign)}/{_format_sign_code(ask_sign)}"
+            self._log_entry_gate_once(symbol, "quote_sign_block", data_ts, detail)
             self._mark_seen(symbol, ts_ms)
             self.signal_streak[symbol] = 0
             return
         if reopen_sign and (bid_sign != reopen_sign or ask_sign != reopen_sign):
+            detail = (
+                f"quote mismatch code={_format_sign_code(bid_sign)}/"
+                f"{_format_sign_code(ask_sign)} expected={_format_sign_code(reopen_sign)}"
+            )
             self._log_entry_gate_once(
-                symbol,
-                "quote_sign_mismatch",
-                "ENTRY-GATE blocked by quote sign: symbol=%s bid=%s ask=%s",
-                symbol,
-                bid_sign or "-",
-                ask_sign or "-",
+                symbol, "quote_sign_mismatch", data_ts, detail
             )
             self._mark_seen(symbol, ts_ms)
             self.signal_streak[symbol] = 0
             return
         open_delay = max(0.0, float(self.config.open_delay_sec))
         if open_delay > 0:
-            market_open_dt = datetime.fromtimestamp(timestamp).replace(
+            market_open_dt = datetime.fromtimestamp(data_ts).replace(
                 hour=9, minute=0, second=0, microsecond=0
             )
             market_open_ts = market_open_dt.timestamp()
             block_until = market_open_ts + open_delay
-            if timestamp < block_until:
-                remaining = max(0.0, block_until - timestamp)
-                self._log_entry_gate_once(
-                    symbol,
-                    "open_delay",
-                    "ENTRY-GATE open delay active (%.1fs)",
-                    remaining,
-                )
+            if data_ts < block_until:
+                remaining = max(0.0, block_until - data_ts)
+                detail = f"open delay remaining={remaining:.1f}s"
+                self._log_entry_gate_once(symbol, "open_delay", data_ts, detail)
                 self._mark_seen(symbol, ts_ms)
                 self.signal_streak[symbol] = 0
                 return
-        self._clear_entry_gate(symbol)
+        self._clear_entry_gate(symbol, data_ts)
         if not self.ledger.can_open(symbol):
             return
-        if timestamp < self.cooldown_until.get(symbol, 0.0):
+        if data_ts < self.cooldown_until.get(symbol, 0.0):
             return
         if self.config.signal_gap_sec > 0:
             last_entry_ts = self.last_entry_ts.get(symbol, 0.0)
             if (
                 last_entry_ts
-                and (timestamp - last_entry_ts) < self.config.signal_gap_sec
+                and (data_ts - last_entry_ts) < self.config.signal_gap_sec
             ):
                 return
         if self.ledger.loss_limit_hit:
@@ -1019,6 +1156,7 @@ class NautRunner:
                     qty,
                     decision.entry_px,
                     decision.sl_px,
+                    extra=_log_extra(data_ts),
                 )
             return
         if symbol in self.disabled_symbols:
@@ -1047,7 +1185,7 @@ class NautRunner:
             decision.sl_px,
             decision.tp_px,
             order_meta,
-            timestamp,
+            data_ts,
         )
         self.ledger.register_entry(
             order_id,
@@ -1057,12 +1195,12 @@ class NautRunner:
             decision.entry_px,
             decision.sl_px,
             decision.tp_px,
-            timestamp,
+            data_ts,
             order_meta,
         )
         self.trade_logger.log_entry(
             order_id,
-            timestamp,
+            data_ts,
             symbol,
             self.mode,
             qty,
@@ -1073,11 +1211,12 @@ class NautRunner:
         )
         self._mark_seen(symbol, ts_ms)
         self.stats["entries"] += 1
-        self.last_entry_ts[symbol] = timestamp
+        self.last_entry_ts[symbol] = data_ts
         self.signal_streak[symbol] = 0
         logger.info(
-            "ENTRY %s order=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f score=%s md5=%s dataset=%s schema=%s",
+            "ENTRY %s @%s order=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f score=%s md5=%s dataset=%s schema=%s",
             symbol,
+            event_time,
             order_id,
             self.mode,
             qty,
@@ -1088,15 +1227,24 @@ class NautRunner:
             self.profile.md5,
             self.profile.dataset_id,
             self.profile.schema_version,
+            extra=_log_extra(data_ts),
         )
 
-    def _check_flatten(self) -> None:
-        if self.flatten_at is None or self.flatten_triggered:
+    def _check_flatten(self, data_ts: float) -> None:
+        if (
+            self.flatten_at is None
+            or self.flatten_triggered
+            or data_ts <= 0.0
+        ):
             return
-        current_time = datetime.now().time()
+        current_time = datetime.fromtimestamp(data_ts).time()
         if current_time >= self.flatten_at:
-            logger.warning("Flatten triggered at %s", current_time.strftime("%H:%M"))
-            self._flatten("flatten")
+            logger.warning(
+                "Flatten triggered at %s",
+                current_time.strftime("%H:%M"),
+                extra=_log_extra(data_ts),
+            )
+            self._flatten("flatten", data_ts)
             self.flatten_triggered = True
             self.stop_requested = True
 
@@ -1105,13 +1253,14 @@ class NautRunner:
             return
         self.last_killswitch_check = now
         if self.killswitch_path.exists():
-            logger.error("Killswitch detected: %s", self.killswitch_path)
-            self._flatten("killswitch")
+            data_ts = self.clock.now(now)
+            logger.error(
+                "Killswitch detected: %s",
+                self.killswitch_path,
+                extra=_log_extra(data_ts),
+            )
+            self._flatten("killswitch", data_ts)
             self.stop_requested = True
-            try:
-                self.killswitch_path.unlink()
-            except Exception:
-                pass
 
     def _handle_loss_limit(self) -> None:
         if self.ledger.loss_limit_hit and not self.loss_limit_engaged:
@@ -1123,26 +1272,42 @@ class NautRunner:
                     / self.ledger.initial_cash
                     * 100
                 )
+            data_ts = self.clock.now()
             logger.error(
                 "Daily loss limit hit: equity=%.2f initial=%.2f drawdown=%.2f%% -> flatten",
                 self.ledger.equity,
                 self.ledger.initial_cash,
                 drawdown_pct,
+                extra=_log_extra(data_ts),
             )
-            self._flatten("loss_limit")
+            self._flatten("loss_limit", data_ts)
             self.stop_requested = True
 
-    def _flatten(self, reason: str) -> None:
-        fills = self.broker.force_exit_all(reason, now_ts())
+    def _flatten(self, reason: str, data_ts: Optional[float] = None) -> None:
+        ts = data_ts
+        if ts is None or ts <= 0.0:
+            ts = self.clock.now()
+        if ts <= 0.0:
+            ts = now_ts()
+        if ts > self.clock.last_ts:
+            self.clock.last_ts = ts
+        fills = self.broker.force_exit_all(reason, ts)
         if fills:
             self._handle_fills(fills)
         else:
             logger.warning(
-                "Flatten requested (%s) but broker returned no fills", reason
+                "Flatten requested (%s) but broker returned no fills",
+                reason,
+                extra=_log_extra(ts),
             )
 
-    def _maybe_log_stats(self, now: float) -> None:
-        if now - self.last_stats_log < self.config.stats_interval_sec:
+    def _maybe_log_stats(self, data_ts: float) -> None:
+        if data_ts <= 0.0:
+            return
+        if self.last_stats_log <= 0.0:
+            self.last_stats_log = data_ts
+            return
+        if data_ts - self.last_stats_log < self.config.stats_interval_sec:
             return
         exits = self.stats["exits"]
         win_rate = (self.stats["wins"] / exits) if exits else 0.0
@@ -1151,7 +1316,8 @@ class NautRunner:
         if self.ledger.peak_equity > 0:
             drawdown_pct = (self.ledger.drawdown / self.ledger.peak_equity) * 100.0
         logger.info(
-            "stats: polled=%d signals=%d entries=%d exits=%d win_rate=%.2f ev_est=%.2f equity=%.2f drawdown=%.2f drawdown_pct=%.2f%%",
+            "stats @%s polled=%d signals=%d entries=%d exits=%d win_rate=%.2f ev_est=%.2f equity=%.2f drawdown=%.2f drawdown_pct=%.2f%%",
+            _format_epoch_hms(data_ts),
             self.stats["polled"],
             self.stats["signals"],
             self.stats["entries"],
@@ -1161,6 +1327,7 @@ class NautRunner:
             self.ledger.equity,
             self.ledger.drawdown,
             drawdown_pct,
+            extra=_log_extra(data_ts),
         )
         self.stats = {
             "polled": 0,
@@ -1171,19 +1338,21 @@ class NautRunner:
             "losses": 0,
             "pnl_sum": 0.0,
         }
-        self.last_stats_log = now
+        self.last_stats_log = data_ts
 
 
 def configure_logging(log_path: str, verbose: bool) -> None:
     ensure_parent_dir(log_path)
     level = logging.DEBUG if verbose else logging.INFO
+    fmt = "%(asctime)s %(levelname)s %(message)s"
+    formatter = DataTimeFormatter(fmt)
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    stream_handler = logging.StreamHandler(sys.stdout)
+    file_handler.setFormatter(formatter)
+    stream_handler.setFormatter(formatter)
     logging.basicConfig(
         level=level,
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_path, encoding="utf-8"),
-            logging.StreamHandler(sys.stdout),
-        ],
+        handlers=[file_handler, stream_handler],
         force=True,
     )
 
@@ -1626,6 +1795,7 @@ class PaperBroker(Broker):
             entry_px,
             sl_px,
             tp_px,
+            extra=_log_extra(opened_at),
         )
         return order_id
 
@@ -1659,6 +1829,7 @@ class PaperBroker(Broker):
                             order.symbol,
                             bid_sign or "-",
                             ask_sign or "-",
+                            extra=_log_extra(timestamp),
                         )
                     order.meta["pending_special_exit"] = True
                     order.meta["frozen"] = True
@@ -1673,6 +1844,7 @@ class PaperBroker(Broker):
                         logger.debug(
                             "special_quote exit pending: missing quote for %s",
                             order.symbol,
+                            extra=_log_extra(timestamp),
                         )
                         continue
                     minutes = int(
@@ -1683,7 +1855,10 @@ class PaperBroker(Broker):
                     order.meta["disable_minutes_after_special"] = minutes
                     fill = self._finalize(order, basis, "special_quote_exit", timestamp)
                     logger.debug(
-                        "special_quote exit filled: %s px=%.3f", order.symbol, basis
+                        "special_quote exit filled: %s px=%.3f",
+                        order.symbol,
+                        basis,
+                        extra=_log_extra(timestamp),
                     )
                     fills.append(fill)
                     continue
@@ -1785,6 +1960,7 @@ class LiveBroker(Broker):
                 sl_px,
                 tp_px,
                 json.dumps(meta, ensure_ascii=False, sort_keys=True),
+                extra=_log_extra(opened_at),
             )
             return self._paper_delegate.place_ifdoco(
                 symbol, side, qty, entry_px, sl_px, tp_px, meta, opened_at
@@ -1803,6 +1979,7 @@ class LiveBroker(Broker):
             sl_px,
             tp_px,
             json.dumps(meta, ensure_ascii=False, sort_keys=True),
+            extra=_log_extra(opened_at),
         )
         return order_id
 
@@ -1824,7 +2001,10 @@ class LiveBroker(Broker):
                 order_id, timestamp, reason, bid, ask
             )
         logger.warning(
-            "[LIVE] force_exit_order stub order_id=%s reason=%s", order_id, reason
+            "[LIVE] force_exit_order stub order_id=%s reason=%s",
+            order_id,
+            reason,
+            extra=_log_extra(timestamp),
         )
         return None
 
@@ -1832,7 +2012,11 @@ class LiveBroker(Broker):
         if self.dry_run and self._paper_delegate:
             return self._paper_delegate.force_exit_all(reason, timestamp)
         # TODO: Implement IFDOCO unwind via cancel/replace and status polling when live API wiring is added.
-        logger.warning("[LIVE] force_exit_all stub reason=%s", reason)
+        logger.warning(
+            "[LIVE] force_exit_all stub reason=%s",
+            reason,
+            extra=_log_extra(timestamp),
+        )
         return []
 
     def list_open_orders(self) -> List[PaperOrder]:

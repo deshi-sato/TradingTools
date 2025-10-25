@@ -1303,6 +1303,8 @@ class NautRunner:
         self.chop_silence_sec = max(
             0.0, float(getattr(self.config, "chop_silence_sec", 0.0))
         )
+        self._chop_box_center: Optional[float] = None
+        self._chop_box_until: float = 0.0
         self._post_stop_box_center: Optional[float] = None
         self._post_stop_box_until: float = 0.0
         self.clock = RunnerClock()
@@ -1493,18 +1495,17 @@ class NautRunner:
             cooldown = max(
                 self.policy.cooldown_sec, self.config.per_symbol_cooldown_sec
             )
-            self.cooldown_until[summary.symbol] = fill.timestamp + cooldown
-            if summary.exit_reason == "stop" and self.cooldown_after_stop_sec > 0.0:
-                extended_until = fill.timestamp + self.cooldown_after_stop_sec
-                self.cooldown_until[summary.symbol] = max(
-                    self.cooldown_until[summary.symbol], extended_until
-                )
-                logger.debug(
-                    "COOLDOWN after STOP: until=%.3f (extra=%.1fs)",
-                    extended_until,
-                    self.cooldown_after_stop_sec,
-                    extra=_log_extra(fill.timestamp),
-                )
+            base_cooldown_until = fill.timestamp + cooldown
+            current_until = self.cooldown_until.get(summary.symbol, 0.0)
+            self.cooldown_until[summary.symbol] = max(
+                current_until, base_cooldown_until
+            )
+            self._on_exit(
+                summary.symbol,
+                summary.exit_reason,
+                summary.exit_px if summary.exit_px is not None else fill.exit_px,
+                fill.timestamp,
+            )
             self.last_exit_ts[summary.symbol] = fill.timestamp
             extra_meta = dict(fill.meta)
             extra_meta.update(
@@ -1521,22 +1522,6 @@ class NautRunner:
             self.trade_logger.log_exit(
                 fill.order_id, summary, self.profile.meta, extra_meta
             )
-            if (
-                summary.exit_reason == "stop"
-                and self.chop_box_ticks > 0
-                and self.chop_silence_sec > 0.0
-                and summary.exit_px is not None
-            ):
-                self._chop_box_center = float(summary.exit_px)
-                self._chop_box_until = float(fill.timestamp + self.chop_silence_sec)
-                logger.debug(
-                    "CHOP-BOX armed: center=%.3f +/- %d ticks (%.4f) until=%s",
-                    self._chop_box_center,
-                    self.chop_box_ticks,
-                    self.chop_box_ticks * float(self.config.tick_size),
-                    _format_epoch_hms(self._chop_box_until),
-                    extra=_log_extra(fill.timestamp),
-                )
             if summary.exit_reason == "special_quote_exit":
                 minutes_from_meta = safe_int(
                     fill.meta.get("disable_minutes_after_special")
@@ -1563,6 +1548,44 @@ class NautRunner:
                 self.profile.dataset_id,
                 self.profile.schema_version,
                 extra=_log_extra(summary.exit_ts),
+            )
+
+    def _on_exit(
+        self,
+        symbol: str,
+        reason: str,
+        exit_px: Optional[float],
+        data_ts: float,
+    ) -> None:
+        if reason != "stop":
+            return
+        if self.cooldown_after_stop_sec > 0.0:
+            until = data_ts + self.cooldown_after_stop_sec
+            previous_until = self.cooldown_until.get(symbol, 0.0)
+            self.cooldown_until[symbol] = max(previous_until, until)
+            logger.debug(
+                "COOLDOWN after STOP: symbol=%s until=%s (%.1fs)",
+                symbol,
+                _format_epoch_hms(until),
+                self.cooldown_after_stop_sec,
+                extra=_log_extra(data_ts),
+            )
+        if (
+            self.chop_box_ticks > 0
+            and self.chop_silence_sec > 0.0
+            and exit_px is not None
+        ):
+            self._chop_box_center = float(exit_px)
+            self._chop_box_until = float(data_ts + self.chop_silence_sec)
+            tick_span = self.chop_box_ticks * float(self.config.tick_size)
+            logger.debug(
+                "CHOP-BOX armed: symbol=%s center=%.3f +/- %d ticks (%.4f) until=%s",
+                symbol,
+                self._chop_box_center,
+                self.chop_box_ticks,
+                tick_span,
+                _format_epoch_hms(self._chop_box_until),
+                extra=_log_extra(data_ts),
             )
 
     def _disable_symbol_temporarily(
@@ -1675,7 +1698,10 @@ class NautRunner:
         self.entry_gate_reasons[symbol] = None
 
     def _try_entry(self, symbol: str, row: Dict[str, Any], data_ts: float) -> None:
-        ts_ms = int(row["ts_ms"])
+        ts_ms_val = safe_int(row.get("ts_ms"))
+        if ts_ms_val is None:
+            ts_ms_val = int(data_ts * 1000)
+        ts_ms = int(ts_ms_val)
         event_time = _format_epoch_hms(data_ts)
         if self._already_seen(symbol, ts_ms):
             logger.debug(
@@ -1688,6 +1714,44 @@ class NautRunner:
         if self._chop_box_until and data_ts >= self._chop_box_until:
             self._chop_box_center = None
             self._chop_box_until = 0.0
+        if self.ledger.loss_limit_hit:
+            return
+        cooldown_until = self.cooldown_until.get(symbol, 0.0)
+        if data_ts < cooldown_until:
+            logger.debug(
+                "ENTRY veto by COOLDOWN: symbol=%s remaining=%.1fs",
+                symbol,
+                cooldown_until - data_ts,
+                extra=_log_extra(data_ts),
+            )
+            self._mark_seen(symbol, ts_ms)
+            self.signal_streak[symbol] = 0
+            return
+        if (
+            self.chop_box_ticks > 0
+            and self.chop_silence_sec > 0.0
+            and self._chop_box_center is not None
+            and self._chop_box_until > data_ts
+        ):
+            mid_px = self._mid_price(row)
+            if mid_px is not None:
+                half_span = self.chop_box_ticks * float(self.config.tick_size)
+                box_lo = self._chop_box_center - half_span
+                box_hi = self._chop_box_center + half_span
+                if box_lo <= mid_px <= box_hi:
+                    remaining = max(0.0, self._chop_box_until - data_ts)
+                    logger.debug(
+                        "ENTRY veto by CHOP-BOX: symbol=%s mid=%.3f in [%.3f, %.3f] (%.1fs left)",
+                        symbol,
+                        mid_px,
+                        box_lo,
+                        box_hi,
+                        remaining,
+                        extra=_log_extra(data_ts),
+                    )
+                    self._mark_seen(symbol, ts_ms)
+                    self.signal_streak[symbol] = 0
+                    return
         bid_sign = _coerce_sign(row.get("BidSign") or row.get("bid_sign"))
         ask_sign = _coerce_sign(row.get("AskSign") or row.get("ask_sign"))
         reopen_sign = _coerce_sign(self.config.reopen_sign)
@@ -1723,34 +1787,8 @@ class NautRunner:
                 self._mark_seen(symbol, ts_ms)
                 self.signal_streak[symbol] = 0
                 return
-        if (
-            self.chop_box_ticks > 0
-            and self.chop_silence_sec > 0.0
-            and self._chop_box_center is not None
-            and self._chop_box_until > data_ts
-        ):
-            mid_px = self._mid_price(row)
-            if mid_px is not None:
-                half_span = self.chop_box_ticks * float(self.config.tick_size)
-                lo = self._chop_box_center - half_span
-                hi = self._chop_box_center + half_span
-                if lo <= mid_px <= hi:
-                    remaining = max(0.0, self._chop_box_until - data_ts)
-                    logger.debug(
-                        "ENTRY veto by CHOP-BOX: mid=%.3f range=[%.3f, %.3f] remaining=%.1fs",
-                        mid_px,
-                        lo,
-                        hi,
-                        remaining,
-                        extra=_log_extra(data_ts),
-                    )
-                    self._mark_seen(symbol, ts_ms)
-                    self.signal_streak[symbol] = 0
-                    return
         self._clear_entry_gate(symbol, data_ts)
         if not self.ledger.can_open(symbol):
-            return
-        if data_ts < self.cooldown_until.get(symbol, 0.0):
             return
         if self.config.signal_gap_sec > 0:
             last_entry_ts = self.last_entry_ts.get(symbol, 0.0)
@@ -1759,8 +1797,6 @@ class NautRunner:
                 and (data_ts - last_entry_ts) < self.config.signal_gap_sec
             ):
                 return
-        if self.ledger.loss_limit_hit:
-            return
         decision = self.policy.evaluate(symbol, row)
         if not decision.should_enter:
             self.signal_streak[symbol] = 0

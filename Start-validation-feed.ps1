@@ -5,7 +5,7 @@ param(
     [string]$Source = 'db\naut_market_20251022_refeed.db',
     [string]$Dest = 'db\naut_market_refeed.db',
     [string]$DatasetId = 'VALIDATION_FEED',
-    [double]$Speed = 2.0,
+    [double]$Speed = 5.0,
     [double]$StartDelay = 0.0,
     [int]$Limit = 0
 )

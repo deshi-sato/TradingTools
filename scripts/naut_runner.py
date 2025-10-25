@@ -190,6 +190,13 @@ def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
         pullback_rebreak_ticks=max(
             0, coalesce_int("pullback_rebreak_ticks", cfg.pullback_rebreak_ticks)
         ),
+        cooldown_after_stop_sec=max(
+            0.0, coalesce_float("cooldown_after_stop_sec", cfg.cooldown_after_stop_sec)
+        ),
+        chop_box_ticks=max(0, coalesce_int("chop_box_ticks", cfg.chop_box_ticks)),
+        chop_silence_sec=max(
+            0.0, coalesce_float("chop_silence_sec", cfg.chop_silence_sec)
+        ),
     )
 
 def _cleanup_pid() -> None:
@@ -374,12 +381,15 @@ class RunnerConfig:
     volume_fade_window: int = 8
     volume_fade_tol: float = 0.20
     volume_fade_max_lag: int = 2
-    ext_vwap_max_pct: float = 0.0048
+    ext_vwap_max_pct: float = 0.005
     range_explode_window: int = 12
-    range_explode_k: float = 2.5
+    range_explode_k: float = 3.0
     range_explode_cooldown_sec: float = 30.0
-    pullback_ticks: int = 2
+    pullback_ticks: int = 3
     pullback_rebreak_ticks: int = 1
+    cooldown_after_stop_sec: float = 0.0
+    chop_box_ticks: int = 0
+    chop_silence_sec: float = 0.0
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -612,7 +622,7 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     range_explode_window = safe_int(payload.get("range_explode_window"), 12)
     if range_explode_window is None or range_explode_window <= 0:
         range_explode_window = 12
-    range_explode_k = safe_float(payload.get("range_explode_k"), 2.5)
+    range_explode_k = safe_float(payload.get("range_explode_k"), 3.0)
     if range_explode_k is None or range_explode_k <= 0.0:
         range_explode_k = 3.0
     range_explode_cooldown_sec = safe_float(
@@ -620,12 +630,21 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     )
     if range_explode_cooldown_sec is None or range_explode_cooldown_sec < 0.0:
         range_explode_cooldown_sec = 30.0
-    pullback_ticks = safe_int(payload.get("pullback_ticks"), 2)
+    pullback_ticks = safe_int(payload.get("pullback_ticks"), 3)
     if pullback_ticks is None or pullback_ticks < 0:
-        pullback_ticks = 2
+        pullback_ticks = 3
     pullback_rebreak_ticks = safe_int(payload.get("pullback_rebreak_ticks"), 1)
     if pullback_rebreak_ticks is None or pullback_rebreak_ticks < 0:
         pullback_rebreak_ticks = 1
+    cooldown_after_stop_sec = safe_float(payload.get("cooldown_after_stop_sec"), 0.0)
+    if cooldown_after_stop_sec is None or cooldown_after_stop_sec < 0.0:
+        cooldown_after_stop_sec = 0.0
+    chop_box_ticks = safe_int(payload.get("chop_box_ticks"), 0)
+    if chop_box_ticks is None or chop_box_ticks < 0:
+        chop_box_ticks = 0
+    chop_silence_sec = safe_float(payload.get("chop_silence_sec"), 0.0)
+    if chop_silence_sec is None or chop_silence_sec < 0.0:
+        chop_silence_sec = 0.0
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -672,6 +691,9 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         range_explode_cooldown_sec=float(range_explode_cooldown_sec),
         pullback_ticks=int(pullback_ticks),
         pullback_rebreak_ticks=int(pullback_rebreak_ticks),
+        cooldown_after_stop_sec=float(cooldown_after_stop_sec),
+        chop_box_ticks=int(chop_box_ticks),
+        chop_silence_sec=float(chop_silence_sec),
     )
 
 
@@ -861,6 +883,17 @@ class Policy:
             "ask_px": ask_px,
             "bid_px": bid_px,
         }
+
+        if volume_rate is None:
+            ctx = dict(context)
+            return PolicyDecision(False, reason="no_volume_rate", context=ctx)
+        volume_min_floor = max(
+            0.0, float(getattr(self.config, "volume_min_floor", 1000.0))
+        )
+        if vol_now is not None and vol_now < volume_min_floor:
+            ctx = dict(context)
+            ctx.update({"volume": vol_now, "volume_min_floor": volume_min_floor})
+            return PolicyDecision(False, reason="low_volume", context=ctx)
 
         data_ts = self._row_timestamp(row)
         price = self._extract(
@@ -1263,6 +1296,15 @@ class NautRunner:
         self.signal_streak: Dict[str, int] = {self.symbol: 0}
         self.disabled_symbols: Set[str] = set()
         self.entry_gate_reasons: Dict[str, Optional[str]] = {self.symbol: None}
+        self.cooldown_after_stop_sec = max(
+            0.0, float(getattr(self.config, "cooldown_after_stop_sec", 0.0))
+        )
+        self.chop_box_ticks = max(0, int(getattr(self.config, "chop_box_ticks", 0)))
+        self.chop_silence_sec = max(
+            0.0, float(getattr(self.config, "chop_silence_sec", 0.0))
+        )
+        self._post_stop_box_center: Optional[float] = None
+        self._post_stop_box_until: float = 0.0
         self.clock = RunnerClock()
         if self._should_seek_tail():
             latest_map = self.poller.latest_timestamps([self.symbol])
@@ -1452,6 +1494,17 @@ class NautRunner:
                 self.policy.cooldown_sec, self.config.per_symbol_cooldown_sec
             )
             self.cooldown_until[summary.symbol] = fill.timestamp + cooldown
+            if summary.exit_reason == "stop" and self.cooldown_after_stop_sec > 0.0:
+                extended_until = fill.timestamp + self.cooldown_after_stop_sec
+                self.cooldown_until[summary.symbol] = max(
+                    self.cooldown_until[summary.symbol], extended_until
+                )
+                logger.debug(
+                    "COOLDOWN after STOP: until=%.3f (extra=%.1fs)",
+                    extended_until,
+                    self.cooldown_after_stop_sec,
+                    extra=_log_extra(fill.timestamp),
+                )
             self.last_exit_ts[summary.symbol] = fill.timestamp
             extra_meta = dict(fill.meta)
             extra_meta.update(
@@ -1468,6 +1521,22 @@ class NautRunner:
             self.trade_logger.log_exit(
                 fill.order_id, summary, self.profile.meta, extra_meta
             )
+            if (
+                summary.exit_reason == "stop"
+                and self.chop_box_ticks > 0
+                and self.chop_silence_sec > 0.0
+                and summary.exit_px is not None
+            ):
+                self._chop_box_center = float(summary.exit_px)
+                self._chop_box_until = float(fill.timestamp + self.chop_silence_sec)
+                logger.debug(
+                    "CHOP-BOX armed: center=%.3f +/- %d ticks (%.4f) until=%s",
+                    self._chop_box_center,
+                    self.chop_box_ticks,
+                    self.chop_box_ticks * float(self.config.tick_size),
+                    _format_epoch_hms(self._chop_box_until),
+                    extra=_log_extra(fill.timestamp),
+                )
             if summary.exit_reason == "special_quote_exit":
                 minutes_from_meta = safe_int(
                     fill.meta.get("disable_minutes_after_special")
@@ -1516,6 +1585,21 @@ class NautRunner:
             self.watchlist_manager.unregister(symbol)  # type: ignore[attr-defined]
         except Exception:
             pass
+    def _mid_price(self, row: Dict[str, Any]) -> Optional[float]:
+        price = safe_float(row.get("price"))
+        if price is None:
+            price = safe_float(row.get("close"))
+        if price is not None:
+            return price
+        bid = safe_float(row.get("bid1")) or safe_float(row.get("bid")) or safe_float(
+            row.get("bid_px")
+        )
+        ask = safe_float(row.get("ask1")) or safe_float(row.get("ask")) or safe_float(
+            row.get("ask_px")
+        )
+        if bid is not None and ask is not None:
+            return 0.5 * (bid + ask)
+        return ask if ask is not None else bid
 
     def _mark_positions(self, symbol: str, row: Dict[str, Any]) -> None:
         bid = safe_float(
@@ -1601,6 +1685,9 @@ class NautRunner:
         if symbol in self.disabled_symbols:
             self._mark_seen(symbol, ts_ms)
             return
+        if self._chop_box_until and data_ts >= self._chop_box_until:
+            self._chop_box_center = None
+            self._chop_box_until = 0.0
         bid_sign = _coerce_sign(row.get("BidSign") or row.get("bid_sign"))
         ask_sign = _coerce_sign(row.get("AskSign") or row.get("ask_sign"))
         reopen_sign = _coerce_sign(self.config.reopen_sign)
@@ -1636,6 +1723,30 @@ class NautRunner:
                 self._mark_seen(symbol, ts_ms)
                 self.signal_streak[symbol] = 0
                 return
+        if (
+            self.chop_box_ticks > 0
+            and self.chop_silence_sec > 0.0
+            and self._chop_box_center is not None
+            and self._chop_box_until > data_ts
+        ):
+            mid_px = self._mid_price(row)
+            if mid_px is not None:
+                half_span = self.chop_box_ticks * float(self.config.tick_size)
+                lo = self._chop_box_center - half_span
+                hi = self._chop_box_center + half_span
+                if lo <= mid_px <= hi:
+                    remaining = max(0.0, self._chop_box_until - data_ts)
+                    logger.debug(
+                        "ENTRY veto by CHOP-BOX: mid=%.3f range=[%.3f, %.3f] remaining=%.1fs",
+                        mid_px,
+                        lo,
+                        hi,
+                        remaining,
+                        extra=_log_extra(data_ts),
+                    )
+                    self._mark_seen(symbol, ts_ms)
+                    self.signal_streak[symbol] = 0
+                    return
         self._clear_entry_gate(symbol, data_ts)
         if not self.ledger.can_open(symbol):
             return

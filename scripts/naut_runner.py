@@ -387,9 +387,9 @@ class RunnerConfig:
     range_explode_cooldown_sec: float = 30.0
     pullback_ticks: int = 3
     pullback_rebreak_ticks: int = 1
-    cooldown_after_stop_sec: float = 0.0
-    chop_box_ticks: int = 0
-    chop_silence_sec: float = 0.0
+    cooldown_after_stop_sec: float = 30.0
+    chop_box_ticks: int = 4
+    chop_silence_sec: float = 30.0
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -636,15 +636,15 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     pullback_rebreak_ticks = safe_int(payload.get("pullback_rebreak_ticks"), 1)
     if pullback_rebreak_ticks is None or pullback_rebreak_ticks < 0:
         pullback_rebreak_ticks = 1
-    cooldown_after_stop_sec = safe_float(payload.get("cooldown_after_stop_sec"), 0.0)
+    cooldown_after_stop_sec = safe_float(payload.get("cooldown_after_stop_sec"), 30.0)
     if cooldown_after_stop_sec is None or cooldown_after_stop_sec < 0.0:
-        cooldown_after_stop_sec = 0.0
-    chop_box_ticks = safe_int(payload.get("chop_box_ticks"), 0)
+        cooldown_after_stop_sec = 30.0
+    chop_box_ticks = safe_int(payload.get("chop_box_ticks"), 4)
     if chop_box_ticks is None or chop_box_ticks < 0:
-        chop_box_ticks = 0
-    chop_silence_sec = safe_float(payload.get("chop_silence_sec"), 0.0)
+        chop_box_ticks = 4
+    chop_silence_sec = safe_float(payload.get("chop_silence_sec"), 60.0)
     if chop_silence_sec is None or chop_silence_sec < 0.0:
-        chop_silence_sec = 0.0
+        chop_silence_sec = 60.0
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -1297,11 +1297,11 @@ class NautRunner:
         self.disabled_symbols: Set[str] = set()
         self.entry_gate_reasons: Dict[str, Optional[str]] = {self.symbol: None}
         self.cooldown_after_stop_sec = max(
-            0.0, float(getattr(self.config, "cooldown_after_stop_sec", 0.0))
+            0.0, float(getattr(self.config, "cooldown_after_stop_sec", 30.0))
         )
-        self.chop_box_ticks = max(0, int(getattr(self.config, "chop_box_ticks", 0)))
+        self.chop_box_ticks = max(0, int(getattr(self.config, "chop_box_ticks", 4)))
         self.chop_silence_sec = max(
-            0.0, float(getattr(self.config, "chop_silence_sec", 0.0))
+            0.0, float(getattr(self.config, "chop_silence_sec", 60.0))
         )
         self._chop_box_center: Optional[float] = None
         self._chop_box_until: float = 0.0
@@ -1704,9 +1704,9 @@ class NautRunner:
         ts_ms = int(ts_ms_val)
         event_time = _format_epoch_hms(data_ts)
         if self._already_seen(symbol, ts_ms):
-            logger.debug(
-                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
-            )
+#            logger.debug(
+#                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
+#            )
             return
         if symbol in self.disabled_symbols:
             self._mark_seen(symbol, ts_ms)
@@ -1718,12 +1718,12 @@ class NautRunner:
             return
         cooldown_until = self.cooldown_until.get(symbol, 0.0)
         if data_ts < cooldown_until:
-            logger.debug(
-                "ENTRY veto by COOLDOWN: symbol=%s remaining=%.1fs",
-                symbol,
-                cooldown_until - data_ts,
-                extra=_log_extra(data_ts),
-            )
+#            logger.debug(
+#                "ENTRY veto by COOLDOWN: symbol=%s remaining=%.1fs",
+#                symbol,
+#                cooldown_until - data_ts,
+#                extra=_log_extra(data_ts),
+#            )
             self._mark_seen(symbol, ts_ms)
             self.signal_streak[symbol] = 0
             return

@@ -45,25 +45,41 @@ ACTION_EXIT = "exit"
 
 logger = logging.getLogger(__name__)
 
+def _fmt_market_ts(ts):
+    """data_ts(Unix秒/ミリ秒/None)を 'HH:MM:SS' に。未同期なら '' を返す。"""
+    if ts is None:
+        return ""
+    if ts > 1e12:  # ms → s
+        ts = ts / 1000.0
+    # 2000-01-01 未満は未同期扱い（1970 を抑止）
+    if ts < 946684800:
+        return ""
+    return datetime.fromtimestamp(ts, tz=JST).strftime("%H:%M:%S")
+
+def _log_with_ts(level, msg, data_ts=None):
+    t = _fmt_market_ts(data_ts)
+    if t:
+        logger.log(level, f"{t} {msg}")
+    else:
+        logger.log(level, msg)
+
+JST = timezone(timedelta(hours=9))
 class DataTimeFormatter(logging.Formatter):
-    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
-        candidate = getattr(record, "data_ts", None)
-        if candidate is None or (isinstance(candidate, (int, float)) and candidate <= 0):
-            candidate = _get_latest_data_ts()
+    def formatTime(self, record, datefmt=None):
+        ts = getattr(record, "data_ts", 0.0)
         try:
-            if candidate is not None:
-                dt = datetime.fromtimestamp(float(candidate))
-                return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
-        except (TypeError, ValueError, OSError):
-            pass
-        fallback = _get_latest_data_ts()
-        if fallback > 0:
-            try:
-                dt = datetime.fromtimestamp(fallback)
-                return dt.strftime(datefmt or "%Y-%m-%d %H:%M:%S")
-            except (TypeError, ValueError, OSError):
-                pass
-        return "1970-01-01 00:00:00"
+            ts = float(ts)
+        except (TypeError, ValueError):
+            ts = 0.0
+        # 2000-01-01 未満は未同期扱い → 時刻を出さない
+        if ts <= 0.0 or ts < 946684800:
+            return ""
+        return datetime.fromtimestamp(ts, tz=JST).strftime("%H:%M:%S")
+
+    def format(self, record):
+        # 通常のformatを使った後で余計な先頭スペースを削る
+        s = super().format(record)
+        return s.lstrip()  # ← これでasctimeが空の時に出る空白を消す
 
 
 _LATEST_DATA_TS: float = 0.0
@@ -424,17 +440,12 @@ def _format_epoch_hms(ts: Any) -> str:
         return "--:--:--"
 
 
-def _log_extra(data_ts: float) -> Dict[str, float]:
+def _log_extra(data_ts):
     try:
-        ts_val = float(data_ts)
+        ts = float(data_ts) if data_ts is not None else 0.0
     except (TypeError, ValueError):
-        ts_val = 0.0
-    if ts_val <= 0.0:
-        ts_val = _get_latest_data_ts()
-    if ts_val > 0.0:
-        _update_latest_data_ts(ts_val)
-        return {"data_ts": ts_val}
-    return {}
+        ts = 0.0
+    return {"data_ts": ts}
 
 
 def parse_current_price_time(raw: Any) -> Optional[float]:
@@ -860,7 +871,12 @@ class Policy:
             return float(value)
         return 0.0
 
-    def evaluate(self, symbol: str, row: Dict[str, Any]) -> PolicyDecision:
+    def evaluate(
+        self,
+        symbol: str,
+        row: Dict[str, Any],
+        data_ts: Optional[float] = None,
+    ) -> PolicyDecision:
         score = self._extract(row, ("score",))
         uptick = self._extract(row, ("uptick_ratio", "uptick", "f1"))
         downtick = self._extract(row, ("downtick_ratio", "downtick", "f2"))
@@ -895,7 +911,11 @@ class Policy:
             ctx.update({"volume": vol_now, "volume_min_floor": volume_min_floor})
             return PolicyDecision(False, reason="low_volume", context=ctx)
 
-        data_ts = self._row_timestamp(row)
+        supplied_ts = safe_float(data_ts) if data_ts is not None else None
+        if supplied_ts is not None and supplied_ts > 0.0:
+            data_ts_val = float(supplied_ts)
+        else:
+            data_ts_val = self._row_timestamp(row)
         price = self._extract(
             row, ("price", "close", "ask1", "ask", "bid1", "bid", "mid")
         )
@@ -930,10 +950,11 @@ class Policy:
             ask_sign_raw
         )
 
-        dq = self._push_vrate(symbol, volume_rate, data_ts)
+        dq = self._push_vrate(symbol, volume_rate, data_ts_val)
         if spike_triggered:
             blocked, lag, cur, peak = self._fade_blocked(dq)
             if blocked and lag > self._vr_maxlag:
+                tol_pct = self._vr_tol * 100.0
                 fade_context = dict(context)
                 fade_context.update(
                     {
@@ -945,11 +966,8 @@ class Policy:
                 )
                 logger.debug(
                     "ENTRY veto by volume fading: v_rate=%.2f peak=%.2f lag=%d tol=%.0f%%",
-                    cur,
-                    peak,
-                    lag,
-                    self._vr_tol * 100.0,
-                    extra=_log_extra(data_ts),
+                    cur, peak, lag, tol_pct,
+                    extra=_log_extra(data_ts_val),
                 )
                 return PolicyDecision(False, reason="volume_fading", context=fade_context)
 
@@ -961,18 +979,18 @@ class Policy:
                 and median_range is not None
                 and median_range > 0.0
                 and rng >= self.rx_k * median_range
-                and data_ts > 0.0
+                and data_ts_val > 0.0
             ):
-                self._rx_block_until[symbol] = data_ts + self.rx_cdsec
+                self._rx_block_until[symbol] = data_ts_val + self.rx_cdsec
                 logger.debug(
                     "Range explosion detected: rng=%.3f median=%.3f cooldown=%.1fs",
                     rng,
                     median_range,
                     self.rx_cdsec,
-                    extra=_log_extra(data_ts),
+                    extra=_log_extra(data_ts_val),
                 )
         block_until = self._rx_block_until.get(symbol, 0.0)
-        if block_until and (data_ts <= 0.0 or data_ts < block_until):
+        if block_until and (data_ts_val <= 0.0 or data_ts_val < block_until):
             ctx = dict(context)
             ctx.update(
                 {
@@ -985,7 +1003,7 @@ class Policy:
                 "ENTRY veto by range explode cooldown: until=%.3f rng=%.3f",
                 block_until,
                 rng,
-                extra=_log_extra(data_ts),
+                extra=_log_extra(data_ts_val),
             )
             return PolicyDecision(False, reason="range_explode_cooldown", context=ctx)
 
@@ -1006,7 +1024,7 @@ class Policy:
                     "ENTRY veto by VWAP extension: dev=%.4f limit=%.4f",
                     deviation,
                     self.ext_vwap_max_pct,
-                    extra=_log_extra(data_ts),
+                    extra=_log_extra(data_ts_val),
                 )
                 return PolicyDecision(False, reason="too_far_from_vwap", context=ctx)
 
@@ -1051,14 +1069,11 @@ class Policy:
                         "ask_sign": ask_sign_raw,
                     }
                 )
-#                logger.debug(
-#                    "ENTRY veto: pullback/rebreak unmet peak=%.3f price=%.3f ready=%s rebreak=%s",
-#                    peak_ref,
-#                    price,
-#                    ready,
-#                    rebreak,
-#                    extra=_log_extra(data_ts),
-#                )
+                logger.debug(
+                    "ENTRY veto: pullback/rebreak peak=%.3f price=%.3f ready=%s rebreak=%s",
+                    peak_ref, price, ready, rebreak,
+                    extra=_log_extra(data_ts_val),
+                )
                 if bar_hi is not None and bar_hi > peak_ref:
                     self._peak_hi[symbol] = float(bar_hi)
                     self._pullback_ready[symbol] = False
@@ -1674,14 +1689,14 @@ class NautRunner:
         self.entry_gate_reasons[symbol] = reason
         transition = f"{previous or 'none'} -> {reason}"
         event_time = _format_epoch_hms(data_ts)
-#        logger.debug(
-#            "ENTRY-GATE %s (%s) @%s: %s",
-#            transition,
-#            symbol,
-#            event_time,
-#            detail,
-#            extra=_log_extra(data_ts),
-#        )
+        logger.debug(
+            "ENTRY-GATE %s (%s) @%s: %s",
+            transition,
+            symbol,
+            event_time,
+            detail,
+            extra=_log_extra(data_ts),
+        )
 
     def _clear_entry_gate(self, symbol: str, data_ts: float) -> None:
         previous = self.entry_gate_reasons.get(symbol)
@@ -1704,9 +1719,9 @@ class NautRunner:
         ts_ms = int(ts_ms_val)
         event_time = _format_epoch_hms(data_ts)
         if self._already_seen(symbol, ts_ms):
-#            logger.debug(
-#                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
-#            )
+            logger.debug(
+                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
+            )
             return
         if symbol in self.disabled_symbols:
             self._mark_seen(symbol, ts_ms)
@@ -1718,12 +1733,12 @@ class NautRunner:
             return
         cooldown_until = self.cooldown_until.get(symbol, 0.0)
         if data_ts < cooldown_until:
-#            logger.debug(
-#                "ENTRY veto by COOLDOWN: symbol=%s remaining=%.1fs",
-#                symbol,
-#                cooldown_until - data_ts,
-#                extra=_log_extra(data_ts),
-#            )
+            logger.debug(
+                "ENTRY veto by COOLDOWN: symbol=%s remaining=%.1fs",
+                symbol,
+                cooldown_until - data_ts,
+                extra=_log_extra(data_ts),
+            )
             self._mark_seen(symbol, ts_ms)
             self.signal_streak[symbol] = 0
             return
@@ -1797,7 +1812,7 @@ class NautRunner:
                 and (data_ts - last_entry_ts) < self.config.signal_gap_sec
             ):
                 return
-        decision = self.policy.evaluate(symbol, row)
+        decision = self.policy.evaluate(symbol, row, data_ts)
         if not decision.should_enter:
             self.signal_streak[symbol] = 0
             return
@@ -2031,17 +2046,13 @@ def configure_logging(log_path: str, verbose: bool) -> None:
     ensure_parent_dir(log_path)
     level = logging.DEBUG if verbose else logging.INFO
     fmt = "%(asctime)s %(levelname)s %(message)s"
-    formatter = DataTimeFormatter(fmt)
-    file_handler = logging.FileHandler(log_path, encoding="utf-8")
-    stream_handler = logging.StreamHandler(sys.stdout)
-    file_handler.setFormatter(formatter)
-    stream_handler.setFormatter(formatter)
-    logging.basicConfig(
-        level=level,
-        handlers=[file_handler, stream_handler],
-        force=True,
-    )
+    formatter = DataTimeFormatter(fmt) 
+    fh = logging.FileHandler(log_path, encoding="utf-8")
+    sh = logging.StreamHandler(sys.stdout)
+    fh.setFormatter(formatter)
+    sh.setFormatter(formatter)
 
+    logging.basicConfig(level=level, handlers=[fh, sh], force=True)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Naut Runner IFDOCO executor")

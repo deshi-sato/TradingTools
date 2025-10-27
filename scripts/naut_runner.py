@@ -120,8 +120,31 @@ def _load_json_optional(path_str: str) -> dict:
         logger.exception("Failed to load policy JSON: %s", p)
         return {}
 
+from dataclasses import fields, replace
 
-def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
+def _apply_policy_overrides(cfg: RunnerConfig, pol: Dict[str, Any]) -> RunnerConfig:
+    if not pol:
+        return cfg
+
+    # dataclass定義から “上書き可” のフィールド名集合を作る
+    overridable = {
+        f.name for f in fields(RunnerConfig)
+        if f.metadata.get("overridable", True)  # 明示False以外は可
+    }
+
+    updates, changed = {}, []
+    for k, v in pol.items():
+        if v is None or k not in overridable or not hasattr(cfg, k):
+            continue
+        old = getattr(cfg, k)
+        if old != v:
+            updates[k] = v
+            changed.append(f"{k}:{old}->{v}")
+
+    if updates:
+        logger.info("Policy overrides: %s", ", ".join(changed))
+        return replace(cfg, **updates)   # frozen対策：新インスタンス
+    return cfg
     # policy.json overrides applied on top of config defaults
     lot_size = safe_int(pol.get("lot_size"))
     min_qty = safe_int(pol.get("min_qty"))
@@ -406,6 +429,9 @@ class RunnerConfig:
     cooldown_after_stop_sec: float = 30.0
     chop_box_ticks: int = 4
     chop_silence_sec: float = 30.0
+    momentum_quality_min: float = field(default=6.0, metadata={"overridable": False})
+    breakout_confirm_bars: int = field(default=3,   metadata={"overridable": False})
+    breakout_hold_tolerance: float = 0.004
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -656,6 +682,12 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     chop_silence_sec = safe_float(payload.get("chop_silence_sec"), 60.0)
     if chop_silence_sec is None or chop_silence_sec < 0.0:
         chop_silence_sec = 60.0
+    momentum_quality_min = safe_float(payload.get("momentum_quality_min"), 6.0)
+    if momentum_quality_min is None or momentum_quality_min < 0.0:
+        momentum_quality_min = 6.0
+    breakout_confirm_bars = safe_int(payload.get("breakout_confirm_bars"), 3)
+    if breakout_confirm_bars is None or breakout_confirm_bars < 0:
+        breakout_confirm_bars = 3
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -705,6 +737,8 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         cooldown_after_stop_sec=float(cooldown_after_stop_sec),
         chop_box_ticks=int(chop_box_ticks),
         chop_silence_sec=float(chop_silence_sec),
+        momentum_quality_min=float(momentum_quality_min),
+        breakout_confirm_bars=int(breakout_confirm_bars),
     )
 
 
@@ -809,12 +843,24 @@ class Policy:
         )
         self.pb_ticks = max(0, int(getattr(config, "pullback_ticks", 2)))
         self.pb_rebr = max(0, int(getattr(config, "pullback_rebreak_ticks", 1)))
+        self.momentum_quality_min = max(
+            0.0, float(getattr(config, "momentum_quality_min", 6.0))
+        )
+        self.breakout_confirm_bars = max(
+            0, int(getattr(config, "breakout_confirm_bars", 3))
+        )
+        self.breakout_hold_tolerance = float(getattr(config, "breakout_hold_tolerance", 0.004))
 
         self._vr_hist: Dict[str, Deque[Tuple[float, float]]] = {}
         self._ranges: Dict[str, Deque[float]] = {}
         self._rx_block_until: Dict[str, float] = {}
         self._peak_hi: Dict[str, float] = {}
         self._pullback_ready: Dict[str, bool] = {}
+        self._volume_hist_simple: Dict[str, Deque[float]] = {}
+        self._close_hist: Dict[str, Deque[float]] = {}
+        self._uptick_streak: Dict[str, int] = {}
+        self._last_close: Dict[str, Optional[float]] = {}
+        self._recent_high: Dict[str, float] = {}
 
     @property
     def cooldown_sec(self) -> float:
@@ -923,6 +969,11 @@ class Policy:
             price = ask_px if ask_px is not None else bid_px
         if price is not None:
             context["price"] = price
+        close_px = safe_float(row.get("close"))
+        if close_px is None:
+            close_px = price
+        if close_px is not None:
+            context["close"] = close_px
 
         bar_hi = self._extract(row, ("bar_high", "high"))
         if bar_hi is None:
@@ -931,6 +982,41 @@ class Policy:
         if bar_lo is None:
             bar_lo = price if price is not None else bid_px or ask_px
         tick = max(float(self.config.tick_size), 0.0)
+
+        volume_hist = self._dq(self._volume_hist_simple, symbol, self._vr_win)
+        v_rate_calc: Optional[float] = None
+        if vol_now is not None:
+            if volume_hist:
+                avg_volume = sum(volume_hist) / len(volume_hist)
+                if avg_volume > 0.0:
+                    v_rate_calc = float(vol_now) / avg_volume
+            volume_hist.append(float(vol_now))
+        close_hist = self._dq(self._close_hist, symbol, self.breakout_confirm_bars)
+        last_close_val = self._last_close.get(symbol)
+        streak_prev = self._uptick_streak.get(symbol, 0)
+        streak_new = streak_prev
+        if close_px is not None:
+            if last_close_val is not None:
+                if close_px > last_close_val:
+                    streak_new = streak_prev + 1 if streak_prev > 0 else 1
+                elif close_px < last_close_val:
+                    streak_new = 0
+            else:
+                streak_new = 0
+            self._last_close[symbol] = close_px
+            close_hist.append(float(close_px))
+        self._uptick_streak[symbol] = streak_new
+        uptick_count = streak_new
+        candidate_high = bar_hi if bar_hi is not None else price
+        if candidate_high is not None:
+            current_high = float(candidate_high)
+            stored_high = self._recent_high.get(symbol)
+            if stored_high is None or current_high > stored_high:
+                self._recent_high[symbol] = current_high
+        recent_high = self._recent_high.get(symbol)
+        mean_close: Optional[float] = None
+        if close_hist and len(close_hist) == self.breakout_confirm_bars:
+            mean_close = sum(close_hist) / len(close_hist)
 
         rng = 0.0
         if bar_hi is not None and bar_lo is not None:
@@ -1088,6 +1174,65 @@ class Policy:
                 self._peak_hi[symbol] = float(bar_hi)
                 if self.pb_ticks > 0:
                     self._pullback_ready[symbol] = False
+
+        if v_rate_calc is not None:
+            context["momentum_v_rate"] = v_rate_calc
+        context["momentum_upticks"] = uptick_count
+        if mean_close is not None:
+            context["breakout_mean_close"] = mean_close
+        if recent_high is not None:
+            context["breakout_recent_high"] = recent_high
+
+        momentum_score: Optional[float] = None
+        if (
+            self.momentum_quality_min > 0.0
+            and v_rate_calc is not None
+        ):
+            momentum_score = v_rate_calc * float(max(uptick_count, 0))
+            if momentum_score < self.momentum_quality_min:
+                ctx = dict(context)
+                ctx.update(
+                    {
+                        "momentum_v_rate": v_rate_calc,
+                        "momentum_upticks": uptick_count,
+                        "momentum_score": momentum_score,
+                        "momentum_quality_min": self.momentum_quality_min,
+                    }
+                )
+                logger.debug(
+                    "ENTRY veto by momentum_quality: v_rate=%.2f upticks=%d score=%.2f thr=%.2f",
+                    v_rate_calc,
+                    uptick_count,
+                    momentum_score,
+                    self.momentum_quality_min,
+                    extra=_log_extra(data_ts_val),
+                )
+                return PolicyDecision(False, reason="momentum_quality", context=ctx)
+        if momentum_score is not None:
+            context["momentum_score"] = momentum_score
+
+        if (
+            self.breakout_confirm_bars > 0
+            and mean_close is not None
+            and recent_high is not None
+            and mean_close <= recent_high * (1 - self.breakout_hold_tolerance)
+        ):
+            ctx = dict(context)
+            ctx.update(
+                {
+                    "breakout_mean_close": mean_close,
+                    "breakout_recent_high": recent_high,
+                    "breakout_confirm_bars": self.breakout_confirm_bars,
+                }
+            )
+            logger.debug(
+                "ENTRY veto by breakout_hold: mean_close=%.3f high=%.3f N=%d",
+                mean_close,
+                recent_high,
+                self.breakout_confirm_bars,
+                extra=_log_extra(data_ts_val),
+            )
+            return PolicyDecision(False, reason="breakout_hold", context=ctx)
 
         spread_val = float("inf") if spread is None else spread
 
@@ -1365,6 +1510,8 @@ class NautRunner:
         self.last_stats_log = 0.0
         self.profile = policy.profile
         self.loss_limit_engaged = False
+        self.session_start_ts: float | None = None
+        self.session_end_ts: float | None = None
 
     def _should_seek_tail(self) -> bool:
         if self.broker_label == "live":
@@ -1426,6 +1573,7 @@ class NautRunner:
 
     def run(self) -> None:
         logger.info("Runner loop start symbol=%s", ",".join(self.display_symbols))
+        self.session_start_ts = time.time()
         symbol = self.symbol
         try:
             while not self.stop_requested:
@@ -2041,6 +2189,92 @@ class NautRunner:
         }
         self.last_stats_log = data_ts
 
+    def show_summary(self, start_ts: float | None = None, end_ts: float | None = None):
+        """指定した時間範囲だけを集計して表示（paper_pairs テーブル対応）"""
+        import sqlite3
+        from statistics import mean
+
+        db_path = Path(self.config.ops_db)
+        if not db_path.exists():
+            logger.warning(f"DB not found: {db_path}")
+            return
+
+        # 範囲デフォルト（念のため）
+        if start_ts is None:
+            start_ts = 0.0
+        if end_ts is None:
+            end_ts = time.time()
+        start_ms = int(start_ts * 1000)
+        end_ms   = int(end_ts * 1000)
+
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+
+        # 決済済みトレード（実現損益あり）のみ集計
+        c.execute(
+            """
+            SELECT symbol, side, realized_pnl, exit_reason
+            FROM paper_pairs
+            WHERE realized_pnl IS NOT NULL
+            AND opened_at >= ?
+            AND closed_at <= ?
+            """,
+            (start_ms, end_ms),
+        )
+        rows = c.fetchall()
+
+        # 期間内にオープンして未決済の件数（参考）
+        c.execute(
+            """
+            SELECT COUNT(1)
+            FROM paper_pairs
+            WHERE realized_pnl IS NULL
+            AND opened_at >= ?
+            AND (closed_at IS NULL OR closed_at > ?)
+            """,
+            (start_ms, end_ms),
+        )
+        open_cnt = c.fetchone()[0] or 0
+
+        conn.close()
+
+        # 集計
+        if not rows:
+            logger.info("=" * 48)
+            logger.info("📊 Session Summary (window only)")
+            logger.info(f"Window: [{start_ts:.0f} .. {end_ts:.0f}]")
+            logger.info("No closed trades in the window.")
+            if open_cnt:
+                logger.info(f"Open (unclosed) trades in window: {open_cnt}")
+            logger.info("=" * 48)
+            return
+
+        n_trades = len(rows)
+        wins   = [p for (_sym, _side, p, _r) in rows if p > 0]
+        losses = [p for (_sym, _side, p, _r) in rows if p <= 0]
+        ev = mean([p for (_sym, _side, p, _r) in rows])
+        win_rate = (len(wins) / n_trades * 100.0) if n_trades else 0.0
+
+        by_symbol: dict[str, list[float]] = {}
+        for sym, _side, pnl, _r in rows:
+            by_symbol.setdefault(sym, []).append(pnl)
+
+        logger.info("=" * 48)
+        logger.info("📊 Session Summary (window only)")
+        logger.info(f"Window: [{start_ts:.0f} .. {end_ts:.0f}]")
+        logger.info(f"Total trades : {n_trades}")
+        logger.info(f"Win rate     : {win_rate:.1f}%")
+        logger.info(f"Average EV   : {ev:.2f}")
+        if wins and losses:
+            from statistics import mean as _mean
+            logger.info(f"Avg win/loss : {_mean(wins):.2f} / {_mean(losses):.2f}")
+        for sym, plist in by_symbol.items():
+            from statistics import mean as _mean
+            logger.info(f"  {sym}: {len(plist)} trades, EV={_mean(plist):.2f}")
+        if open_cnt:
+            logger.info(f"Open (unclosed) trades in window: {open_cnt}")
+        logger.info("=" * 48)
+
 
 def configure_logging(log_path: str, verbose: bool) -> None:
     ensure_parent_dir(log_path)
@@ -2186,7 +2420,11 @@ def main() -> None:
         runner.run()
     except KeyboardInterrupt:
         logger.info("Runner stop requested by KeyboardInterrupt")
+        runner.session_end_ts = time.time()
     finally:
+        if runner.session_end_ts is None:
+            runner.session_end_ts = time.time()
+        runner.show_summary(start_ts=runner.session_start_ts, end_ts=runner.session_end_ts)
         runner.shutdown()
 
 

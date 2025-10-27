@@ -432,6 +432,9 @@ class RunnerConfig:
     momentum_quality_min: float = field(default=6.0, metadata={"overridable": False})
     breakout_confirm_bars: int = field(default=3,   metadata={"overridable": False})
     breakout_hold_tolerance: float = 0.004
+    feature_source: str = "features_stream"
+    fe_window_secs: int = 60
+    fe_fast_n: int = 12
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -688,6 +691,18 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     breakout_confirm_bars = safe_int(payload.get("breakout_confirm_bars"), 3)
     if breakout_confirm_bars is None or breakout_confirm_bars < 0:
         breakout_confirm_bars = 3
+    breakout_hold_tolerance = safe_float(payload.get("breakout_hold_tolerance"), 0.004)
+    if breakout_hold_tolerance is None or breakout_hold_tolerance < 0.0:
+        breakout_hold_tolerance = 0.004
+    feature_source_raw = str(payload.get("feature_source", "features_stream") or "features_stream").strip().lower()
+    if feature_source_raw not in {"features_stream", "raw_push"}:
+        feature_source_raw = "features_stream"
+    fe_window_secs_val = safe_int(payload.get("fe_window_secs"), 60)
+    if fe_window_secs_val is None or fe_window_secs_val <= 0:
+        fe_window_secs_val = 60
+    fe_fast_n_val = safe_int(payload.get("fe_fast_n"), 12)
+    if fe_fast_n_val is None or fe_fast_n_val <= 0:
+        fe_fast_n_val = 12
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -739,6 +754,10 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         chop_silence_sec=float(chop_silence_sec),
         momentum_quality_min=float(momentum_quality_min),
         breakout_confirm_bars=int(breakout_confirm_bars),
+        breakout_hold_tolerance=float(breakout_hold_tolerance),
+        feature_source=feature_source_raw,
+        fe_window_secs=int(fe_window_secs_val),
+        fe_fast_n=int(fe_fast_n_val),
     )
 
 
@@ -946,6 +965,30 @@ class Policy:
             "bid_px": bid_px,
         }
 
+        ref_px = ask_px if ask_px is not None else bid_px
+        row_mean_close = self._extract(row, ("mean_close",))
+        row_recent_high = self._extract(row, ("recent_high",))
+        raw_mode = str(getattr(self.config, "feature_source", "features_stream")).lower() == "raw_push"
+        if raw_mode:
+            tick_for_spread = max(float(getattr(self.config, "tick_size", 0.0)), 0.0)
+            tick_baseline = tick_for_spread if tick_for_spread > 0.0 else 1.0
+            if spread is None and ask_px is not None and bid_px is not None:
+                spread = max(0.0, (ask_px - bid_px) / tick_baseline)
+            if score is None and row_mean_close is not None and ref_px is not None:
+                score = abs(ref_px - row_mean_close) / tick_baseline
+            if score is None and row_recent_high is not None and row_mean_close is not None:
+                score = abs(row_recent_high - row_mean_close) / tick_baseline
+            if score is None:
+                score = float(self.profile.score_thr_abs)
+            if uptick is None and row_mean_close is not None and ref_px is not None:
+                uptick = max(0.0, (ref_px - row_mean_close) / tick_baseline)
+            if downtick is None and row_mean_close is not None and bid_px is not None:
+                downtick = max(0.0, (row_mean_close - bid_px) / tick_baseline)
+            context["score"] = score
+            context["uptick_ratio"] = uptick
+            context["downtick_ratio"] = downtick
+            context["spread_ticks"] = spread
+
         if volume_rate is None:
             ctx = dict(context)
             return PolicyDecision(False, reason="no_volume_rate", context=ctx)
@@ -1014,9 +1057,13 @@ class Policy:
             if stored_high is None or current_high > stored_high:
                 self._recent_high[symbol] = current_high
         recent_high = self._recent_high.get(symbol)
+        if recent_high is None and row_recent_high is not None:
+            recent_high = float(row_recent_high)
         mean_close: Optional[float] = None
         if close_hist and len(close_hist) == self.breakout_confirm_bars:
             mean_close = sum(close_hist) / len(close_hist)
+        if mean_close is None and row_mean_close is not None:
+            mean_close = float(row_mean_close)
 
         rng = 0.0
         if bar_hi is not None and bar_lo is not None:
@@ -1351,21 +1398,242 @@ class Policy:
         return None
 
 
-class FeaturePoller:
-    def __init__(self, db_path: str, table: str = "features_stream"):
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
-        self.conn.row_factory = sqlite3.Row
-        self.table = table
-        try:
-            self.conn.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_{self.table}_symbol_ts ON {self.table}(symbol, t_exec)"
-            )
-        except Exception:
-            logger.debug("FeaturePoller index ensure failed", exc_info=True)
+def stream_raw_ticks(
+    conn: sqlite3.Connection,
+    symbols: Iterable[str],
+    start_ts: float,
+    ts_column: str,
+    limit: int = 1000,
+) -> List[Dict[str, Any]]:
+    start_val = safe_float(start_ts, 0.0) or 0.0
+    symbol_list = [str(sym) for sym in symbols if sym]
+    params: List[Any] = [start_val]
+    placeholders = ""
+    if symbol_list:
+        placeholders = ",".join("?" for _ in symbol_list)
+        params.extend(symbol_list)
+    order_column = ts_column or "t_recv"
+    clause = f" AND symbol IN ({placeholders})" if placeholders else ""
+    params.append(max(1, int(limit)))
+    query = f"""
+        SELECT symbol, payload, {order_column} AS ts, t_recv
+        FROM raw_push
+        WHERE {order_column} > ?{clause}
+        ORDER BY {order_column} ASC
+        LIMIT ?
+    """
+    rows: List[Dict[str, Any]] = []
+    try:
+        cur = conn.execute(query, params)
+    except Exception:
+        logger.debug("stream_raw_ticks query failed ts_col=%s", order_column, exc_info=True)
+        return rows
+    for symbol, payload, ts_val, t_recv in cur:
+        rows.append(
+            {
+                "symbol": symbol,
+                "payload": payload,
+                "ts": safe_float(ts_val),
+                "t_recv": safe_float(t_recv),
+            }
+        )
+    return rows
 
-    def fetch_since(
-        self, symbol: str, last_ts: float, limit: int = 500
-    ) -> List[Dict[str, Any]]:
+
+class FeatureExtractor:
+    def __init__(self, cfg: RunnerConfig):
+        self.win_secs = max(1, int(getattr(cfg, "fe_window_secs", 60)))
+        self.fast_n = max(1, int(getattr(cfg, "fe_fast_n", 12)))
+        self.state: Dict[str, Dict[str, Any]] = {}
+
+    def push_tick(
+        self, symbol: str, price: float, qty: float, ts: float
+    ) -> Optional[Dict[str, Any]]:
+        price_val = safe_float(price)
+        ts_val = safe_float(ts)
+        if price_val is None or ts_val is None:
+            return None
+        qty_val = safe_float(qty, 0.0) or 0.0
+        bucket = self.state.setdefault(
+            symbol,
+            {
+                "ticks": deque(),  # type: ignore[misc]
+                "prices": deque(maxlen=self.fast_n),  # type: ignore[misc]
+                "qty_sum": 0.0,
+            },
+        )
+        ticks: Deque[Tuple[float, float, float]] = bucket["ticks"]
+        prices: Deque[float] = bucket["prices"]
+        qty_sum = float(bucket["qty_sum"]) + float(qty_val)
+        ticks.append((ts_val, price_val, float(qty_val)))
+        prices.append(price_val)
+        cutoff = ts_val - self.win_secs
+        while ticks and ticks[0][0] < cutoff:
+            _, _, old_qty = ticks.popleft()
+            qty_sum -= float(old_qty or 0.0)
+        qty_sum = max(qty_sum, 0.0)
+        bucket["qty_sum"] = qty_sum
+        if len(prices) < self.fast_n or not ticks:
+            return None
+        duration = ts_val - ticks[0][0]
+        if duration <= 0.0:
+            return None
+        duration = max(duration, 1e-6)
+        recent_high = max(item[1] for item in ticks)
+        mean_close = sum(prices) / len(prices)
+        v_rate = qty_sum / duration
+        return {
+            "symbol": symbol,
+            "ts": ts_val,
+            "mean_close": mean_close,
+            "recent_high": recent_high,
+            "v_rate": v_rate,
+        }
+
+
+class RawPushFeatures:
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        symbols: Iterable[str],
+        start_ts: float,
+        extractor: FeatureExtractor,
+        cfg: RunnerConfig,
+        ts_column: str,
+    ):
+        self.conn = conn
+        self.symbols = list(symbols or [])
+        self.start_ts = float(start_ts or 0.0)
+        self.ext = extractor
+        self.cfg = cfg
+        self.ts_column = ts_column or "t_recv"
+        self._last_volume: Dict[str, float] = {}
+
+    def iter_feats(self, limit: int = 1000) -> List[Dict[str, Any]]:
+        rows = stream_raw_ticks(
+            self.conn,
+            self.symbols,
+            self.start_ts,
+            self.ts_column,
+            max(1, int(limit)),
+        )
+        if not rows:
+            return []
+        results: List[Dict[str, Any]] = []
+        tick_size_val = safe_float(getattr(self.cfg, "tick_size", 0.0), 0.0) or 0.0
+        symbol_label = ",".join(self.symbols) if self.symbols else "*"
+        for raw in rows:
+            symbol = raw.get("symbol")
+            payload = raw.get("payload")
+            if not symbol or payload is None:
+                continue
+            try:
+                data = json.loads(payload)
+            except json.JSONDecodeError:
+                logger.debug("raw_push decode failed symbol=%s", symbol)
+                continue
+            price = safe_float(data.get("CurrentPrice"))
+            if price is None:
+                continue
+            bid = safe_float(data.get("BidPrice"), price)
+            ask = safe_float(data.get("AskPrice"), price)
+            source_ts = safe_float(raw.get("ts"))
+            recv_ts = safe_float(raw.get("t_recv"), source_ts)
+            event_ts = parse_current_price_time(data.get("CurrentPriceTime"))
+            if event_ts is None:
+                event_ts = source_ts if source_ts is not None else recv_ts
+            if event_ts is None:
+                continue
+            qty = self._compute_qty(symbol, data)
+            feat = self.ext.push_tick(symbol, price, qty, event_ts)
+            if not feat:
+                continue
+            volume_total = safe_float(data.get("TradingVolume"))
+            result: Dict[str, Any] = {
+                "symbol": symbol,
+                "price": price,
+                "close": price,
+                "last_price": price,
+                "bid": bid if bid is not None else price,
+                "ask": ask if ask is not None else price,
+                "bid1": bid if bid is not None else price,
+                "ask1": ask if ask is not None else price,
+                "bidqty1": safe_float(data.get("BidQty")),
+                "askqty1": safe_float(data.get("AskQty")),
+                "BidSign": data.get("BidSign"),
+                "AskSign": data.get("AskSign"),
+                "BidTime": data.get("BidTime"),
+                "AskTime": data.get("AskTime"),
+                "CurrentPriceTime": data.get("CurrentPriceTime"),
+                "qty": qty,
+                "volume": volume_total if volume_total is not None else qty,
+                "TradingVolume": volume_total,
+                "t_exec": feat["ts"],
+                "ts": feat["ts"],
+                "ts_ms": int(feat["ts"] * 1000),
+                "mean_close": feat["mean_close"],
+                "recent_high": feat["recent_high"],
+                "v_rate": feat["v_rate"],
+                "_poll_ts": source_ts if source_ts is not None else feat["ts"],
+                "t_recv": recv_ts if recv_ts is not None else feat["ts"],
+            }
+            if (
+                bid is not None
+                and ask is not None
+                and tick_size_val is not None
+                and tick_size_val > 0.0
+            ):
+                spread_ticks = max(0.0, (ask - bid) / tick_size_val)
+                result["spread_ticks"] = spread_ticks
+            results.append(result)
+        last_source = max(
+            safe_float(row.get("ts")) or safe_float(row.get("t_recv")) or 0.0
+            for row in rows
+        )
+        if last_source > 0.0:
+            self.start_ts = last_source
+        if results and logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "raw_push feats=%d symbols=%s next_start=%.6f",
+                len(results),
+                symbol_label,
+                self.start_ts,
+            )
+        return results
+
+    def _compute_qty(self, symbol: str, payload: Dict[str, Any]) -> float:
+        volume_total = safe_float(payload.get("TradingVolume"))
+        if volume_total is not None:
+            prev = self._last_volume.get(symbol)
+            self._last_volume[symbol] = float(volume_total)
+            if prev is None or volume_total < prev:
+                return 0.0
+            delta = float(volume_total) - float(prev)
+            if delta < 0.0:
+                return 0.0
+            return delta
+        buy_qty = safe_float(payload.get("MarketOrderBuyQty"), 0.0) or 0.0
+        sell_qty = safe_float(payload.get("MarketOrderSellQty"), 0.0) or 0.0
+        return float(buy_qty) + float(sell_qty)
+
+
+class DBFeaturesStream:
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        symbols: Iterable[str],
+        start_ts: float,
+        limit: int,
+    ):
+        self.conn = conn
+        self.symbols = list(symbols or [])
+        self.start_ts = float(start_ts or 0.0)
+        self.limit = max(1, int(limit))
+
+    def iter_feats(self) -> List[Dict[str, Any]]:
+        if not self.symbols:
+            return []
+        symbol = self.symbols[0]
         query = """
         SELECT fs.*,
             json_extract(r.payload, '$.BidSign') AS BidSign,
@@ -1375,18 +1643,102 @@ class FeaturePoller:
             json_extract(r.payload, '$.CurrentPriceTime') AS CurrentPriceTime
         FROM features_stream AS fs
         LEFT JOIN raw_push AS r
-        ON r.symbol = fs.symbol
-        AND r.t_recv = (
-        SELECT t_recv FROM raw_push
-        WHERE symbol = fs.symbol AND t_recv <= fs.t_exec
-        ORDER BY t_recv DESC LIMIT 1
-        )
+            ON r.symbol = fs.symbol
+           AND r.t_recv = (
+                SELECT t_recv FROM raw_push
+                WHERE symbol = fs.symbol AND t_recv <= fs.t_exec
+                ORDER BY t_recv DESC LIMIT 1
+           )
         WHERE fs.symbol=? AND fs.t_exec>?
         ORDER BY fs.t_exec ASC
         LIMIT ?
         """
-        cur = self.conn.execute(query, (symbol, last_ts, limit))
-        return [dict(row) for row in cur.fetchall()]
+        cur = self.conn.execute(query, (symbol, self.start_ts, self.limit))
+        rows = [dict(row) for row in cur.fetchall()]
+        if rows:
+            last_exec = max(
+                safe_float(r.get("t_exec")) or 0.0
+                for r in rows
+            )
+            if last_exec > 0.0:
+                self.start_ts = last_exec
+            for row in rows:
+                if "_poll_ts" not in row:
+                    row["_poll_ts"] = safe_float(row.get("t_exec"))
+        return rows
+
+
+class FeaturePoller:
+    def __init__(
+        self,
+        db_path: str,
+        config: RunnerConfig,
+        symbols: Iterable[str],
+    ):
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn.row_factory = sqlite3.Row
+        self.config = config
+        self.symbols = list(symbols or [])
+        source = str(getattr(config, "feature_source", "features_stream") or "features_stream").lower()
+        if source not in {"features_stream", "raw_push"}:
+            source = "features_stream"
+        self.source = source
+        self.table = "features_stream"
+        self.raw_stream: Optional[RawPushFeatures] = None
+        self._raw_ts_column = "t_recv"
+        if self.source == "raw_push":
+            self._raw_ts_column = self._detect_raw_ts_column()
+            extractor = FeatureExtractor(config)
+            self.raw_stream = RawPushFeatures(
+                self.conn,
+                self.symbols,
+                0.0,
+                extractor,
+                config,
+                self._raw_ts_column,
+            )
+            if self._raw_ts_column == "ts":
+                self._ensure_index(
+                    "CREATE INDEX IF NOT EXISTS idx_raw_push_sym_ts ON raw_push(symbol, ts)"
+                )
+            else:
+                self._ensure_index(
+                    "CREATE INDEX IF NOT EXISTS idx_raw_push_symbol_recv ON raw_push(symbol, t_recv)"
+                )
+        else:
+            self._ensure_index(
+                "CREATE INDEX IF NOT EXISTS idx_features_stream_symbol_ts ON features_stream(symbol, t_exec)"
+            )
+
+    def _ensure_index(self, sql: str) -> None:
+        try:
+            self.conn.execute(sql)
+        except Exception:
+            logger.debug("FeaturePoller index ensure failed sql=%s", sql, exc_info=True)
+
+    def _table_columns(self, table: str) -> Set[str]:
+        try:
+            cur = self.conn.execute(f"PRAGMA table_info({table})")
+        except Exception:
+            return set()
+        return {row[1] for row in cur.fetchall()}
+
+    def _detect_raw_ts_column(self) -> str:
+        columns = self._table_columns("raw_push")
+        return "ts" if "ts" in columns else "t_recv"
+
+    def fetch_since(
+        self, symbol: str, last_ts: float, limit: int = 500
+    ) -> List[Dict[str, Any]]:
+        if self.source == "raw_push":
+            if not self.raw_stream:
+                return []
+            target_symbols = [symbol] if symbol else []
+            self.raw_stream.symbols = target_symbols
+            self.raw_stream.start_ts = safe_float(last_ts, 0.0) or 0.0
+            return self.raw_stream.iter_feats(limit=max(1000, limit))
+        stream = DBFeaturesStream(self.conn, [symbol], last_ts, limit)
+        return stream.iter_feats()
 
     def close(self) -> None:
         try:
@@ -1396,10 +1748,23 @@ class FeaturePoller:
 
     def latest_timestamps(self, symbols: Iterable[str]) -> Dict[str, float]:
         latest: Dict[str, float] = {}
+        if self.source == "raw_push":
+            column = self._raw_ts_column or "t_recv"
+            for sym in symbols:
+                try:
+                    cur = self.conn.execute(
+                        f"SELECT MAX({column}) FROM raw_push WHERE symbol=?",
+                        (sym,),
+                    )
+                    row = cur.fetchone()
+                    latest[sym] = float(row[0]) if row and row[0] is not None else 0.0
+                except Exception:
+                    latest[sym] = 0.0
+            return latest
         for sym in symbols:
             try:
                 cur = self.conn.execute(
-                    f"SELECT MAX(t_exec) FROM {self.table} WHERE symbol=?",
+                    "SELECT MAX(t_exec) FROM features_stream WHERE symbol=?",
                     (sym,),
                 )
                 row = cur.fetchone()
@@ -1595,7 +1960,10 @@ class NautRunner:
                         row_exec_ts = safe_float(row.get("t_exec"))
                         if row_exec_ts is None:
                             row_exec_ts = data_ts
-                        self.last_ts[symbol] = max(self.last_ts[symbol], row_exec_ts)
+                        poll_ts = safe_float(row.get("_poll_ts"))
+                        if poll_ts is None:
+                            poll_ts = row_exec_ts
+                        self.last_ts[symbol] = max(self.last_ts[symbol], poll_ts)
                         self.stats["polled"] += 1
                         self._mark_positions(symbol, row)
                         self._check_flatten(data_ts)
@@ -2204,8 +2572,8 @@ class NautRunner:
             start_ts = 0.0
         if end_ts is None:
             end_ts = time.time()
-        start_ms = int(start_ts * 1000)
-        end_ms   = int(end_ts * 1000)
+        start_bound = float(start_ts)
+        end_bound = float(end_ts)
 
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -2219,7 +2587,7 @@ class NautRunner:
             AND opened_at >= ?
             AND closed_at <= ?
             """,
-            (start_ms, end_ms),
+            (start_bound, end_bound),
         )
         rows = c.fetchall()
 
@@ -2232,7 +2600,7 @@ class NautRunner:
             AND opened_at >= ?
             AND (closed_at IS NULL OR closed_at > ?)
             """,
-            (start_ms, end_ms),
+            (start_bound, end_bound),
         )
         open_cnt = c.fetchone()[0] or 0
 
@@ -2313,6 +2681,12 @@ def main() -> None:
     parser.add_argument("--config", required=True, help="Runner config JSON")
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=0)
     parser.add_argument(
+        "--feature-source",
+        choices=["features_stream", "raw_push"],
+        default=None,
+        help="Override feature source backend (config default when omitted).",
+    )
+    parser.add_argument(
         "--replay-from-start",
         action="store_true",
         help="In paper mode, read features_stream from the beginning instead of tail.",
@@ -2336,6 +2710,8 @@ def main() -> None:
 
     config_path = Path(resolve_path(args.config))
     runner_config = load_runner_config(config_path)
+    if args.feature_source:
+        runner_config = replace(runner_config, feature_source=args.feature_source)
     active_symbol = runner_config.symbols[0]
     threshold_path = resolve_threshold_path(active_symbol, args.thr)
     policy_dict = _load_json_optional(args.policy)
@@ -2359,6 +2735,12 @@ def main() -> None:
             runner_config.initial_cash,
         )
     configure_logging(runner_config.log_path, bool(args.verbose))
+    logger.info(
+        "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
+        runner_config.feature_source,
+        runner_config.fe_window_secs,
+        runner_config.fe_fast_n,
+    )
     if args.broker == "paper" and runner_config.market_window:
         logger.info(
             "Ignoring market_window config in paper mode: %s",
@@ -2378,7 +2760,9 @@ def main() -> None:
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
 
-    poller = FeaturePoller(runner_config.features_db)
+    poller = FeaturePoller(
+        runner_config.features_db, runner_config, runner_config.symbols
+    )
     ledger = Ledger(runner_config)
     policy = Policy(threshold_profile, runner_config)
     trade_logger = TradeLogger(runner_config.ops_db)

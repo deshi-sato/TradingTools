@@ -11,5 +11,7 @@ C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
     --thr $ThresholdPath `
     --config $ConfigPath `
     --policy $PolicyPath `
-    --verbose 0 `
+    --verbose 1 `
     --replay-from-start
+
+    --feature-source raw_push `

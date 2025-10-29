@@ -122,121 +122,41 @@ def _load_json_optional(path_str: str) -> dict:
 
 from dataclasses import fields, replace
 
-def _apply_policy_overrides(cfg: RunnerConfig, pol: Dict[str, Any]) -> RunnerConfig:
-    if not pol:
-        return cfg
+def _apply_policy_overrides(cfg: RunnerConfig, pol: dict) -> RunnerConfig:
+    updates = {}
 
-    # dataclass定義から “上書き可” のフィールド名集合を作る
-    overridable = {
-        f.name for f in fields(RunnerConfig)
-        if f.metadata.get("overridable", True)  # 明示False以外は可
-    }
+    # ここで型をそろえて updates に詰める（coalesce はこの段階で実施）
+    def f(key, default):
+        v = pol.get(key)
+        return default if v is None else float(v)
 
-    updates, changed = {}, []
-    for k, v in pol.items():
-        if v is None or k not in overridable or not hasattr(cfg, k):
-            continue
-        old = getattr(cfg, k)
-        if old != v:
-            updates[k] = v
-            changed.append(f"{k}:{old}->{v}")
+    def i(key, default):
+        v = pol.get(key)
+        return default if v is None else int(v)
+
+    def s(key, default, allow=None):
+        v = pol.get(key)
+        if v is None: return default
+        v = str(v).strip().upper()
+        return v if (allow is None or v in allow) else default
+
+    # 例：今回の新パラメータ
+    updates["box_max_age_sec"]   = f("box_max_age_sec",   cfg.box_max_age_sec)
+    updates["max_pullback_pct"]  = f("max_pullback_pct",  cfg.max_pullback_pct)
+    updates["pb_reset_ticks"]    = f("pb_reset_ticks",    cfg.pb_reset_ticks)
+
+    # 例：既存の上書きもここで
+    updates["tick_size"]         = f("tick_size",         cfg.tick_size)
+    updates["pullback_ticks"]    = f("pullback_ticks",    cfg.pullback_ticks)
+    updates["pullback_rebreak_ticks"] = f("pullback_rebreak_ticks", cfg.pullback_rebreak_ticks)
+
+    # 必要なものだけ抽出
+    updates = {k: v for k, v in updates.items() if v is not None and v != getattr(cfg, k)}
 
     if updates:
-        logger.info("Policy overrides: %s", ", ".join(changed))
-        return replace(cfg, **updates)   # frozen対策：新インスタンス
-    return cfg
-    # policy.json overrides applied on top of config defaults
-    lot_size = safe_int(pol.get("lot_size"))
-    min_qty = safe_int(pol.get("min_qty"))
-    min_lot = safe_int(min_qty if min_qty is not None else lot_size, cfg.min_lot)
-
-    def coalesce_float(key: str, default: float) -> float:
-        value = safe_float(pol.get(key))
-        return default if value is None else float(value)
-
-    def coalesce_int(key: str, default: int) -> int:
-        value = safe_int(pol.get(key))
-        return default if value is None else int(value)
-
-    def coalesce_buyup_mode(default: str) -> str:
-        value = pol.get("buyup_mode")
-        if value is None:
-            return default
-        candidate = str(value).strip().upper()
-        if candidate not in {"EXIT", "HOLD", "TRAIL"}:
-            return default
-        return candidate
-
-    return RunnerConfig(
-        features_db=cfg.features_db,
-        ops_db=cfg.ops_db,
-        symbols=cfg.symbols,
-        symbols_original=cfg.symbols_original,
-        poll_interval_sec=cfg.poll_interval_sec,
-        initial_cash=coalesce_float("initial_cash", cfg.initial_cash),
-        fee_rate_bps=cfg.fee_rate_bps,
-        slippage_ticks=cfg.slippage_ticks,
-        tick_size=cfg.tick_size,
-        tick_value=cfg.tick_value,
-        min_lot=min_lot if min_lot is not None else cfg.min_lot,
-        risk_per_trade_pct=coalesce_float("risk_per_trade_pct", cfg.risk_per_trade_pct),
-        max_cash_per_trade=coalesce_float("max_cash_per_trade", cfg.max_cash_per_trade),
-        max_concurrent_positions=cfg.max_concurrent_positions,
-        daily_loss_limit_pct=coalesce_float("daily_loss_limit_pct", cfg.daily_loss_limit_pct),
-        stats_interval_sec=cfg.stats_interval_sec,
-        stop_loss_ticks=cfg.stop_loss_ticks,
-        log_path=cfg.log_path,
-        timezone=cfg.timezone,
-        killswitch_check_interval_sec=cfg.killswitch_check_interval_sec,
-        market_window=cfg.market_window,
-        stop_loss_pct=coalesce_float("stop_loss_pct", cfg.stop_loss_pct),
-        take_profit_pct=coalesce_float("take_profit_pct", cfg.take_profit_pct),
-        volume_spike_thr=coalesce_float("volume_spike_thr", cfg.volume_spike_thr),
-        per_symbol_cooldown_sec=coalesce_float("per_symbol_cooldown_sec", cfg.per_symbol_cooldown_sec),
-        signal_gap_sec=coalesce_float("signal_gap_sec", cfg.signal_gap_sec),
-        confirm_ticks=coalesce_int("confirm_ticks", cfg.confirm_ticks),
-        exit_on_special_quote=cfg.exit_on_special_quote,
-        block_signs=cfg.block_signs,
-        reopen_sign=cfg.reopen_sign,
-        disable_minutes_after_special=cfg.disable_minutes_after_special,
-        open_delay_sec=cfg.open_delay_sec,
-        buyup_mode=coalesce_buyup_mode(cfg.buyup_mode),
-        buyup_trail_ticks=max(
-            0, coalesce_int("buyup_trail_ticks", cfg.buyup_trail_ticks)
-        ),
-        volume_min_floor=coalesce_float("volume_min_floor", cfg.volume_min_floor),
-        volume_fade_window=max(
-            1, coalesce_int("volume_fade_window", cfg.volume_fade_window)
-        ),
-        volume_fade_tol=max(0.0, coalesce_float("volume_fade_tol", cfg.volume_fade_tol)),
-        volume_fade_max_lag=max(
-            0, coalesce_int("volume_fade_max_lag", cfg.volume_fade_max_lag)
-        ),
-        ext_vwap_max_pct=max(
-            0.0, coalesce_float("ext_vwap_max_pct", cfg.ext_vwap_max_pct)
-        ),
-        range_explode_window=max(
-            1, coalesce_int("range_explode_window", cfg.range_explode_window)
-        ),
-        range_explode_k=max(0.0, coalesce_float("range_explode_k", cfg.range_explode_k)),
-        range_explode_cooldown_sec=max(
-            0.0,
-            coalesce_float(
-                "range_explode_cooldown_sec", cfg.range_explode_cooldown_sec
-            ),
-        ),
-        pullback_ticks=max(0, coalesce_int("pullback_ticks", cfg.pullback_ticks)),
-        pullback_rebreak_ticks=max(
-            0, coalesce_int("pullback_rebreak_ticks", cfg.pullback_rebreak_ticks)
-        ),
-        cooldown_after_stop_sec=max(
-            0.0, coalesce_float("cooldown_after_stop_sec", cfg.cooldown_after_stop_sec)
-        ),
-        chop_box_ticks=max(0, coalesce_int("chop_box_ticks", cfg.chop_box_ticks)),
-        chop_silence_sec=max(
-            0.0, coalesce_float("chop_silence_sec", cfg.chop_silence_sec)
-        ),
-    )
+        logger.info("Policy overrides: %s", ", ".join(updates.keys()))
+        return replace(cfg, **updates)   # ← これを残す
+    return cfg                            # ← updates が空ならそのまま返す
 
 def _cleanup_pid() -> None:
     global _singleton_handle, _pidfile_path
@@ -435,6 +355,11 @@ class RunnerConfig:
     feature_source: str = "features_stream"
     fe_window_secs: int = 60
     fe_fast_n: int = 12
+    box_max_age_sec: float = 180.0        # 例: 3分で箱をリセット
+    max_pullback_pct: float = 0.02        # 深押し判定
+    pb_reset_ticks: float = 0.0           # tickベースのリセット(0で無効)
+    reopen_check_mode: str = "STRICT"         # or "ANY", "MISSING_OK"
+    reopen_persist_ticks: int = 2             # 0で無効（即時判定）
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -703,6 +628,9 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     fe_fast_n_val = safe_int(payload.get("fe_fast_n"), 12)
     if fe_fast_n_val is None or fe_fast_n_val <= 0:
         fe_fast_n_val = 12
+    box_max_age_sec = float(payload.get("box_max_age_sec", 180.0))
+    max_pullback_pct = float(payload.get("max_pullback_pct", 0.02))
+    pb_reset_ticks = float(payload.get("pb_reset_ticks", 0.0))
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -758,6 +686,9 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         feature_source=feature_source_raw,
         fe_window_secs=int(fe_window_secs_val),
         fe_fast_n=int(fe_fast_n_val),
+        box_max_age_sec=box_max_age_sec,
+        max_pullback_pct=max_pullback_pct,
+        pb_reset_ticks=pb_reset_ticks,
     )
 
 
@@ -936,6 +867,27 @@ class Policy:
             return float(value)
         return 0.0
 
+    def _reopen_ok(self, bid_sign: str | None, ask_sign: str | None) -> bool:
+        mode = (getattr(self.config, "reopen_check_mode", "STRICT") or "STRICT").upper()
+        # kabu Sign は "0101" 形式。必要なら先頭4桁を比較に使う。
+        def _norm(v: str | None) -> str:
+            v = (v or "").strip()
+            return v[:4] if len(v) >= 4 else v
+        b = _norm(bid_sign)
+        a = _norm(ask_sign)
+        OPEN = "0101"
+        if mode == "STRICT":
+            return (b == OPEN) and (a == OPEN)
+        if mode == "ANY":          # どちらかがreopenなら許可
+            return (b == OPEN) or (a == OPEN)
+        if mode == "MISSING_OK":   # 片側欠損は許す（もう片側が0101ならOK）
+            if (b == "") and (a == ""):
+                return False
+            if (b == "") or (a == ""):
+                return (b == OPEN) or (a == OPEN)
+            return (b == OPEN) or (a == OPEN)
+        return False
+
     def evaluate(
         self,
         symbol: str,
@@ -964,6 +916,9 @@ class Policy:
             "ask_px": ask_px,
             "bid_px": bid_px,
         }
+
+        bid_sign = _coerce_sign(row.get("BidSign") or row.get("bid_sign"))
+        ask_sign = _coerce_sign(row.get("AskSign") or row.get("ask_sign"))
 
         ref_px = ask_px if ask_px is not None else bid_px
         row_mean_close = self._extract(row, ("mean_close",))
@@ -1024,7 +979,7 @@ class Policy:
         bar_lo = self._extract(row, ("bar_low", "low"))
         if bar_lo is None:
             bar_lo = price if price is not None else bid_px or ask_px
-        tick = max(float(self.config.tick_size), 0.0)
+        tick = max(float(getattr(self.config, "tick_size", 0.1)), 0.1)
 
         volume_hist = self._dq(self._volume_hist_simple, symbol, self._vr_win)
         v_rate_calc: Optional[float] = None
@@ -1161,6 +1116,100 @@ class Policy:
                 )
                 return PolicyDecision(False, reason="too_far_from_vwap", context=ctx)
 
+        # === reopen 判定とフラつき対策 ===
+        # シンボル別に連続カウントを保持
+        if not hasattr(self, "_reopen_ok_streak"):
+            self._reopen_ok_streak = {}
+
+        # 現在ティックでの再オープン判定（ヘルパ関数 _reopen_ok はこのクラス内に追加）
+        ok_now = self._reopen_ok(bid_sign, ask_sign)
+        need = int(getattr(self.config, "reopen_persist_ticks", 0) or 0)
+
+        streak = self._reopen_ok_streak.get(symbol, 0)
+        streak = streak + 1 if ok_now else 0
+        self._reopen_ok_streak[symbol] = streak
+
+        reopen_gate = ok_now if need <= 1 else (streak >= need)
+
+        # これをゲートとして通す／弾く
+        if not reopen_gate:
+            logger.debug(
+                "ENTRY veto: reopen_gate symbol=%s bid=%s ask=%s ok_now=%s streak=%d/%d",
+                symbol, bid_sign, ask_sign, ok_now, streak, need
+            )
+            return PolicyDecision(False, reason="reopen_gate", context=dict(context))
+        # === ここまで ===
+
+        px = float(price or 0.0)
+        rh = float(recent_high or 0.0)
+        ba = float((ask_px or bid_px or 0.0))
+
+        if bar_hi is None:
+            bar_hi = max(px, rh, ba) 
+        else:
+            bar_hi = max(float(bar_hi), px, rh) 
+
+        eps  = max(1e-6, 0.25 * tick)
+        # --- peak 状態の取得 ---
+        peak_ref = float(self._peak_hi.get(symbol, 0.0))
+        now_ts   = float(data_ts_val or 0.0)  # 既存のティック時刻を流用
+        if not hasattr(self, "_peak_ts"):      # 初期化
+            self._peak_ts = {}
+
+        # 1) 新高値更新（ready 中でも常に許可）
+        if peak_ref <= 0.0 or (bar_hi + eps) >= peak_ref:
+            self._peak_hi[symbol] = float(max(peak_ref, bar_hi))
+            self._peak_ts[symbol] = now_ts
+            self._pullback_ready[symbol] = False
+            peak_ref = float(self._peak_hi[symbol])
+
+        # 2) 箱の有効期限（秒 or 本数で管理）
+        box_max_age_sec = float(getattr(self.config, "box_max_age_sec", 180.0))  # 例: 3分
+        if self._pullback_ready.get(symbol, False):
+            born = float(self._peak_ts.get(symbol, now_ts))
+            if (now_ts - born) >= box_max_age_sec:
+                # 箱を解体して直近窓高値に立て直し
+                self._pullback_ready[symbol] = False
+                self._peak_hi[symbol] = float(rh or bar_hi or px)
+                self._peak_ts[symbol] = now_ts
+                peak_ref = float(self._peak_hi[symbol])
+
+        # 3) 深押しリセット（% か ティックで）
+        max_pullback_pct  = float(getattr(self.config, "max_pullback_pct", 0.02))     # 2% 超えたら解体
+        pb_reset_ticks    = float(getattr(self.config, "pb_reset_ticks", 0.0))      # 0なら無効
+        if self._pullback_ready.get(symbol, False):
+            deep_pct  = (px <= peak_ref * (1.0 - max_pullback_pct))
+            deep_tick = (bar_hi <= peak_ref - pb_reset_ticks * tick)
+            if deep_pct or deep_tick:
+                self._pullback_ready[symbol] = False
+                self._peak_hi[symbol] = float(bar_hi)   # いったん足元に合わせる
+                self._peak_ts[symbol] = now_ts
+                peak_ref = float(self._peak_hi[symbol])
+
+        # ---- 以降、従来どおり pullback→rebreak を判定 ----
+        pb_ticks = float(getattr(self.config, "pullback_ticks", 1.0))
+        rb_ticks = float(getattr(self.config, "pullback_rebreak_ticks", 1.0))
+
+        # 押し検出で ready=True
+        pb_thr = pb_ticks * tick
+        pulled_enough = (bar_hi <= peak_ref - pb_thr)
+        tolerated_pull = (
+            (mean_close is not None) and (recent_high is not None) and
+            float(mean_close) <= float(recent_high) * (1.0 - float(self.breakout_hold_tolerance))
+        )
+        if not self._pullback_ready.get(symbol, False) and (pulled_enough or tolerated_pull):
+            self._pullback_ready[symbol] = True
+
+        # 再ブレイク（微小許容 eps 付き）
+        rebreak = False
+        rb_thr = rb_ticks * tick
+        if self._pullback_ready.get(symbol, False):
+            if (bar_hi + eps) >= (peak_ref + rb_thr):
+                rebreak = True
+                self._pullback_ready[symbol] = False
+                self._peak_hi[symbol] = float(bar_hi)
+                self._peak_ts[symbol] = now_ts
+
         peak_ref = self._peak_hi.get(symbol)
         if peak_ref is None or peak_ref <= 0.0:
             if bar_hi is not None:
@@ -1170,47 +1219,6 @@ class Policy:
                 self._peak_hi[symbol] = float(price)
                 self._pullback_ready[symbol] = False
             peak_ref = self._peak_hi.get(symbol, 0.0)
-        if spike_triggered and (
-            self.pb_ticks > 0
-            and tick > 0.0
-            and price is not None
-            and peak_ref is not None
-            and peak_ref > 0.0
-        ):
-            ready = self._pullback_ready.get(symbol, False)
-            if price <= peak_ref - self.pb_ticks * tick:
-                ready = True
-                self._pullback_ready[symbol] = True
-            rebreak_threshold = peak_ref + self.pb_rebr * tick
-            rebreak = True
-            if self.pb_rebr > 0:
-                if bar_hi is not None:
-                    rebreak = bar_hi >= rebreak_threshold
-                else:
-                    rebreak = False
-            if not ready or (self.pb_rebr > 0 and not rebreak):
-                ctx = dict(context)
-                ctx.update(
-                    {
-                        "peak": peak_ref,
-                        "price": price,
-                        "pullback_ready": ready,
-                        "rebreak": rebreak,
-                        "rebreak_threshold": rebreak_threshold,
-                        "spike_triggered": spike_triggered,
-                        "bid_sign": bid_sign_raw,
-                        "ask_sign": ask_sign_raw,
-                    }
-                )
-                logger.debug(
-                    "ENTRY veto: pullback/rebreak peak=%.3f price=%.3f ready=%s rebreak=%s",
-                    peak_ref, price, ready, rebreak,
-                    extra=_log_extra(data_ts_val),
-                )
-                if bar_hi is not None and bar_hi > peak_ref:
-                    self._peak_hi[symbol] = float(bar_hi)
-                    self._pullback_ready[symbol] = False
-                return PolicyDecision(False, reason="need_pullback_rebreak", context=ctx)
             if bar_hi is not None and bar_hi > peak_ref:
                 self._peak_hi[symbol] = float(bar_hi)
                 self._pullback_ready[symbol] = False
@@ -1830,8 +1838,6 @@ class NautRunner:
         )
         self._chop_box_center: Optional[float] = None
         self._chop_box_until: float = 0.0
-        self._post_stop_box_center: Optional[float] = None
-        self._post_stop_box_until: float = 0.0
         self.clock = RunnerClock()
         if self._should_seek_tail():
             latest_map = self.poller.latest_timestamps([self.symbol])
@@ -2707,9 +2713,10 @@ def main() -> None:
 
     mode_label = (args.mode or "AUTO").lower()
     singleton_guard(f"naut_runner_{mode_label}_{args.broker}")
-
     config_path = Path(resolve_path(args.config))
     runner_config = load_runner_config(config_path)
+    configure_logging(runner_config.log_path, bool(args.verbose))
+
     if args.feature_source:
         runner_config = replace(runner_config, feature_source=args.feature_source)
     active_symbol = runner_config.symbols[0]
@@ -2734,7 +2741,6 @@ def main() -> None:
             runner_config.daily_loss_limit_pct,
             runner_config.initial_cash,
         )
-    configure_logging(runner_config.log_path, bool(args.verbose))
     logger.info(
         "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
         runner_config.feature_source,

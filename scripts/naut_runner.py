@@ -523,19 +523,20 @@ class RunnerClock:
 
 def load_runner_config(config_path: Path) -> RunnerConfig:
     payload = load_json_utf8(str(config_path))
-    try:
-        symbols_raw = payload["symbols"]
-    except KeyError as exc:
-        raise SystemExit(f"Runner config missing symbols: {config_path}") from exc
-    if not isinstance(symbols_raw, list) or not symbols_raw:
-        raise SystemExit("Runner config requires non-empty list of symbols")
-    symbols_clean = [normalize_symbol(sym) for sym in symbols_raw]
-    seen: set[str] = set()
-    symbols_norm: List[str] = []
-    for sym in symbols_clean:
-        if sym and sym not in seen:
-            seen.add(sym)
-            symbols_norm.append(sym)
+    # 1銘柄限定インターフェイス：symbol を優先。なければ旧 symbols の先頭だけ使う。
+    if "symbol" in payload and str(payload["symbol"]).strip():
+        symbols_src = [payload["symbol"]]
+    else:
+        try:
+            symbols_src = payload["symbols"]
+        except KeyError as exc:
+            raise SystemExit(f"Runner config missing symbol(s): {config_path}") from exc
+    if not isinstance(symbols_src, list) or not symbols_src:
+        raise SystemExit("Runner config requires a non-empty symbol")
+    symbols_clean = [normalize_symbol(sym) for sym in symbols_src]
+    symbol0 = next((s for s in symbols_clean if s), "")
+    if not symbol0:
+        raise SystemExit("Runner config requires a valid symbol")
     features_db = resolve_path(payload.get("features_db", "naut_market.db"))
     ops_db = resolve_path(payload.get("ops_db", "naut_ops.db"))
     log_path = payload.get("log_path", "logs/naut_runner.log")
@@ -634,8 +635,8 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
-        symbols=symbols_norm,
-        symbols_original=[str(sym) for sym in symbols_raw],
+        symbols=[symbol0],
+        symbols_original=[str(sym) for sym in symbols_src],
         poll_interval_sec=float(payload.get("poll_interval_sec", 1.0)),
         initial_cash=float(payload.get("initial_cash", 1_500_000.0)),
         fee_rate_bps=float(payload.get("fee_rate_bps", 0.0)),
@@ -777,40 +778,86 @@ class PolicyDecision:
 
 
 class Policy:
-    def __init__(self, profile: ThresholdProfile, config: RunnerConfig):
+    def __init__(
+        self,
+        profile: ThresholdProfile,
+        config: RunnerConfig,
+        box_born_ts: dict | None = None,
+    ):
+        """トレード評価ポリシー
+        - runnerとは疎結合に保つ（必要ならbox_born_tsを外部注入で共有）
+        - CHOP-BOXの寿命管理はborn時刻とtickカウンタ両方で追跡
+        """
         self.profile = profile
         self.config = config
+
+        # --- CHOP-BOX寿命管理 ---
+        # 外部から共有辞書を受け取る（未指定なら自前で持つ）
+        self._box_born_ts: Dict[str, float] = (
+            box_born_ts if box_born_ts is not None else {}
+        )
+        # 箱のtickカウンタ（400ms周期×450カウント ≒ 180秒）
+        self._box_age_count: Dict[str, int] = {}
+
+        # --- 各種パラメータ設定 ---
         self._vr_win = max(1, int(getattr(config, "volume_fade_window", 8)))
         self._vr_tol = max(0.0, float(getattr(config, "volume_fade_tol", 0.20)))
         self._vr_maxlag = max(0, int(getattr(config, "volume_fade_max_lag", 2)))
         self.ext_vwap_max_pct = max(
             0.0, float(getattr(config, "ext_vwap_max_pct", 0.005))
         )
-        self.rx_win = max(1, int(getattr(config, "range_explode_window", 12)))
-        self.rx_k = max(0.0, float(getattr(config, "range_explode_k", 2.5)))
-        self.rx_cdsec = max(
-            0.0, float(getattr(config, "range_explode_cooldown_sec", 30.0))
-        )
-        self.pb_ticks = max(0, int(getattr(config, "pullback_ticks", 2)))
-        self.pb_rebr = max(0, int(getattr(config, "pullback_rebreak_ticks", 1)))
-        self.momentum_quality_min = max(
+
+        self.rx_win   = max(1,   int(getattr(config, "range_explode_window", 12)))
+        self.rx_k     = max(0.0, float(getattr(config, "range_explode_k", 2.5)))
+        self.rx_cdsec = max(0.0, float(getattr(config, "range_explode_cooldown_sec", 30.0)))
+        self.pb_ticks = max(0,   int(getattr(config, "pullback_ticks", 2)))
+        self.pb_rebr  = max(0,   int(getattr(config, "pullback_rebreak_ticks", 1)))
+        # --- compatibility shims (old attribute names still work) ---
+        self._rx_win   = self.rx_win
+        self._rx_k     = self.rx_k
+        self._rx_cdsec = self.rx_cdsec
+        self._pb_ticks = self.pb_ticks
+        self._pb_rebr  = self.pb_rebr
+        self._momentum_quality_min = max(
             0.0, float(getattr(config, "momentum_quality_min", 6.0))
         )
+        self.momentum_quality_min = self._momentum_quality_min
+
         self.breakout_confirm_bars = max(
             0, int(getattr(config, "breakout_confirm_bars", 3))
         )
-        self.breakout_hold_tolerance = float(getattr(config, "breakout_hold_tolerance", 0.004))
+        self.breakout_hold_tolerance = float(
+            getattr(config, "breakout_hold_tolerance", 0.004)
+        )
 
+        # --- 状態保持構造 ---
         self._vr_hist: Dict[str, Deque[Tuple[float, float]]] = {}
         self._ranges: Dict[str, Deque[float]] = {}
         self._rx_block_until: Dict[str, float] = {}
+
         self._peak_hi: Dict[str, float] = {}
         self._pullback_ready: Dict[str, bool] = {}
+
         self._volume_hist_simple: Dict[str, Deque[float]] = {}
         self._close_hist: Dict[str, Deque[float]] = {}
         self._uptick_streak: Dict[str, int] = {}
         self._last_close: Dict[str, Optional[float]] = {}
         self._recent_high: Dict[str, float] = {}
+
+        # Removed legacy lines that referenced undefined variables; arming happens on exit.
+
+    # --- compatibility properties (read-only) ---
+    @property
+    def range_window(self) -> int:  # legacy alias if somewhere referred to range_window
+        return self.rx_win
+    @property
+    def _range_window(self) -> int:  # very old alias
+        return self.rx_win
+
+    def mark_chopbox_born(self, symbol: str, ts: float) -> None:
+        """Record the start timestamp for the STOP-induced chop box."""
+        self._box_born_ts[symbol] = float(ts)
+        self._box_age_count[symbol] = 0
 
     @property
     def cooldown_sec(self) -> float:
@@ -1150,29 +1197,58 @@ class Policy:
             bar_hi = max(float(bar_hi), px, rh) 
 
         eps  = max(1e-6, 0.25 * tick)
+        box_max_age_sec = float(getattr(self.config, "box_max_age_sec", 180.0))
+        box_max_age_count = int(getattr(self.config, "box_max_age_count", 450))
         # --- peak 状態の取得 ---
         peak_ref = float(self._peak_hi.get(symbol, 0.0))
         now_ts   = float(data_ts_val or 0.0)  # 既存のティック時刻を流用
         if not hasattr(self, "_peak_ts"):      # 初期化
             self._peak_ts = {}
 
-        # 1) 新高値更新（ready 中でも常に許可）
-        if peak_ref <= 0.0 or (bar_hi + eps) >= peak_ref:
-            self._peak_hi[symbol] = float(max(peak_ref, bar_hi))
-            self._peak_ts[symbol] = now_ts
+        # 1) 新高値更新（ready中でも許可）— 同値は更新しない／最低Nティック上抜きで更新
+        nh_ticks = float(getattr(self.config, "new_high_margin_ticks", 1.0))  # 既定=1tick
+        nh_thr   = float(peak_ref or 0.0) + nh_ticks * float(tick)
+        if (peak_ref <= 0.0) or (bar_hi > nh_thr):  # 注意: 厳密な '>' 比較
+            new_peak = float(max(peak_ref, bar_hi))
+            self._peak_hi[symbol] = new_peak
+            self._peak_ts[symbol] = float(now_ts)
             self._pullback_ready[symbol] = False
-            peak_ref = float(self._peak_hi[symbol])
+            peak_ref = new_peak
+            logger.debug("PEAK update: %s new_peak=%.3f (thr=%.3f, nh_ticks=%.1f)",
+                         symbol, new_peak, nh_thr, nh_ticks)
+        else:
+            # --- 箱の寿命チェック（実時間 or カウンタ）---
+            born = float(self._box_born_ts.get(symbol, float(now_ts)))
+            age  = float(now_ts) - born
+            # カウンタをインクリメント（箱が有効なら）
+            if symbol in self._box_born_ts:
+                self._box_age_count[symbol] = self._box_age_count.get(symbol, 0) + 1
+            age_count = self._box_age_count.get(symbol, 0)
 
-        # 2) 箱の有効期限（秒 or 本数で管理）
-        box_max_age_sec = float(getattr(self.config, "box_max_age_sec", 180.0))  # 例: 3分
+            if (age >= box_max_age_sec) or (age_count >= box_max_age_count):
+                new_peak = float((recent_high if (recent_high is not None) else (bar_hi if (bar_hi is not None) else (price or 0.0))))
+                self._peak_hi[symbol] = new_peak
+                self._pullback_ready[symbol] = False
+                peak_ref = new_peak
+                self._box_born_ts.pop(symbol, None)
+                self._box_age_count.pop(symbol, None)
+                logger.debug("CHOP-BOX reset: reason=%s %s age=%.1fs/%ds, count=%d/%d new_peak=%.3f",
+                             ("age" if age >= box_max_age_sec else "age_by_count"),
+                             symbol, age, box_max_age_sec, age_count, box_max_age_count, new_peak)
+
+        # 2) （旧）箱の有効期限ブロックは上のハイブリッドで包括済みなので不要
+        #    必要なら残すが、二重発火防止のため条件を厳密に
         if self._pullback_ready.get(symbol, False):
-            born = float(self._peak_ts.get(symbol, now_ts))
+            born = float(self._box_born_ts.get(symbol, float(now_ts)))
             if (now_ts - born) >= box_max_age_sec:
                 # 箱を解体して直近窓高値に立て直し
                 self._pullback_ready[symbol] = False
                 self._peak_hi[symbol] = float(rh or bar_hi or px)
                 self._peak_ts[symbol] = now_ts
+                self._box_born_ts.pop(symbol, None)
                 peak_ref = float(self._peak_hi[symbol])
+                logger.debug("CHOP-BOX reset: reason=age %s born=%.1f, box_max_age_sec=%.1f",
+                          symbol, born, box_max_age_sec)
 
         # 3) 深押しリセット（% か ティックで）
         max_pullback_pct  = float(getattr(self.config, "max_pullback_pct", 0.02))     # 2% 超えたら解体
@@ -1185,6 +1261,10 @@ class Policy:
                 self._peak_hi[symbol] = float(bar_hi)   # いったん足元に合わせる
                 self._peak_ts[symbol] = now_ts
                 peak_ref = float(self._peak_hi[symbol])
+                self._box_born_ts.pop(symbol, None)
+                self._box_age_count.pop(symbol, None)
+                logger.debug("CHOP-BOX reset: reason=deep %s deep_tick=%.1f thr=%.1f",
+                              symbol, (bar_hi - peak_ref), pb_reset_ticks * tick)
 
         # ---- 以降、従来どおり pullback→rebreak を判定 ----
         pb_ticks = float(getattr(self.config, "pullback_ticks", 1.0))
@@ -1409,43 +1489,65 @@ class Policy:
 def stream_raw_ticks(
     conn: sqlite3.Connection,
     symbols: Iterable[str],
-    start_ts: float,
+    since_ts: float,
     ts_column: str,
     limit: int = 1000,
 ) -> List[Dict[str, Any]]:
-    start_val = safe_float(start_ts, 0.0) or 0.0
-    symbol_list = [str(sym) for sym in symbols if sym]
-    params: List[Any] = [start_val]
-    placeholders = ""
-    if symbol_list:
-        placeholders = ",".join("?" for _ in symbol_list)
-        params.extend(symbol_list)
-    order_column = ts_column or "t_recv"
-    clause = f" AND symbol IN ({placeholders})" if placeholders else ""
+    """
+    raw_push からティックを取得。
+    - ts_column が 'ts'（ミリ秒） or 't_recv'（秒）かで秒換算を吸収
+    - payload(JSON) をここで dict にして返す
+    返却: [{symbol, ts(秒), t_recv(秒), payload(dict)}...]
+    """
+    syms = [s for s in (symbols or []) if str(s).strip()]
+    since = safe_float(since_ts, 0.0) or 0.0
+    if ts_column == "ts":
+        since = since * 1000.0
+    params: list[Any] = [since]
+    sym_clause = ""
+    if syms:
+        sym_clause = " AND symbol IN (" + ",".join("?" for _ in syms) + ")"
+        params.extend(syms)
     params.append(max(1, int(limit)))
-    query = f"""
-        SELECT symbol, payload, {order_column} AS ts, t_recv
+
+    col = "ts" if ts_column == "ts" else "t_recv"
+    q = f"""
+        SELECT symbol, payload, {col} AS raw_ts, t_recv
         FROM raw_push
-        WHERE {order_column} > ?{clause}
-        ORDER BY {order_column} ASC
+        WHERE {col} > ?{sym_clause}
+        ORDER BY {col} ASC
         LIMIT ?
     """
-    rows: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     try:
-        cur = conn.execute(query, params)
+        cur = conn.execute(q, params)
     except Exception:
-        logger.debug("stream_raw_ticks query failed ts_col=%s", order_column, exc_info=True)
-        return rows
-    for symbol, payload, ts_val, t_recv in cur:
-        rows.append(
+        logger.debug("stream_raw_ticks query failed col=%s", col, exc_info=True)
+        return out
+
+    for symbol, payload_text, raw_ts, t_recv in cur:
+        # 秒へ正規化
+        ts_val = safe_float(raw_ts, 0.0) or 0.0
+        if ts_column == "ts" and ts_val > 1e12:
+            ts_val = ts_val / 1000.0
+        # t_recv は秒のまま
+        trecv_val = safe_float(t_recv, 0.0) or 0.0
+
+        # JSON 展開（壊れていても落ちない）
+        try:
+            payload = json.loads(payload_text) if isinstance(payload_text, str) else (payload_text or {})
+        except Exception:
+            payload = {}
+
+        out.append(
             {
                 "symbol": symbol,
                 "payload": payload,
-                "ts": safe_float(ts_val),
-                "t_recv": safe_float(t_recv),
+                "ts": ts_val,
+                "t_recv": trecv_val,
             }
         )
-    return rows
+    return out
 
 
 class FeatureExtractor:
@@ -1507,119 +1609,101 @@ class RawPushFeatures:
         start_ts: float,
         extractor: FeatureExtractor,
         cfg: RunnerConfig,
-        ts_column: str,
+        ts_column: str,        # 'ts' or 't_recv'
     ):
         self.conn = conn
         self.symbols = list(symbols or [])
-        self.start_ts = float(start_ts or 0.0)
-        self.ext = extractor
+        self.start_ts = float(start_ts or 0.0)   # 秒ベースで保持
+        self.extractor = extractor
         self.cfg = cfg
-        self.ts_column = ts_column or "t_recv"
+        self.ts_column = "ts" if ts_column == "ts" else "t_recv"
         self._last_volume: Dict[str, float] = {}
 
-    def iter_feats(self, limit: int = 1000) -> List[Dict[str, Any]]:
+    def iter_feats(self, limit: int = 1000) -> list[dict[str, Any]]:
+        """
+        raw_push を読みだして FeatureExtractor に渡し、
+        runner が使える行へ整形して返す。
+        """
         rows = stream_raw_ticks(
             self.conn,
             self.symbols,
             self.start_ts,
             self.ts_column,
-            max(1, int(limit)),
+            limit=limit,
         )
         if not rows:
             return []
-        results: List[Dict[str, Any]] = []
-        tick_size_val = safe_float(getattr(self.cfg, "tick_size", 0.0), 0.0) or 0.0
-        symbol_label = ",".join(self.symbols) if self.symbols else "*"
-        for raw in rows:
-            symbol = raw.get("symbol")
-            payload = raw.get("payload")
-            if not symbol or payload is None:
-                continue
-            try:
-                data = json.loads(payload)
-            except json.JSONDecodeError:
-                logger.debug("raw_push decode failed symbol=%s", symbol)
-                continue
-            price = safe_float(data.get("CurrentPrice"))
+
+        feats: list[dict[str, Any]] = []
+        for r in rows:
+            sym = r["symbol"]
+            payload: dict = r.get("payload") or {}
+            ts_sec: float = safe_float(r.get("ts"), 0.0) or 0.0
+
+            # 価格の推定（CurrentPrice 優先→Best Bid/Ask→mid）
+            price = safe_float(payload.get("CurrentPrice"))
             if price is None:
+                bid1 = safe_float(payload.get("BidPrice"))
+                ask1 = safe_float(payload.get("AskPrice"))
+                if bid1 is not None and ask1 is not None:
+                    price = 0.5 * (bid1 + ask1)
+                else:
+                    price = bid1 if bid1 is not None else ask1
+
+            # 出来高（差分）算出
+            qty = self._compute_qty(sym, payload)
+
+            # 特徴量抽出
+            f = self.extractor.push_tick(sym, price, qty, ts_sec) if (price is not None and ts_sec > 0) else None
+            if not f:
                 continue
-            bid = safe_float(data.get("BidPrice"), price)
-            ask = safe_float(data.get("AskPrice"), price)
-            source_ts = safe_float(raw.get("ts"))
-            recv_ts = safe_float(raw.get("t_recv"), source_ts)
-            event_ts = parse_current_price_time(data.get("CurrentPriceTime"))
-            if event_ts is None:
-                event_ts = source_ts if source_ts is not None else recv_ts
-            if event_ts is None:
-                continue
-            qty = self._compute_qty(symbol, data)
-            feat = self.ext.push_tick(symbol, price, qty, event_ts)
-            if not feat:
-                continue
-            volume_total = safe_float(data.get("TradingVolume"))
-            result: Dict[str, Any] = {
-                "symbol": symbol,
-                "price": price,
-                "close": price,
-                "last_price": price,
-                "bid": bid if bid is not None else price,
-                "ask": ask if ask is not None else price,
-                "bid1": bid if bid is not None else price,
-                "ask1": ask if ask is not None else price,
-                "bidqty1": safe_float(data.get("BidQty")),
-                "askqty1": safe_float(data.get("AskQty")),
-                "BidSign": data.get("BidSign"),
-                "AskSign": data.get("AskSign"),
-                "BidTime": data.get("BidTime"),
-                "AskTime": data.get("AskTime"),
-                "CurrentPriceTime": data.get("CurrentPriceTime"),
-                "qty": qty,
-                "volume": volume_total if volume_total is not None else qty,
-                "TradingVolume": volume_total,
-                "t_exec": feat["ts"],
-                "ts": feat["ts"],
-                "ts_ms": int(feat["ts"] * 1000),
-                "mean_close": feat["mean_close"],
-                "recent_high": feat["recent_high"],
-                "v_rate": feat["v_rate"],
-                "_poll_ts": source_ts if source_ts is not None else feat["ts"],
-                "t_recv": recv_ts if recv_ts is not None else feat["ts"],
-            }
-            if (
-                bid is not None
-                and ask is not None
-                and tick_size_val is not None
-                and tick_size_val > 0.0
-            ):
-                spread_ticks = max(0.0, (ask - bid) / tick_size_val)
-                result["spread_ticks"] = spread_ticks
-            results.append(result)
-        last_source = max(
-            safe_float(row.get("ts")) or safe_float(row.get("t_recv")) or 0.0
-            for row in rows
+
+            # runner 側が参照する付帯情報を付加
+            f["symbol"] = sym
+            f["t_exec"] = ts_sec   # “features_stream” の t_exec 相当
+            f["_poll_ts"] = ts_sec
+            f["bid1"] = safe_float(payload.get("BidPrice"))
+            f["ask1"] = safe_float(payload.get("AskPrice"))
+            f["BidSign"] = (payload.get("BidSign") or "")
+            f["AskSign"] = (payload.get("AskSign") or "")
+            f["CurrentPriceTime"] = payload.get("CurrentPriceTime")
+
+            # 価格フィールド（runner のフォールバックで参照）
+            if f.get("mean_close") is not None:
+                f["close"] = f["mean_close"]
+            if price is not None:
+                f["price"] = price
+
+            feats.append(f)
+
+        # 読み進め
+        try:
+            last_ts = float(rows[-1]["ts"])
+        except Exception:
+            last_ts = self.start_ts
+        self.start_ts = max(self.start_ts, last_ts)
+
+        logger.debug(
+            "advance start_ts -> %.3f (first=%.3f last=%.3f, n=%d)",
+            self.start_ts,
+            float(rows[0]["ts"]),
+            float(rows[-1]["ts"]),
+            len(rows),
         )
-        if last_source > 0.0:
-            self.start_ts = last_source
-        if results and logger.isEnabledFor(logging.DEBUG):
-            logger.debug(
-                "raw_push feats=%d symbols=%s next_start=%.6f",
-                len(results),
-                symbol_label,
-                self.start_ts,
-            )
-        return results
+        return feats
 
     def _compute_qty(self, symbol: str, payload: Dict[str, Any]) -> float:
-        volume_total = safe_float(payload.get("TradingVolume"))
-        if volume_total is not None:
+        """
+        累積出来高(TradingVolume) があれば差分、なければ成行買/売数量の合算。
+        """
+        vol_total = safe_float(payload.get("TradingVolume"))
+        if vol_total is not None:
             prev = self._last_volume.get(symbol)
-            self._last_volume[symbol] = float(volume_total)
-            if prev is None or volume_total < prev:
+            self._last_volume[symbol] = float(vol_total)
+            if prev is None or vol_total < prev:
                 return 0.0
-            delta = float(volume_total) - float(prev)
-            if delta < 0.0:
-                return 0.0
-            return delta
+            delta = float(vol_total) - float(prev)
+            return max(0.0, delta)
         buy_qty = safe_float(payload.get("MarketOrderBuyQty"), 0.0) or 0.0
         sell_qty = safe_float(payload.get("MarketOrderSellQty"), 0.0) or 0.0
         return float(buy_qty) + float(sell_qty)
@@ -1687,36 +1771,43 @@ class FeaturePoller:
         self.conn.row_factory = sqlite3.Row
         self.config = config
         self.symbols = list(symbols or [])
+
         source = str(getattr(config, "feature_source", "features_stream") or "features_stream").lower()
         if source not in {"features_stream", "raw_push"}:
             source = "features_stream"
         self.source = source
-        self.table = "features_stream"
+
         self.raw_stream: Optional[RawPushFeatures] = None
         self._raw_ts_column = "t_recv"
+        self._raw_ts_is_ms = False
+
         if self.source == "raw_push":
-            self._raw_ts_column = self._detect_raw_ts_column()
+            self._raw_ts_column, self._raw_ts_is_ms = self._detect_raw_ts_column()
             extractor = FeatureExtractor(config)
             self.raw_stream = RawPushFeatures(
                 self.conn,
                 self.symbols,
-                0.0,
+                0.0,                 # 先頭 or 後追いは呼び出し側で制御
                 extractor,
                 config,
                 self._raw_ts_column,
             )
+            # 索引を安全に用意
             if self._raw_ts_column == "ts":
-                self._ensure_index(
-                    "CREATE INDEX IF NOT EXISTS idx_raw_push_sym_ts ON raw_push(symbol, ts)"
-                )
+                self._ensure_index("CREATE INDEX IF NOT EXISTS idx_raw_push_sym_ts   ON raw_push(symbol, ts)")
             else:
-                self._ensure_index(
-                    "CREATE INDEX IF NOT EXISTS idx_raw_push_symbol_recv ON raw_push(symbol, t_recv)"
-                )
+                self._ensure_index("CREATE INDEX IF NOT EXISTS idx_raw_push_sym_recv ON raw_push(symbol, t_recv)")
         else:
             self._ensure_index(
                 "CREATE INDEX IF NOT EXISTS idx_features_stream_symbol_ts ON features_stream(symbol, t_exec)"
             )
+
+        logger.info(
+            "feature_source=%s raw_ts_column=%s unit=%s",
+            self.source,
+            self._raw_ts_column,
+            "ms" if self._raw_ts_is_ms else "sec",
+        )
 
     def _ensure_index(self, sql: str) -> None:
         try:
@@ -1731,9 +1822,16 @@ class FeaturePoller:
             return set()
         return {row[1] for row in cur.fetchall()}
 
-    def _detect_raw_ts_column(self) -> str:
-        columns = self._table_columns("raw_push")
-        return "ts" if "ts" in columns else "t_recv"
+    def _detect_raw_ts_column(self) -> Tuple[str, bool]:
+        """
+        raw_push の時系列カラムを判定。
+        戻り値: (column_name, is_millis)
+        """
+        cols = self._table_columns("raw_push")
+        if "ts" in cols:
+            # ts が巨大なら ms とみなすが、列名で区別できるので True 固定でよい
+            return "ts", True
+        return "t_recv", False
 
     def fetch_since(
         self, symbol: str, last_ts: float, limit: int = 500
@@ -1765,7 +1863,9 @@ class FeaturePoller:
                         (sym,),
                     )
                     row = cur.fetchone()
-                    latest[sym] = float(row[0]) if row and row[0] is not None else 0.0
+                    raw = float(row[0]) if row and row[0] is not None else 0.0
+                    # ts は ms、t_recv は sec。ここで秒に正規化して返す。
+                    latest[sym] = (raw / 1000.0) if column == "ts" else raw
                 except Exception:
                     latest[sym] = 0.0
             return latest
@@ -1809,12 +1909,14 @@ class NautRunner:
         self.symbol = config.symbols[0]
         if len(config.symbols) > 1:
             logger.warning(
-                "Multiple symbols configured; using first only: %s (total=%d)",
-                self.symbol,
-                len(config.symbols),
+                "Multiple symbols provided; truncating to single symbol: %s (was %d)",
+                self.symbol, len(config.symbols)
             )
-        if config.symbols_original:
-            self.display_symbols = [config.symbols_original[0]]
+            self.config = replace(config, symbols=[self.symbol])
+        else:
+            self.config = config
+        if self.config.symbols_original:
+            self.display_symbols = [self.config.symbols_original[0]]
         else:
             self.display_symbols = [self.symbol]
         self.flatten_at = flatten_at
@@ -1936,9 +2038,12 @@ class NautRunner:
         return cur.fetchone() is not None
 
     def _mark_seen(self, symbol: str, ts_ms: int) -> None:
+        """
+        同一シグナル（シンボル×閾値MD5×時刻ms）の再処理を防ぐための印。
+        """
         self.ops_conn.execute(
             "INSERT OR IGNORE INTO runner_seen(symbol, profile_md5, ts_ms) VALUES(?,?,?)",
-            (symbol, self.profile.md5, ts_ms),
+            (symbol, self.profile.md5, int(ts_ms)),
         )
         self.ops_conn.commit()
 
@@ -2115,6 +2220,8 @@ class NautRunner:
             self._chop_box_center = float(exit_px)
             self._chop_box_until = float(data_ts + self.chop_silence_sec)
             tick_span = self.chop_box_ticks * float(self.config.tick_size)
+            # Also notify the Policy about the chop-box start.
+            self.policy.mark_chopbox_born(symbol, data_ts)
             logger.debug(
                 "CHOP-BOX armed: symbol=%s center=%.3f +/- %d ticks (%.4f) until=%s",
                 symbol,
@@ -2765,12 +2872,12 @@ def main() -> None:
 
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
-
+    _chopbox_born_shared = {}
     poller = FeaturePoller(
         runner_config.features_db, runner_config, runner_config.symbols
     )
     ledger = Ledger(runner_config)
-    policy = Policy(threshold_profile, runner_config)
+    policy = Policy(threshold_profile, runner_config, box_born_ts=_chopbox_born_shared)
     trade_logger = TradeLogger(runner_config.ops_db)
 
     broker: Broker

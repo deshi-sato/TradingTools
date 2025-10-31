@@ -1187,128 +1187,118 @@ class Policy:
             return PolicyDecision(False, reason="reopen_gate", context=dict(context))
         # === ここまで ===
 
-        px = float(price or 0.0)
-        rh = float(recent_high or 0.0)
-        ba = float((ask_px or bid_px or 0.0))
+        if symbol in self._box_born_ts:
 
-        if bar_hi is None:
-            bar_hi = max(px, rh, ba) 
-        else:
-            bar_hi = max(float(bar_hi), px, rh) 
+            px = float(price or 0.0)
+            rh = float(recent_high or 0.0)
+            ba = float((ask_px or bid_px or 0.0))
 
-        eps  = max(1e-6, 0.25 * tick)
-        box_max_age_sec = float(getattr(self.config, "box_max_age_sec", 180.0))
-        box_max_age_count = int(getattr(self.config, "box_max_age_count", 450))
-        # --- peak 状態の取得 ---
-        peak_ref = float(self._peak_hi.get(symbol, 0.0))
-        now_ts   = float(data_ts_val or 0.0)  # 既存のティック時刻を流用
-        if not hasattr(self, "_peak_ts"):      # 初期化
-            self._peak_ts = {}
+            if bar_hi is None:
+                bar_hi = max(px, rh, ba) 
+            else:
+                bar_hi = max(float(bar_hi), px, rh) 
 
-        # 1) 新高値更新（ready中でも許可）— 同値は更新しない／最低Nティック上抜きで更新
-        nh_ticks = float(getattr(self.config, "new_high_margin_ticks", 1.0))  # 既定=1tick
-        nh_thr   = float(peak_ref or 0.0) + nh_ticks * float(tick)
-        if (peak_ref <= 0.0) or (bar_hi > nh_thr):  # 注意: 厳密な '>' 比較
-            new_peak = float(max(peak_ref, bar_hi))
-            self._peak_hi[symbol] = new_peak
-            self._peak_ts[symbol] = float(now_ts)
-            self._pullback_ready[symbol] = False
-            peak_ref = new_peak
-            logger.debug("PEAK update: %s new_peak=%.3f (thr=%.3f, nh_ticks=%.1f)",
-                         symbol, new_peak, nh_thr, nh_ticks)
-        else:
-            # --- 箱の寿命チェック（実時間 or カウンタ）---
-            born = float(self._box_born_ts.get(symbol, float(now_ts)))
-            age  = float(now_ts) - born
-            # カウンタをインクリメント（箱が有効なら）
-            if symbol in self._box_born_ts:
-                self._box_age_count[symbol] = self._box_age_count.get(symbol, 0) + 1
-            age_count = self._box_age_count.get(symbol, 0)
+            eps  = max(1e-6, 0.25 * tick)
+            box_max_age_sec = float(getattr(self.config, "box_max_age_sec", 180.0))
+            box_max_age_count = int(getattr(self.config, "box_max_age_count", 450))
+            # --- peak 状態の取得 ---
+            peak_ref = float(self._peak_hi.get(symbol, 0.0))
+            now_ts   = float(data_ts_val or 0.0)  # 既存のティック時刻を流用
+            if not hasattr(self, "_peak_ts"):      # 初期化
+                self._peak_ts = {}
 
-            if (age >= box_max_age_sec) or (age_count >= box_max_age_count):
-                new_peak = float((recent_high if (recent_high is not None) else (bar_hi if (bar_hi is not None) else (price or 0.0))))
+            # 1) 新高値更新（ready中でも許可）— 同値は更新しない／最低Nティック上抜きで更新
+            nh_ticks = float(getattr(self.config, "new_high_margin_ticks", 1.0))  # 既定=1tick
+            nh_thr   = float(peak_ref or 0.0) + nh_ticks * float(tick)
+            if (peak_ref <= 0.0) or (bar_hi > nh_thr):  # 注意: 厳密な '>' 比較
+                new_peak = float(max(peak_ref, bar_hi))
                 self._peak_hi[symbol] = new_peak
+                self._peak_ts[symbol] = float(now_ts)
                 self._pullback_ready[symbol] = False
                 peak_ref = new_peak
-                self._box_born_ts.pop(symbol, None)
-                self._box_age_count.pop(symbol, None)
-                logger.debug("CHOP-BOX reset: reason=%s %s age=%.1fs/%ds, count=%d/%d new_peak=%.3f",
-                             ("age" if age >= box_max_age_sec else "age_by_count"),
-                             symbol, age, box_max_age_sec, age_count, box_max_age_count, new_peak)
+                logger.debug("PEAK update: %s new_peak=%.3f (thr=%.3f, nh_ticks=%.1f)",
+                            symbol, new_peak, nh_thr, nh_ticks)
+            else:
+                # --- 箱の寿命チェック（実時間 or カウンタ）---
+                born = float(self._box_born_ts.get(symbol, float(now_ts)))
+                age  = float(now_ts) - born
+                # カウンタをインクリメント（箱が有効なら）
+                if symbol in self._box_born_ts:
+                    self._box_age_count[symbol] = self._box_age_count.get(symbol, 0) + 1
+                age_count = self._box_age_count.get(symbol, 0)
 
-        # 2) （旧）箱の有効期限ブロックは上のハイブリッドで包括済みなので不要
-        #    必要なら残すが、二重発火防止のため条件を厳密に
-        if self._pullback_ready.get(symbol, False):
-            born = float(self._box_born_ts.get(symbol, float(now_ts)))
-            if (now_ts - born) >= box_max_age_sec:
-                # 箱を解体して直近窓高値に立て直し
-                self._pullback_ready[symbol] = False
-                self._peak_hi[symbol] = float(rh or bar_hi or px)
-                self._peak_ts[symbol] = now_ts
-                self._box_born_ts.pop(symbol, None)
-                peak_ref = float(self._peak_hi[symbol])
-                logger.debug("CHOP-BOX reset: reason=age %s born=%.1f, box_max_age_sec=%.1f",
-                          symbol, born, box_max_age_sec)
-
-        # 3) 深押しリセット（% か ティックで）
-        max_pullback_pct  = float(getattr(self.config, "max_pullback_pct", 0.02))     # 2% 超えたら解体
-        pb_reset_ticks    = float(getattr(self.config, "pb_reset_ticks", 0.0))      # 0なら無効
-        if self._pullback_ready.get(symbol, False):
-            deep_pct  = (px <= peak_ref * (1.0 - max_pullback_pct))
-            deep_tick = (bar_hi <= peak_ref - pb_reset_ticks * tick)
-            if deep_pct or deep_tick:
-                self._pullback_ready[symbol] = False
-                self._peak_hi[symbol] = float(bar_hi)   # いったん足元に合わせる
-                self._peak_ts[symbol] = now_ts
-                peak_ref = float(self._peak_hi[symbol])
-                self._box_born_ts.pop(symbol, None)
-                self._box_age_count.pop(symbol, None)
-                logger.debug("CHOP-BOX reset: reason=deep %s deep_tick=%.1f thr=%.1f",
-                              symbol, (bar_hi - peak_ref), pb_reset_ticks * tick)
-
-        # ---- 以降、従来どおり pullback→rebreak を判定 ----
-        pb_ticks = float(getattr(self.config, "pullback_ticks", 1.0))
-        rb_ticks = float(getattr(self.config, "pullback_rebreak_ticks", 1.0))
-
-        # 押し検出で ready=True
-        pb_thr = pb_ticks * tick
-        pulled_enough = (bar_hi <= peak_ref - pb_thr)
-        tolerated_pull = (
-            (mean_close is not None) and (recent_high is not None) and
-            float(mean_close) <= float(recent_high) * (1.0 - float(self.breakout_hold_tolerance))
-        )
-        if not self._pullback_ready.get(symbol, False) and (pulled_enough or tolerated_pull):
-            self._pullback_ready[symbol] = True
-
-        # 再ブレイク（微小許容 eps 付き）
-        rebreak = False
-        rb_thr = rb_ticks * tick
-        if self._pullback_ready.get(symbol, False):
-            if (bar_hi + eps) >= (peak_ref + rb_thr):
-                rebreak = True
-                self._pullback_ready[symbol] = False
-                self._peak_hi[symbol] = float(bar_hi)
-                self._peak_ts[symbol] = now_ts
-
-        peak_ref = self._peak_hi.get(symbol)
-        if peak_ref is None or peak_ref <= 0.0:
-            if bar_hi is not None:
-                self._peak_hi[symbol] = float(bar_hi)
-                self._pullback_ready[symbol] = False
-            elif price is not None:
-                self._peak_hi[symbol] = float(price)
-                self._pullback_ready[symbol] = False
-            peak_ref = self._peak_hi.get(symbol, 0.0)
-            if bar_hi is not None and bar_hi > peak_ref:
-                self._peak_hi[symbol] = float(bar_hi)
-                self._pullback_ready[symbol] = False
-
-        if bar_hi is not None:
-            current_peak = self._peak_hi.get(symbol, 0.0)
-            if current_peak <= 0.0 or bar_hi > current_peak:
-                self._peak_hi[symbol] = float(bar_hi)
-                if self.pb_ticks > 0:
+                if (age >= box_max_age_sec) or (age_count >= box_max_age_count):
+                    new_peak = float((recent_high if (recent_high is not None) else (bar_hi if (bar_hi is not None) else (price or 0.0))))
+                    self._peak_hi[symbol] = new_peak
                     self._pullback_ready[symbol] = False
+                    peak_ref = new_peak
+                    self._box_born_ts.pop(symbol, None)
+                    self._box_age_count.pop(symbol, None)
+                    logger.debug("CHOP-BOX reset: reason=%s %s age=%.1fs/%ds, count=%d/%d new_peak=%.3f",
+                                ("age" if age >= box_max_age_sec else "age_by_count"),
+                                symbol, age, box_max_age_sec, age_count, box_max_age_count, new_peak)
+                else:
+                    # 2) 深押しリセット（% か ティックで）
+                    max_pullback_pct  = float(getattr(self.config, "max_pullback_pct", 0.02))     # 2% 超えたら解体
+                    pb_reset_ticks    = float(getattr(self.config, "pb_reset_ticks", 0.0))      # 0なら無効
+                    if self._pullback_ready.get(symbol, False):
+                        deep_pct  = (px <= peak_ref * (1.0 - max_pullback_pct))
+            #            deep_tick = (bar_hi <= peak_ref - pb_reset_ticks * tick)
+            #            if deep_pct or deep_tick:
+                        if deep_pct:
+                            self._pullback_ready[symbol] = False
+                            self._peak_hi[symbol] = float(bar_hi)   # いったん足元に合わせる
+                            self._peak_ts[symbol] = now_ts
+                            peak_ref = float(self._peak_hi[symbol])
+                            self._box_born_ts.pop(symbol, None)
+                            self._box_age_count.pop(symbol, None)
+                            logger.debug("CHOP-BOX reset: reason=deep %s deep_tick=%.1f thr=%.1f",
+                                        symbol, (bar_hi - peak_ref), pb_reset_ticks * tick)
+
+            # ---- 以降、従来どおり pullback→rebreak を判定 ----
+            pb_ticks = float(getattr(self.config, "pullback_ticks", 1.0))
+            rb_ticks = float(getattr(self.config, "pullback_rebreak_ticks", 1.0))
+
+            # 押し検出で ready=True
+            pb_thr = pb_ticks * tick
+            pulled_enough = (bar_hi <= peak_ref - pb_thr)
+            tolerated_pull = (
+                (mean_close is not None) and (recent_high is not None) and
+                float(mean_close) <= float(recent_high) * (1.0 - float(self.breakout_hold_tolerance))
+            )
+            if not self._pullback_ready.get(symbol, False) and (pulled_enough or tolerated_pull):
+                self._pullback_ready[symbol] = True
+
+            # 再ブレイク（微小許容 eps 付き）
+            rebreak = False
+            rb_thr = rb_ticks * tick
+            if self._pullback_ready.get(symbol, False):
+                if (bar_hi + eps) >= (peak_ref + rb_thr):
+                    rebreak = True
+                    self._pullback_ready[symbol] = False
+                    self._peak_hi[symbol] = float(bar_hi)
+                    self._peak_ts[symbol] = now_ts
+
+            peak_ref = self._peak_hi.get(symbol)
+            if peak_ref is None or peak_ref <= 0.0:
+                if bar_hi is not None:
+                    self._peak_hi[symbol] = float(bar_hi)
+                    self._pullback_ready[symbol] = False
+                elif price is not None:
+                    self._peak_hi[symbol] = float(price)
+                    self._pullback_ready[symbol] = False
+                peak_ref = self._peak_hi.get(symbol, 0.0)
+                if bar_hi is not None and bar_hi > peak_ref:
+                    self._peak_hi[symbol] = float(bar_hi)
+                    self._pullback_ready[symbol] = False
+
+            if bar_hi is not None:
+                current_peak = self._peak_hi.get(symbol, 0.0)
+                if current_peak <= 0.0 or bar_hi > current_peak:
+                    self._peak_hi[symbol] = float(bar_hi)
+                    if self.pb_ticks > 0:
+                        self._pullback_ready[symbol] = False
+# 箱判定ここまで
 
         if v_rate_calc is not None:
             context["momentum_v_rate"] = v_rate_calc

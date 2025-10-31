@@ -28,10 +28,11 @@ import os
 import sqlite3
 import sys
 import time
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, time as dtime, timezone, timedelta
 from pathlib import Path
+from statistics import mean
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from typing import Any, Deque, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -324,7 +325,10 @@ class RunnerConfig:
     market_window: Optional[str] = None
     stop_loss_pct: float = 0.5
     take_profit_pct: float = 1.0
-    volume_spike_thr: float = 1.5
+    enable_chop_box: bool = True
+    enable_volume_spike: bool = True
+    volume_spike_ma: int = 5
+    volume_spike_thr: float = 1.8
     # Anti-spam / guard rails
     per_symbol_cooldown_sec: float = 30.0
     signal_gap_sec: float = 20.0
@@ -563,6 +567,11 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         payload.get("disable_minutes_after_special", 15.0)
     )
     open_delay_sec = max(0.0, float(payload.get("open_delay_sec", 60.0)))
+    enable_chop_box = bool(payload.get("enable_chop_box", True))
+    enable_volume_spike = bool(payload.get("enable_volume_spike", True))
+    volume_spike_ma_val = safe_int(payload.get("volume_spike_ma"), 5)
+    if volume_spike_ma_val is None or volume_spike_ma_val <= 0:
+        volume_spike_ma_val = 5
     buyup_mode_raw = str(payload.get("buyup_mode", "exit") or "exit").strip().upper()
     if buyup_mode_raw not in {"EXIT", "HOLD", "TRAIL"}:
         buyup_mode_raw = "EXIT"
@@ -573,6 +582,9 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     volume_min_floor = safe_float(payload.get("volume_min_floor"), 1000.0)
     if volume_min_floor is None:
         volume_min_floor = 1000.0
+    volume_spike_thr_val = safe_float(payload.get("volume_spike_thr"), 1.8)
+    if volume_spike_thr_val is None or volume_spike_thr_val <= 0.0:
+        volume_spike_thr_val = 1.8
     volume_fade_window = safe_int(payload.get("volume_fade_window"), 8)
     if volume_fade_window is None or volume_fade_window <= 0:
         volume_fade_window = 8
@@ -657,7 +669,10 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         market_window=str(payload.get("market_window", "") or "") or None,
         stop_loss_pct=float(payload.get("stop_loss_pct", 0.5)),
         take_profit_pct=float(payload.get("take_profit_pct", 1.0)),
-        volume_spike_thr=float(payload.get("volume_spike_thr", 1.5)),
+        enable_chop_box=bool(enable_chop_box),
+        enable_volume_spike=bool(enable_volume_spike),
+        volume_spike_ma=int(volume_spike_ma_val),
+        volume_spike_thr=float(volume_spike_thr_val),
         per_symbol_cooldown_sec=float(payload.get("per_symbol_cooldown_sec", 30.0)),
         signal_gap_sec=float(payload.get("signal_gap_sec", 20.0)),
         confirm_ticks=int(payload.get("confirm_ticks", 3)),
@@ -830,6 +845,22 @@ class Policy:
             getattr(config, "breakout_hold_tolerance", 0.004)
         )
 
+        self.enable_volume_spike = bool(
+            getattr(config, "enable_volume_spike", True)
+        )
+        self.volume_spike_ma = max(
+            1, int(getattr(config, "volume_spike_ma", 5))
+        )
+        profile_volume_thr = float(getattr(self.profile, "volume_spike_thr", 1.8))
+        config_volume_thr = float(
+            getattr(config, "volume_spike_thr", profile_volume_thr)
+        )
+        candidate_thr = config_volume_thr if config_volume_thr > 0.0 else profile_volume_thr
+        self.volume_spike_thr = max(0.0, candidate_thr)
+        self.volume_min_floor = max(
+            0.0, float(getattr(config, "volume_min_floor", 1000.0))
+        )
+
         # --- 状態保持構造 ---
         self._vr_hist: Dict[str, Deque[Tuple[float, float]]] = {}
         self._ranges: Dict[str, Deque[float]] = {}
@@ -843,6 +874,10 @@ class Policy:
         self._uptick_streak: Dict[str, int] = {}
         self._last_close: Dict[str, Optional[float]] = {}
         self._recent_high: Dict[str, float] = {}
+
+        self._volq: Dict[str, Deque[float]] = defaultdict(
+            lambda: deque(maxlen=self.volume_spike_ma)
+        )
 
         # Removed legacy lines that referenced undefined variables; arming happens on exit.
 
@@ -960,6 +995,8 @@ class Policy:
             "spread_ticks": spread,
             "volume_rate": volume_rate,
             "volume": vol_now,
+            "volume_min_floor": self.volume_min_floor,
+            "volume_spike_ratio": None,
             "ask_px": ask_px,
             "bid_px": bid_px,
         }
@@ -994,12 +1031,9 @@ class Policy:
         if volume_rate is None:
             ctx = dict(context)
             return PolicyDecision(False, reason="no_volume_rate", context=ctx)
-        volume_min_floor = max(
-            0.0, float(getattr(self.config, "volume_min_floor", 1000.0))
-        )
-        if vol_now is not None and vol_now < volume_min_floor:
+        if vol_now is not None and vol_now < self.volume_min_floor:
             ctx = dict(context)
-            ctx.update({"volume": vol_now, "volume_min_floor": volume_min_floor})
+            ctx.update({"volume": vol_now, "volume_min_floor": self.volume_min_floor})
             return PolicyDecision(False, reason="low_volume", context=ctx)
 
         supplied_ts = safe_float(data_ts) if data_ts is not None else None
@@ -1299,6 +1333,66 @@ class Policy:
                     if self.pb_ticks > 0:
                         self._pullback_ready[symbol] = False
 # 箱判定ここまで
+
+        vol_ratio: Optional[float] = context.get("volume_spike_ratio")
+        if self.enable_volume_spike:
+            if vol_now is None:
+                logger.debug(
+                    "volume_spike: no volume field; skip",
+                    extra=_log_extra(data_ts_val),
+                )
+            else:
+                vol_queue = self._volq[symbol]
+                vol_val = float(vol_now)
+                vol_queue.append(vol_val)
+                warmup_needed = max(2, self.volume_spike_ma // 2)
+                if len(vol_queue) >= warmup_needed:
+                    vol_ma = max(1.0, mean(vol_queue))
+                    vol_ratio = vol_val / vol_ma if vol_ma > 0.0 else None
+                    if vol_ratio is not None and (
+                        vol_ratio < self.volume_spike_thr
+                        or vol_val < self.volume_min_floor
+                    ):
+                        ctx = dict(context)
+                        ctx.update(
+                            {
+                                "volume_spike_ratio": vol_ratio,
+                                "volume_spike_ma": vol_ma,
+                                "volume_spike_samples": len(vol_queue),
+                            }
+                        )
+                        logger.debug(
+                            "ENTRY veto by volume_spike: ratio=%.2f now=%.0f ma=%.1f floor=%.0f",
+                            vol_ratio,
+                            vol_val,
+                            vol_ma,
+                            self.volume_min_floor,
+                            extra=_log_extra(data_ts_val),
+                        )
+                        return PolicyDecision(False, reason="volume_spike", context=ctx)
+                    if vol_ratio is not None:
+                        context["volume_spike_ratio"] = vol_ratio
+                        logger.debug(
+                            "volume_spike pass: ratio=%.2f now=%.0f ma=%.1f thr=%.2f",
+                            vol_ratio,
+                            vol_val,
+                            vol_ma,
+                            self.volume_spike_thr,
+                            extra=_log_extra(data_ts_val),
+                        )
+                else:
+                    logger.debug(
+                        "volume_spike warmup: %d/%d samples",
+                        len(vol_queue),
+                        self.volume_spike_ma,
+                        extra=_log_extra(data_ts_val),
+                    )
+        else:
+            if vol_now is not None:
+                self._volq[symbol].append(float(vol_now))
+        if vol_ratio is not None:
+            context["volume_spike_ratio"] = vol_ratio
+# Volumeスパイク判定ここまで
 
         if v_rate_calc is not None:
             context["momentum_v_rate"] = v_rate_calc
@@ -1608,6 +1702,7 @@ class RawPushFeatures:
         self.cfg = cfg
         self.ts_column = "ts" if ts_column == "ts" else "t_recv"
         self._last_volume: Dict[str, float] = {}
+        self._prev_volume: Dict[str, float] = defaultdict(float)
 
     def iter_feats(self, limit: int = 1000) -> list[dict[str, Any]]:
         """
@@ -1663,6 +1758,24 @@ class RawPushFeatures:
                 f["close"] = f["mean_close"]
             if price is not None:
                 f["price"] = price
+
+            if "TradingVolume" in payload:
+                raw_total = safe_float(payload.get("TradingVolume")) or 0.0
+                prev_total = self._prev_volume.get(sym, 0.0)
+                if raw_total < prev_total:
+                    self._prev_volume[sym] = 0.0
+                    prev_total = 0.0
+                delta = max(0.0, raw_total - prev_total)
+                self._prev_volume[sym] = raw_total
+                f["vol"] = delta
+                if delta > 0.0 and delta >= 1000.0:
+                    logger.debug(
+                        "vol_delta %s: +%.0f (total=%.0f)",
+                        sym,
+                        delta,
+                        raw_total,
+                        extra=_log_extra(ts_sec),
+                    )
 
             feats.append(f)
 
@@ -2211,16 +2324,16 @@ class NautRunner:
             self._chop_box_until = float(data_ts + self.chop_silence_sec)
             tick_span = self.chop_box_ticks * float(self.config.tick_size)
             # Also notify the Policy about the chop-box start.
-            self.policy.mark_chopbox_born(symbol, data_ts)
-            logger.debug(
-                "CHOP-BOX armed: symbol=%s center=%.3f +/- %d ticks (%.4f) until=%s",
-                symbol,
-                self._chop_box_center,
-                self.chop_box_ticks,
-                tick_span,
-                _format_epoch_hms(self._chop_box_until),
-                extra=_log_extra(data_ts),
-            )
+#            self.policy.mark_chopbox_born(symbol, data_ts)
+#            logger.debug(
+#                "CHOP-BOX armed: symbol=%s center=%.3f +/- %d ticks (%.4f) until=%s",
+#                symbol,
+#                self._chop_box_center,
+#                self.chop_box_ticks,
+#                tick_span,
+#                _format_epoch_hms(self._chop_box_until),
+#                extra=_log_extra(data_ts),
+#            )
 
     def _disable_symbol_temporarily(
         self, symbol: str, minutes: int, data_ts: float
@@ -2479,6 +2592,7 @@ class NautRunner:
             "downtick_ratio": decision.context.get("downtick_ratio"),
             "spread_ticks": decision.context.get("spread_ticks"),
             "volume_rate": decision.context.get("volume_rate"),
+            "volume_spike_ratio": decision.context.get("volume_spike_ratio"),
             "entry_px": decision.entry_px,
             "sl_px": decision.sl_px,
             "tp_px": decision.tp_px,
@@ -2520,8 +2634,14 @@ class NautRunner:
         self.stats["entries"] += 1
         self.last_entry_ts[symbol] = data_ts
         self.signal_streak[symbol] = 0
+        ratio_display = decision.context.get("volume_spike_ratio")
+        ratio_for_log = (
+            f"{float(ratio_display):.2f}"
+            if isinstance(ratio_display, (int, float))
+            else ratio_display
+        )
         logger.info(
-            "ENTRY %s @%s order=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f score=%s md5=%s dataset=%s schema=%s",
+            "ENTRY %s @%s order=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f score=%s ratio=%s md5=%s dataset=%s schema=%s",
             symbol,
             event_time,
             order_id,
@@ -2531,6 +2651,7 @@ class NautRunner:
             decision.sl_px,
             decision.tp_px,
             decision.context.get("score"),
+            ratio_for_log,
             self.profile.md5,
             self.profile.dataset_id,
             self.profile.schema_version,
@@ -2790,6 +2911,34 @@ def main() -> None:
         help="Override feature source backend (config default when omitted).",
     )
     parser.add_argument(
+        "--enable-volume-spike",
+        action="store_true",
+        help="Enable volume-spike gate",
+    )
+    parser.add_argument(
+        "--disable-volume-spike",
+        action="store_true",
+        help="Disable volume-spike gate",
+    )
+    parser.add_argument(
+        "--volume-spike-ma",
+        type=int,
+        default=None,
+        help="Override volume spike moving average length",
+    )
+    parser.add_argument(
+        "--volume-spike-thr",
+        type=float,
+        default=None,
+        help="Override volume spike ratio threshold",
+    )
+    parser.add_argument(
+        "--volume-min-floor",
+        type=int,
+        default=None,
+        help="Override absolute minimum volume floor",
+    )
+    parser.add_argument(
         "--replay-from-start",
         action="store_true",
         help="In paper mode, read features_stream from the beginning instead of tail.",
@@ -2838,6 +2987,19 @@ def main() -> None:
             runner_config.daily_loss_limit_pct,
             runner_config.initial_cash,
         )
+    cli_overrides: Dict[str, Any] = {}
+    if args.enable_volume_spike:
+        cli_overrides["enable_volume_spike"] = True
+    if args.disable_volume_spike:
+        cli_overrides["enable_volume_spike"] = False
+    if args.volume_spike_ma is not None:
+        cli_overrides["volume_spike_ma"] = max(1, int(args.volume_spike_ma))
+    if args.volume_spike_thr is not None:
+        cli_overrides["volume_spike_thr"] = max(0.0, float(args.volume_spike_thr))
+    if args.volume_min_floor is not None:
+        cli_overrides["volume_min_floor"] = max(0.0, float(args.volume_min_floor))
+    if cli_overrides:
+        runner_config = replace(runner_config, **cli_overrides)
     logger.info(
         "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
         runner_config.feature_source,

@@ -302,9 +302,9 @@ def is_buyup(sign: Optional[str]) -> bool:
 
 @dataclass(frozen=True)
 class RunnerConfig:
-    features_db: str
-    ops_db: str
-    symbols: List[str]
+    features_db: str = "db/naut_market_default_refeed.db"
+    ops_db: str = "db/naut_ops_default.db"
+    symbols: List[str] = field(default_factory=list)
     symbols_original: List[str] = field(default_factory=list)
     poll_interval_sec: float = 1.0
     initial_cash: float = 1_500_000.0
@@ -353,6 +353,15 @@ class RunnerConfig:
     cooldown_after_stop_sec: float = 30.0
     chop_box_ticks: int = 4
     chop_silence_sec: float = 30.0
+    momentum_rule: str = "product"
+    mom_k: int = 3
+    mom_n: int = 4
+    mom_allow_neg: int = 1
+    mom_ema_alpha: float = 0.6
+    mom_ema_min: float = 0.0
+    spike_bypass_momentum: bool = True
+    spike_bypass_ratio: float = 1.6
+    spike_bypass_need_breakout: bool = True
     momentum_quality_min: float = field(default=6.0, metadata={"overridable": False})
     breakout_confirm_bars: int = field(default=3,   metadata={"overridable": False})
     breakout_hold_tolerance: float = 0.004
@@ -525,8 +534,14 @@ class RunnerClock:
         return self.last_ts
 
 
-def load_runner_config(config_path: Path) -> RunnerConfig:
+def load_runner_config(
+    config_path: Path,
+    *,
+    symbols_override: Optional[Iterable[str]] = None,
+) -> RunnerConfig:
     payload = load_json_utf8(str(config_path))
+    if symbols_override and "symbol" not in payload and "symbols" not in payload:
+        payload["symbols"] = list(symbols_override)
     # 1銘柄限定インターフェイス：symbol を優先。なければ旧 symbols の先頭だけ使う。
     if "symbol" in payload and str(payload["symbol"]).strip():
         symbols_src = [payload["symbol"]]
@@ -585,6 +600,11 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     volume_spike_thr_val = safe_float(payload.get("volume_spike_thr"), 1.8)
     if volume_spike_thr_val is None or volume_spike_thr_val <= 0.0:
         volume_spike_thr_val = 1.8
+    spike_bypass_momentum = bool(payload.get("spike_bypass_momentum", True))
+    spike_bypass_ratio_val = safe_float(payload.get("spike_bypass_ratio"), 1.6)
+    if spike_bypass_ratio_val is None or spike_bypass_ratio_val <= 0.0:
+        spike_bypass_ratio_val = 1.6
+    spike_bypass_need_breakout = bool(payload.get("spike_bypass_need_breakout", True))
     volume_fade_window = safe_int(payload.get("volume_fade_window"), 8)
     if volume_fade_window is None or volume_fade_window <= 0:
         volume_fade_window = 8
@@ -626,6 +646,24 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     momentum_quality_min = safe_float(payload.get("momentum_quality_min"), 6.0)
     if momentum_quality_min is None or momentum_quality_min < 0.0:
         momentum_quality_min = 6.0
+    momentum_rule_raw = str(payload.get("momentum_rule", "product") or "product").strip().lower()
+    if momentum_rule_raw not in {"kofn", "product"}:
+        momentum_rule_raw = "product"
+    mom_k_val = safe_int(payload.get("mom_k"), 3)
+    if mom_k_val is None or mom_k_val <= 0:
+        mom_k_val = 3
+    mom_n_val = safe_int(payload.get("mom_n"), 4)
+    if mom_n_val is None or mom_n_val <= 1:
+        mom_n_val = 4
+    mom_allow_neg_val = safe_int(payload.get("mom_allow_neg"), 1)
+    if mom_allow_neg_val is None or mom_allow_neg_val < 0:
+        mom_allow_neg_val = 1
+    mom_ema_alpha_val = safe_float(payload.get("mom_ema_alpha"), 0.6)
+    if mom_ema_alpha_val is None or not (0.0 <= mom_ema_alpha_val <= 1.0):
+        mom_ema_alpha_val = 0.6
+    mom_ema_min_val = safe_float(payload.get("mom_ema_min"), 0.0)
+    if mom_ema_min_val is None:
+        mom_ema_min_val = 0.0
     breakout_confirm_bars = safe_int(payload.get("breakout_confirm_bars"), 3)
     if breakout_confirm_bars is None or breakout_confirm_bars < 0:
         breakout_confirm_bars = 3
@@ -647,7 +685,7 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
-        symbols=[symbol0],
+        symbols=[str(sym) for sym in symbols_src],
         symbols_original=[str(sym) for sym in symbols_src],
         poll_interval_sec=float(payload.get("poll_interval_sec", 1.0)),
         initial_cash=float(payload.get("initial_cash", 1_500_000.0)),
@@ -673,6 +711,9 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         enable_volume_spike=bool(enable_volume_spike),
         volume_spike_ma=int(volume_spike_ma_val),
         volume_spike_thr=float(volume_spike_thr_val),
+        spike_bypass_momentum=bool(spike_bypass_momentum),
+        spike_bypass_ratio=float(spike_bypass_ratio_val),
+        spike_bypass_need_breakout=bool(spike_bypass_need_breakout),
         per_symbol_cooldown_sec=float(payload.get("per_symbol_cooldown_sec", 30.0)),
         signal_gap_sec=float(payload.get("signal_gap_sec", 20.0)),
         confirm_ticks=int(payload.get("confirm_ticks", 3)),
@@ -696,6 +737,12 @@ def load_runner_config(config_path: Path) -> RunnerConfig:
         cooldown_after_stop_sec=float(cooldown_after_stop_sec),
         chop_box_ticks=int(chop_box_ticks),
         chop_silence_sec=float(chop_silence_sec),
+        momentum_rule=str(momentum_rule_raw),
+        mom_k=int(mom_k_val),
+        mom_n=int(mom_n_val),
+        mom_allow_neg=int(mom_allow_neg_val),
+        mom_ema_alpha=float(mom_ema_alpha_val),
+        mom_ema_min=float(mom_ema_min_val),
         momentum_quality_min=float(momentum_quality_min),
         breakout_confirm_bars=int(breakout_confirm_bars),
         breakout_hold_tolerance=float(breakout_hold_tolerance),
@@ -833,14 +880,29 @@ class Policy:
         self._rx_cdsec = self.rx_cdsec
         self._pb_ticks = self.pb_ticks
         self._pb_rebr  = self.pb_rebr
+        momentum_rule_cfg = str(
+            getattr(config, "momentum_rule", "product") or "product"
+        ).lower()
+        if momentum_rule_cfg not in {"kofn", "product"}:
+            momentum_rule_cfg = "product"
+        self.momentum_rule = momentum_rule_cfg
+        mom_n_cfg = int(getattr(config, "mom_n", 4))
+        self.mom_n = max(2, mom_n_cfg)
+        mom_k_cfg = int(getattr(config, "mom_k", 3))
+        self.mom_k = max(1, min(mom_k_cfg, max(1, self.mom_n - 1)))
+        mom_allow_cfg = int(getattr(config, "mom_allow_neg", 1))
+        self.mom_allow_neg = max(0, mom_allow_cfg)
+        alpha_cfg = float(getattr(config, "mom_ema_alpha", 0.6))
+        if not math.isfinite(alpha_cfg):
+            alpha_cfg = 0.6
+        self.mom_ema_alpha = min(max(alpha_cfg, 0.0), 1.0)
+        ema_min_cfg = float(getattr(config, "mom_ema_min", 0.0))
+        self.mom_ema_min = ema_min_cfg
         self._momentum_quality_min = max(
             0.0, float(getattr(config, "momentum_quality_min", 6.0))
         )
         self.momentum_quality_min = self._momentum_quality_min
 
-        self.breakout_confirm_bars = max(
-            0, int(getattr(config, "breakout_confirm_bars", 3))
-        )
         self.breakout_hold_tolerance = float(
             getattr(config, "breakout_hold_tolerance", 0.004)
         )
@@ -860,6 +922,19 @@ class Policy:
         self.volume_min_floor = max(
             0.0, float(getattr(config, "volume_min_floor", 1000.0))
         )
+        self.spike_bypass_momentum = bool(
+            getattr(config, "spike_bypass_momentum", True)
+        )
+        # fast-lane (volume spike) settings
+        self.spike_bypass_ratio = max(
+            0.0, float(getattr(config, "spike_bypass_ratio", 1.6))
+        )
+        self.spike_bypass_need_breakout = bool(
+            getattr(config, "spike_bypass_need_breakout", True)
+        )
+        self.breakout_confirm_bars = max(
+            0, int(getattr(config, "breakout_confirm_bars", 2))
+        )
 
         # --- 状態保持構造 ---
         self._vr_hist: Dict[str, Deque[Tuple[float, float]]] = {}
@@ -874,6 +949,11 @@ class Policy:
         self._uptick_streak: Dict[str, int] = {}
         self._last_close: Dict[str, Optional[float]] = {}
         self._recent_high: Dict[str, float] = {}
+        self._breakout_confirm: Dict[str, int] = defaultdict(int)
+        self._pxq: Dict[str, Deque[float]] = defaultdict(
+            lambda: deque(maxlen=max(4, self.mom_n))
+        )
+        self._vel_ema: Dict[str, float] = defaultdict(float)
 
         self._volq: Dict[str, Deque[float]] = defaultdict(
             lambda: deque(maxlen=self.volume_spike_ma)
@@ -1054,6 +1134,25 @@ class Policy:
         if close_px is not None:
             context["close"] = close_px
 
+        px_for_momentum: Optional[float] = None
+        if price is not None:
+            px_for_momentum = float(price)
+        elif close_px is not None:
+            px_for_momentum = float(close_px)
+        vel = 0.0
+        if px_for_momentum is not None:
+            px_queue = self._pxq[symbol]
+            if px_queue:
+                vel = px_for_momentum - px_queue[-1]
+            px_queue.append(px_for_momentum)
+            alpha = self.mom_ema_alpha
+            ema_prev = self._vel_ema[symbol]
+            self._vel_ema[symbol] = (1.0 - alpha) * ema_prev + alpha * vel
+        ema_val = self._vel_ema[symbol]
+        context["momentum_vel"] = vel
+        context["momentum_vel_ema"] = ema_val
+        context["momentum_rule"] = self.momentum_rule
+
         bar_hi = self._extract(row, ("bar_high", "high"))
         if bar_hi is None:
             bar_hi = price if price is not None else ask_px or bid_px
@@ -1101,6 +1200,40 @@ class Policy:
         if mean_close is None and row_mean_close is not None:
             mean_close = float(row_mean_close)
 
+        # --- breakout_confirm (計算は volume_spike より前に行う) ---
+        ref_close = close_px if close_px is not None else row.get("close")
+        ref_high = recent_high if recent_high is not None else bar_hi
+        ref_close_val = safe_float(ref_close)
+        ref_high_val = safe_float(ref_high)
+
+        confirm_prev = self._breakout_confirm.get(symbol, 0)
+        confirm_val = 0
+        ok_breakout_hold = False
+
+        if self.breakout_confirm_bars > 0:
+            if (
+                ref_close_val is not None
+                and ref_high_val is not None
+                and ref_high_val > 0.0
+                and ref_close_val >= ref_high_val * (1.0 - self.breakout_hold_tolerance)
+            ):
+                ok_breakout_hold = True
+                confirm_val = min(self.breakout_confirm_bars, confirm_prev + 1)
+            else:
+                confirm_val = 0
+
+        self._breakout_confirm[symbol] = confirm_val
+        context["breakout_confirm"] = confirm_val
+
+        logger.debug(
+            "breakout_confirm: ok=%s prev=%d -> cur=%d ref_close=%.3f ref_high=%.3f tol=%.4f",
+            ok_breakout_hold, int(confirm_prev), int(confirm_val),
+            ref_close_val if ref_close_val is not None else -1.0,
+            ref_high_val if ref_high_val is not None else -1.0,
+            float(self.breakout_hold_tolerance),
+            extra=_log_extra(data_ts_val),
+        )
+
         rng = 0.0
         if bar_hi is not None and bar_lo is not None:
             rng = max(float(bar_hi) - float(bar_lo), 0.0)
@@ -1119,6 +1252,7 @@ class Policy:
             ask_sign_raw
         )
 
+        bypass_momentum = False
         dq = self._push_vrate(symbol, volume_rate, data_ts_val)
         if spike_triggered:
             blocked, lag, cur, peak = self._fade_blocked(dq)
@@ -1334,7 +1468,11 @@ class Policy:
                         self._pullback_ready[symbol] = False
 # 箱判定ここまで
 
+        pullback_ready_state = bool(self._pullback_ready.get(symbol, False))
         vol_ratio: Optional[float] = context.get("volume_spike_ratio")
+        vol_val: Optional[float] = None
+        spike_pass = False
+        fastpath_spike = False
         if self.enable_volume_spike:
             if vol_now is None:
                 logger.debug(
@@ -1349,28 +1487,29 @@ class Policy:
                 if len(vol_queue) >= warmup_needed:
                     vol_ma = max(1.0, mean(vol_queue))
                     vol_ratio = vol_val / vol_ma if vol_ma > 0.0 else None
-                    if vol_ratio is not None and (
-                        vol_ratio < self.volume_spike_thr
-                        or vol_val < self.volume_min_floor
-                    ):
-                        ctx = dict(context)
-                        ctx.update(
-                            {
-                                "volume_spike_ratio": vol_ratio,
-                                "volume_spike_ma": vol_ma,
-                                "volume_spike_samples": len(vol_queue),
-                            }
-                        )
-                        logger.debug(
-                            "ENTRY veto by volume_spike: ratio=%.2f now=%.0f ma=%.1f floor=%.0f",
-                            vol_ratio,
-                            vol_val,
-                            vol_ma,
-                            self.volume_min_floor,
-                            extra=_log_extra(data_ts_val),
-                        )
-                        return PolicyDecision(False, reason="volume_spike", context=ctx)
                     if vol_ratio is not None:
+                        spike_pass = (
+                            vol_val >= self.volume_min_floor
+                            and vol_ratio >= self.volume_spike_thr
+                        )
+                        if not spike_pass:
+                            ctx = dict(context)
+                            ctx.update(
+                                {
+                                    "volume_spike_ratio": vol_ratio,
+                                    "volume_spike_ma": vol_ma,
+                                    "volume_spike_samples": len(vol_queue),
+                                }
+                            )
+                            logger.debug(
+                                "ENTRY veto by volume_spike: ratio=%.2f now=%.0f ma=%.1f floor=%.0f",
+                                vol_ratio,
+                                vol_val,
+                                vol_ma,
+                                self.volume_min_floor,
+                                extra=_log_extra(data_ts_val),
+                            )
+                            return PolicyDecision(False, reason="volume_spike", context=ctx)
                         context["volume_spike_ratio"] = vol_ratio
                         logger.debug(
                             "volume_spike pass: ratio=%.2f now=%.0f ma=%.1f thr=%.2f",
@@ -1380,6 +1519,22 @@ class Policy:
                             self.volume_spike_thr,
                             extra=_log_extra(data_ts_val),
                         )
+                        fastpath_spike = False
+                        pullback_ready_signal = bool(row.get("pullback_ready", False))
+                        if self.spike_bypass_momentum and vol_ratio is not None and vol_val is not None:
+                            if vol_ratio >= self.spike_bypass_ratio:
+                                breakout_ok = True
+                                if self.spike_bypass_need_breakout:
+                                    breakout_ok = (int(confirm_val) >= int(self.breakout_confirm_bars)) or pullback_ready_signal
+                                fastpath_spike = breakout_ok
+                                if fastpath_spike:
+                                    context["momentum_bypass_reason"] = "volume_spike_fastlane"
+                                    context["volume_spike_ratio"] = round(float(vol_ratio), 2)
+                                    logger.debug(
+                                        "fast-lane by volume_spike: ratio=%.2f confirm=%d/%d pullback=%s",
+                                        float(vol_ratio), int(confirm_val), int(self.breakout_confirm_bars), pullback_ready_signal,
+                                        extra=_log_extra(data_ts_val),
+                                    )
                 else:
                     logger.debug(
                         "volume_spike warmup: %d/%d samples",
@@ -1390,8 +1545,11 @@ class Policy:
         else:
             if vol_now is not None:
                 self._volq[symbol].append(float(vol_now))
-        if vol_ratio is not None:
+        if vol_ratio is not None and not fastpath_spike:
             context["volume_spike_ratio"] = vol_ratio
+        context["volume_spike_pass"] = spike_pass
+        if fastpath_spike:
+            bypass_momentum = True
 # Volumeスパイク判定ここまで
 
         if v_rate_calc is not None:
@@ -1401,57 +1559,112 @@ class Policy:
             context["breakout_mean_close"] = mean_close
         if recent_high is not None:
             context["breakout_recent_high"] = recent_high
+        context["pullback_ready"] = pullback_ready_state
 
         momentum_score: Optional[float] = None
-        if (
-            self.momentum_quality_min > 0.0
-            and v_rate_calc is not None
-        ):
-            momentum_score = v_rate_calc * float(max(uptick_count, 0))
-            if momentum_score < self.momentum_quality_min:
+        mom_ok = True
+        if not bypass_momentum:
+            if self.momentum_rule == "kofn":
+                px_queue = self._pxq[symbol]
+                window_len = max(2, self.mom_n)
+                if len(px_queue) >= window_len:
+                    seq = list(px_queue)[-window_len:]
+                    ups = 0
+                    downs = 0
+                    for i in range(len(seq) - 1):
+                        diff = seq[i + 1] - seq[i]
+                        if diff > 0:
+                            ups += 1
+                        elif diff < 0:
+                            downs += 1
+                    ema_val = self._vel_ema[symbol]
+                    ema_ok = ema_val >= self.mom_ema_min
+                    kofn_ok = (ups >= self.mom_k) and (downs <= self.mom_allow_neg)
+                    context.update(
+                        {
+                            "momentum_ups": ups,
+                            "momentum_downs": downs,
+                            "momentum_window": window_len,
+                            "mom_k": self.mom_k,
+                            "mom_n": self.mom_n,
+                            "mom_allow_neg": self.mom_allow_neg,
+                            "mom_ema_min": self.mom_ema_min,
+                        }
+                    )
+                    if not (kofn_ok and ema_ok):
+                        mom_ok = False
+                        logger.debug(
+                            "ENTRY veto by momentum_quality(kofn): ups=%d downs=%d need=%d/%d ema=%.5f min=%.5f",
+                            ups,
+                            downs,
+                            self.mom_k,
+                            self.mom_n - 1,
+                            ema_val,
+                            self.mom_ema_min,
+                            extra=_log_extra(data_ts_val),
+                        )
+                else:
+                    context["momentum_warmup"] = len(px_queue)
+            else:
+                if (
+                    self.momentum_quality_min > 0.0
+                    and v_rate_calc is not None
+                ):
+                    momentum_score = v_rate_calc * float(max(uptick_count, 0))
+                    if momentum_score < self.momentum_quality_min:
+                        context.update(
+                            {
+                                "momentum_v_rate": v_rate_calc,
+                                "momentum_upticks": uptick_count,
+                                "momentum_score": momentum_score,
+                                "momentum_quality_min": self.momentum_quality_min,
+                                "momentum_rule": "product",
+                            }
+                        )
+                        mom_ok = False
+                        logger.debug(
+                            "ENTRY veto by momentum_quality(product): v_rate=%.2f upticks=%d score=%.2f thr=%.2f",
+                            v_rate_calc,
+                            uptick_count,
+                            momentum_score,
+                            self.momentum_quality_min,
+                            extra=_log_extra(data_ts_val),
+                        )
+            if momentum_score is not None:
+                context["momentum_score"] = momentum_score
+        else:
+            context.setdefault("momentum_bypass_reason", "volume_spike")
+
+        context["momentum_ok"] = mom_ok
+        bypass_reason = context.get("momentum_bypass_reason")
+        breakout_bypass = (
+            bypass_momentum
+            and bypass_reason in {"volume_spike", "volume_spike_fastlane"}
+            and self.spike_bypass_momentum
+        )
+        if not breakout_bypass:
+            if (
+                self.breakout_confirm_bars > 0
+                and mean_close is not None
+                and recent_high is not None
+                and mean_close <= recent_high * (1 - self.breakout_hold_tolerance)
+            ):
                 ctx = dict(context)
                 ctx.update(
                     {
-                        "momentum_v_rate": v_rate_calc,
-                        "momentum_upticks": uptick_count,
-                        "momentum_score": momentum_score,
-                        "momentum_quality_min": self.momentum_quality_min,
+                        "breakout_mean_close": mean_close,
+                        "breakout_recent_high": recent_high,
+                        "breakout_confirm_bars": self.breakout_confirm_bars,
                     }
                 )
                 logger.debug(
-                    "ENTRY veto by momentum_quality: v_rate=%.2f upticks=%d score=%.2f thr=%.2f",
-                    v_rate_calc,
-                    uptick_count,
-                    momentum_score,
-                    self.momentum_quality_min,
+                    "ENTRY veto by breakout_hold: mean_close=%.3f high=%.3f N=%d",
+                    mean_close,
+                    recent_high,
+                    self.breakout_confirm_bars,
                     extra=_log_extra(data_ts_val),
                 )
-                return PolicyDecision(False, reason="momentum_quality", context=ctx)
-        if momentum_score is not None:
-            context["momentum_score"] = momentum_score
-
-        if (
-            self.breakout_confirm_bars > 0
-            and mean_close is not None
-            and recent_high is not None
-            and mean_close <= recent_high * (1 - self.breakout_hold_tolerance)
-        ):
-            ctx = dict(context)
-            ctx.update(
-                {
-                    "breakout_mean_close": mean_close,
-                    "breakout_recent_high": recent_high,
-                    "breakout_confirm_bars": self.breakout_confirm_bars,
-                }
-            )
-            logger.debug(
-                "ENTRY veto by breakout_hold: mean_close=%.3f high=%.3f N=%d",
-                mean_close,
-                recent_high,
-                self.breakout_confirm_bars,
-                extra=_log_extra(data_ts_val),
-            )
-            return PolicyDecision(False, reason="breakout_hold", context=ctx)
+                return PolicyDecision(False, reason="breakout_hold", context=ctx)
 
         spread_val = float("inf") if spread is None else spread
 
@@ -1466,18 +1679,33 @@ class Policy:
 
         score_thr = max(self.profile.score_thr_abs, 0.0)
 
+        # --- BUY entry gate (OR-of-ANDs) ---
         buy_fail: Optional[str] = None
         if ask_px is None:
             buy_fail = "no_quote"
-        elif score is None or score < score_thr:
-            buy_fail = "score"
-        elif uptick is None or uptick < self.profile.uptick_thr:
-            buy_fail = "uptick"
-        elif spread_val > self.profile.spread_max:
-            buy_fail = "spread"
-        else:
+
+        if buy_fail is None:
+            spread_max = float(self.profile.spread_max)
+            if spread_val > spread_max:
+                buy_fail = "spread"
+
+        buy_via_fastlane = False
+        if buy_fail is None and fastpath_spike:
+            buy_via_fastlane = True
+
+        buy_via_normal = False
+        if buy_fail is None and not buy_via_fastlane:
+            mom_ok_buy = mom_ok
+            score_ok_buy = score is not None and score >= score_thr
+            if mom_ok_buy and score_ok_buy:
+                buy_via_normal = True
+            else:
+                buy_fail = "momentum_score"
+
+        if buy_via_fastlane or buy_via_normal:
             sl_px = ask_px * (1.0 - stop_pct)
             tp_px = ask_px * (1.0 + take_pct)
+            route = "fastlane" if buy_via_fastlane else "normal"
             buy_context = dict(context)
             buy_context.update(
                 {
@@ -1485,6 +1713,7 @@ class Policy:
                     "sl_px": sl_px,
                     "tp_px": tp_px,
                     "side": SIDE_BUY,
+                    "route": route,
                 }
             )
             return PolicyDecision(
@@ -1497,18 +1726,33 @@ class Policy:
                 context=buy_context,
             )
 
+        # --- SELL entry gate (OR-of-ANDs) ---
         sell_fail: Optional[str] = None
         if bid_px is None:
             sell_fail = "no_quote"
-        elif score is None or score > -score_thr:
-            sell_fail = "score"
-        elif downtick is None or downtick < self.profile.uptick_thr:
-            sell_fail = "downtick"
-        elif spread_val > self.profile.spread_max:
-            sell_fail = "spread"
-        else:
+
+        if sell_fail is None:
+            spread_max = float(self.profile.spread_max)
+            if spread_val > spread_max:
+                sell_fail = "spread"
+
+        sell_via_fastlane = False
+        if sell_fail is None and fastpath_spike:
+            sell_via_fastlane = True
+
+        sell_via_normal = False
+        if sell_fail is None and not sell_via_fastlane:
+            mom_ok_sell = mom_ok
+            score_ok_sell = score is not None and score <= -score_thr
+            if mom_ok_sell and score_ok_sell:
+                sell_via_normal = True
+            else:
+                sell_fail = "momentum_score"
+
+        if sell_via_fastlane or sell_via_normal:
             sl_px = bid_px * (1.0 + stop_pct)
             tp_px = bid_px * (1.0 - take_pct)
+            route = "fastlane" if sell_via_fastlane else "normal"
             sell_context = dict(context)
             sell_context.update(
                 {
@@ -1516,6 +1760,7 @@ class Policy:
                     "sl_px": sl_px,
                     "tp_px": tp_px,
                     "side": SIDE_SELL,
+                    "route": route,
                 }
             )
             return PolicyDecision(
@@ -1537,6 +1782,7 @@ class Policy:
             reasons.append("filtered")
         fail_context = dict(context)
         fail_context["side"] = None
+        fail_context["route"] = None
         return PolicyDecision(
             False,
             side=None,
@@ -2938,6 +3184,12 @@ def main() -> None:
         default=None,
         help="Override absolute minimum volume floor",
     )
+    parser.add_argument("--momentum-rule", type=str, choices=["kofn","product"], default=None)
+    parser.add_argument("--mom-k", type=int, default=None)
+    parser.add_argument("--mom-n", type=int, default=None)
+    parser.add_argument("--mom-allow-neg", type=int, default=None)
+    parser.add_argument("--mom-ema-alpha", type=float, default=None)
+    parser.add_argument("--mom-ema-min", type=float, default=None)
     parser.add_argument(
         "--replay-from-start",
         action="store_true",
@@ -2955,16 +3207,36 @@ def main() -> None:
         default="",
         help="Optional policy.json path to override sizing/risk",
     )
+    parser.add_argument(
+        "--features-db", "--features_db",
+        dest="features_db",
+        type=str, default=None,
+        help="Path to features DB (overrides config).",
+    )
+    parser.add_argument(
+        "--ops-db", "--ops_db",
+        dest="ops_db",
+        type=str, default=None,
+        help="Path to ops DB (overrides config).",
+    )
+    parser.add_argument(
+        "--symbols", nargs="+", metavar="CODE",
+        help="Symbols to run (e.g., 1960 6330 290A)"
+    )
+    parser.add_argument(
+        "--log-path", "--log_path",
+        dest="log_path",
+        type=str, default=None,
+        help="Path to log file (overrides config).",
+    )
     args = parser.parse_args()
 
     mode_label = (args.mode or "AUTO").lower()
     singleton_guard(f"naut_runner_{mode_label}_{args.broker}")
     config_path = Path(resolve_path(args.config))
-    runner_config = load_runner_config(config_path)
-    configure_logging(runner_config.log_path, bool(args.verbose))
-
-    if args.feature_source:
-        runner_config = replace(runner_config, feature_source=args.feature_source)
+    runner_config = load_runner_config(
+        config_path, symbols_override=args.symbols
+    )
     active_symbol = runner_config.symbols[0]
     threshold_path = resolve_threshold_path(active_symbol, args.thr)
     policy_dict = _load_json_optional(args.policy)
@@ -2988,6 +3260,8 @@ def main() -> None:
             runner_config.initial_cash,
         )
     cli_overrides: Dict[str, Any] = {}
+    if args.feature_source:
+        cli_overrides["feature_source"] = args.feature_source
     if args.enable_volume_spike:
         cli_overrides["enable_volume_spike"] = True
     if args.disable_volume_spike:
@@ -2998,8 +3272,31 @@ def main() -> None:
         cli_overrides["volume_spike_thr"] = max(0.0, float(args.volume_spike_thr))
     if args.volume_min_floor is not None:
         cli_overrides["volume_min_floor"] = max(0.0, float(args.volume_min_floor))
+    # momentum family
+    if args.momentum_rule is not None:
+        cli_overrides["momentum_rule"] = args.momentum_rule
+    if args.mom_k is not None:
+        cli_overrides["mom_k"] = int(args.mom_k)
+    if args.mom_n is not None:
+        cli_overrides["mom_n"] = int(args.mom_n)
+    if args.mom_allow_neg is not None:
+        cli_overrides["mom_allow_neg"] = int(args.mom_allow_neg)
+    if args.mom_ema_alpha is not None:
+        cli_overrides["mom_ema_alpha"] = float(args.mom_ema_alpha)
+    if args.mom_ema_min is not None:
+        cli_overrides["mom_ema_min"] = float(args.mom_ema_min)
+    if args.features_db is not None:
+        cli_overrides["features_db"] = str(Path(args.features_db))
+    if args.ops_db is not None:
+        cli_overrides["ops_db"] = str(Path(args.ops_db))
+    if args.symbols:
+        cli_overrides["symbols"] = args.symbols
+    if args.log_path is not None:
+        cli_overrides["log_path"] = str(Path(args.log_path))
+
     if cli_overrides:
         runner_config = replace(runner_config, **cli_overrides)
+    configure_logging(runner_config.log_path, bool(args.verbose))
     logger.info(
         "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
         runner_config.feature_source,
@@ -3025,11 +3322,19 @@ def main() -> None:
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
     _chopbox_born_shared = {}
-    poller = FeaturePoller(
-        runner_config.features_db, runner_config, runner_config.symbols
-    )
+    symbols = runner_config.symbols or getattr(runner_config, "symbols_original", []) or []
+    if not symbols:
+        raise ValueError("No symbols provided. Use --symbols or config.symbols*")
+    logger.info("Active symbols: %s", symbols)
+    poller = FeaturePoller(runner_config.features_db, runner_config, symbols)
     ledger = Ledger(runner_config)
+
+    logger.info("Policy cfg: momentum_rule=%s mom_k=%s mom_n=%s",
+                runner_config.momentum_rule,
+                runner_config.mom_k,
+                runner_config.mom_n)
     policy = Policy(threshold_profile, runner_config, box_born_ts=_chopbox_born_shared)
+
     trade_logger = TradeLogger(runner_config.ops_db)
 
     broker: Broker

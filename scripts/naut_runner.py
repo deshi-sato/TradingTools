@@ -323,6 +323,7 @@ class RunnerConfig:
     timezone: str = "Asia/Tokyo"
     killswitch_check_interval_sec: float = 5.0
     market_window: Optional[str] = None
+    score_thr_abs: Optional[float] = None
     stop_loss_pct: float = 0.5
     take_profit_pct: float = 1.0
     enable_chop_box: bool = True
@@ -332,7 +333,7 @@ class RunnerConfig:
     # Anti-spam / guard rails
     per_symbol_cooldown_sec: float = 30.0
     signal_gap_sec: float = 20.0
-    confirm_ticks: int = 3
+    confirm_ticks: int = 2
     exit_on_special_quote: bool = True
     block_signs: Tuple[str, ...] = DEFAULT_BLOCK_SIGNS
     reopen_sign: str = "0101"
@@ -341,9 +342,9 @@ class RunnerConfig:
     buyup_mode: str = "EXIT"
     buyup_trail_ticks: int = 3
     volume_min_floor: float = 1000.0
-    volume_fade_window: int = 8
-    volume_fade_tol: float = 0.20
-    volume_fade_max_lag: int = 2
+    volume_fade_window: int = 5
+    volume_fade_tol: float = 0.50
+    volume_fade_max_lag: int = 6
     ext_vwap_max_pct: float = 0.005
     range_explode_window: int = 12
     range_explode_k: float = 3.0
@@ -605,15 +606,15 @@ def load_runner_config(
     if spike_bypass_ratio_val is None or spike_bypass_ratio_val <= 0.0:
         spike_bypass_ratio_val = 1.6
     spike_bypass_need_breakout = bool(payload.get("spike_bypass_need_breakout", True))
-    volume_fade_window = safe_int(payload.get("volume_fade_window"), 8)
+    volume_fade_window = safe_int(payload.get("volume_fade_window"), 5)
     if volume_fade_window is None or volume_fade_window <= 0:
-        volume_fade_window = 8
-    volume_fade_tol = safe_float(payload.get("volume_fade_tol"), 0.20)
+        volume_fade_window = 5
+    volume_fade_tol = safe_float(payload.get("volume_fade_tol"), 0.50)
     if volume_fade_tol is None or volume_fade_tol < 0.0:
-        volume_fade_tol = 0.20
-    volume_fade_max_lag = safe_int(payload.get("volume_fade_max_lag"), 2)
+        volume_fade_tol = 0.50
+    volume_fade_max_lag = safe_int(payload.get("volume_fade_max_lag"), 6)
     if volume_fade_max_lag is None or volume_fade_max_lag < 0:
-        volume_fade_max_lag = 2
+        volume_fade_max_lag = 6
     ext_vwap_max_pct = safe_float(payload.get("ext_vwap_max_pct"), 0.005)
     if ext_vwap_max_pct is None or ext_vwap_max_pct < 0.0:
         ext_vwap_max_pct = 0.005
@@ -682,6 +683,7 @@ def load_runner_config(
     box_max_age_sec = float(payload.get("box_max_age_sec", 180.0))
     max_pullback_pct = float(payload.get("max_pullback_pct", 0.02))
     pb_reset_ticks = float(payload.get("pb_reset_ticks", 0.0))
+    score_thr_override = safe_float(payload.get("score_thr_abs"))
     return RunnerConfig(
         features_db=features_db,
         ops_db=ops_db,
@@ -705,6 +707,7 @@ def load_runner_config(
             payload.get("killswitch_check_interval_sec", 5.0)
         ),
         market_window=str(payload.get("market_window", "") or "") or None,
+        score_thr_abs=score_thr_override,
         stop_loss_pct=float(payload.get("stop_loss_pct", 0.5)),
         take_profit_pct=float(payload.get("take_profit_pct", 1.0)),
         enable_chop_box=bool(enable_chop_box),
@@ -716,7 +719,7 @@ def load_runner_config(
         spike_bypass_need_breakout=bool(spike_bypass_need_breakout),
         per_symbol_cooldown_sec=float(payload.get("per_symbol_cooldown_sec", 30.0)),
         signal_gap_sec=float(payload.get("signal_gap_sec", 20.0)),
-        confirm_ticks=int(payload.get("confirm_ticks", 3)),
+        confirm_ticks=int(payload.get("confirm_ticks", 2)),
         exit_on_special_quote=exit_on_special_quote,
         block_signs=block_signs,
         reopen_sign=reopen_sign,
@@ -762,7 +765,7 @@ class ThresholdProfile:
     md5: str = ""
     created_at: str = ""
     mode: str = "AUTO"
-    score_thr_abs: float = 8.0
+    score_thr_abs: float = 6.5
     uptick_thr: float = 0.2
     spread_max: float = 2.0
     volume_spike_thr: float = 1.5
@@ -862,9 +865,9 @@ class Policy:
         self._box_age_count: Dict[str, int] = {}
 
         # --- 各種パラメータ設定 ---
-        self._vr_win = max(1, int(getattr(config, "volume_fade_window", 8)))
-        self._vr_tol = max(0.0, float(getattr(config, "volume_fade_tol", 0.20)))
-        self._vr_maxlag = max(0, int(getattr(config, "volume_fade_max_lag", 2)))
+        self._vr_win = max(1, int(getattr(config, "volume_fade_window", 5)))
+        self._vr_tol = max(0.0, float(getattr(config, "volume_fade_tol", 0.50)))
+        self._vr_maxlag = max(0, int(getattr(config, "volume_fade_max_lag", 6)))
         self.ext_vwap_max_pct = max(
             0.0, float(getattr(config, "ext_vwap_max_pct", 0.005))
         )
@@ -1509,32 +1512,33 @@ class Policy:
                                 self.volume_min_floor,
                                 extra=_log_extra(data_ts_val),
                             )
-                            return PolicyDecision(False, reason="volume_spike", context=ctx)
-                        context["volume_spike_ratio"] = vol_ratio
-                        logger.debug(
-                            "volume_spike pass: ratio=%.2f now=%.0f ma=%.1f thr=%.2f",
-                            vol_ratio,
-                            vol_val,
-                            vol_ma,
-                            self.volume_spike_thr,
-                            extra=_log_extra(data_ts_val),
-                        )
-                        fastpath_spike = False
-                        pullback_ready_signal = bool(row.get("pullback_ready", False))
-                        if self.spike_bypass_momentum and vol_ratio is not None and vol_val is not None:
-                            if vol_ratio >= self.spike_bypass_ratio:
-                                breakout_ok = True
-                                if self.spike_bypass_need_breakout:
-                                    breakout_ok = (int(confirm_val) >= int(self.breakout_confirm_bars)) or pullback_ready_signal
-                                fastpath_spike = breakout_ok
-                                if fastpath_spike:
-                                    context["momentum_bypass_reason"] = "volume_spike_fastlane"
-                                    context["volume_spike_ratio"] = round(float(vol_ratio), 2)
-                                    logger.debug(
-                                        "fast-lane by volume_spike: ratio=%.2f confirm=%d/%d pullback=%s",
-                                        float(vol_ratio), int(confirm_val), int(self.breakout_confirm_bars), pullback_ready_signal,
-                                        extra=_log_extra(data_ts_val),
-                                    )
+#                            return PolicyDecision(False, reason="volume_spike", context=ctx)
+                        else:
+                            context["volume_spike_ratio"] = vol_ratio
+                            logger.debug(
+                                "volume_spike pass: ratio=%.2f now=%.0f ma=%.1f thr=%.2f",
+                                vol_ratio,
+                                vol_val,
+                                vol_ma,
+                                self.volume_spike_thr,
+                                extra=_log_extra(data_ts_val),
+                            )
+                            fastpath_spike = False
+                            pullback_ready_signal = bool(row.get("pullback_ready", True))
+                            if self.spike_bypass_momentum and vol_ratio is not None and vol_val is not None:
+                                if vol_ratio >= self.spike_bypass_ratio:
+                                    breakout_ok = True
+                                    if self.spike_bypass_need_breakout:
+                                        breakout_ok = (int(confirm_val) >= int(self.breakout_confirm_bars)) or pullback_ready_signal
+                                    fastpath_spike = breakout_ok
+                                    if fastpath_spike:
+                                        context["momentum_bypass_reason"] = "volume_spike_fastlane"
+                                        context["volume_spike_ratio"] = round(float(vol_ratio), 2)
+                                        logger.debug(
+                                            "fast-lane by volume_spike: ratio=%.2f confirm=%d/%d pullback=%s",
+                                            float(vol_ratio), int(confirm_val), int(self.breakout_confirm_bars), pullback_ready_signal,
+                                            extra=_log_extra(data_ts_val),
+                                        )
                 else:
                     logger.debug(
                         "volume_spike warmup: %d/%d samples",
@@ -2483,19 +2487,28 @@ class NautRunner:
                 self.stats["wins"] += 1
             elif summary.realized_pnl < 0:
                 self.stats["losses"] += 1
-            cooldown = max(
-                self.policy.cooldown_sec, self.config.per_symbol_cooldown_sec
-            )
-            base_cooldown_until = fill.timestamp + cooldown
-            current_until = self.cooldown_until.get(summary.symbol, 0.0)
-            self.cooldown_until[summary.symbol] = max(
-                current_until, base_cooldown_until
-            )
+
+            is_stop_exit = summary.exit_reason == "stop"
+            cooldown = 0.0
+            if is_stop_exit:
+                cooldown = max(
+                    self.policy.cooldown_sec, self.config.per_symbol_cooldown_sec
+                )
+
+            if cooldown > 0.0:
+                base_cooldown_until = fill.timestamp + cooldown
+                current_until = self.cooldown_until.get(summary.symbol, 0.0)
+                self.cooldown_until[summary.symbol] = max(
+                    current_until, base_cooldown_until
+                )
+
+            trail_hit_flag = bool(fill.meta.get("trailing_stop_hit"))
             self._on_exit(
                 summary.symbol,
                 summary.exit_reason,
                 summary.exit_px if summary.exit_px is not None else fill.exit_px,
                 fill.timestamp,
+                skip_cooldown=trail_hit_flag,
             )
             self.last_exit_ts[summary.symbol] = fill.timestamp
             extra_meta = dict(fill.meta)
@@ -2547,8 +2560,10 @@ class NautRunner:
         reason: str,
         exit_px: Optional[float],
         data_ts: float,
+        *,
+        skip_cooldown: bool = False,
     ) -> None:
-        if reason != "stop":
+        if reason != "stop" or skip_cooldown:
             return
         if self.cooldown_after_stop_sec > 0.0:
             until = data_ts + self.cooldown_after_stop_sec
@@ -2697,9 +2712,9 @@ class NautRunner:
         ts_ms = int(ts_ms_val)
         event_time = _format_epoch_hms(data_ts)
         if self._already_seen(symbol, ts_ms):
-            logger.debug(
-                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
-            )
+#            logger.debug(
+#                "ENTRY-GATE seen: %s ts=%s", symbol, ts_ms, extra=_log_extra(data_ts)
+#            )
             return
         if symbol in self.disabled_symbols:
             self._mark_seen(symbol, ts_ms)
@@ -2808,6 +2823,8 @@ class NautRunner:
         self.stats["signals"] += 1
         self.signal_streak[symbol] = self.signal_streak.get(symbol, 0) + 1
         required = max(1, int(self.config.confirm_ticks))
+        if decision.context.get("route") == "fastlane":
+            required = 1
         if self.signal_streak[symbol] < required:
             return
         qty = self.ledger.compute_order_size(decision.entry_px, decision.sl_px)
@@ -3317,6 +3334,12 @@ def main() -> None:
         logger.warning("SELL execution disabled: runner will only log SELL signals.")
 
     threshold_profile = load_threshold_profile(threshold_path)
+    if runner_config.score_thr_abs is not None:
+        threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
+        logger.info(
+            "score_thr_abs override applied from config: %.3f",
+            threshold_profile.score_thr_abs,
+        )
     logger.info("Threshold loaded for %s: %s", active_symbol, threshold_path)
 
     flatten_at = parse_flatten_at(args.flatten_at)
@@ -3767,6 +3790,7 @@ class PaperBroker(Broker):
                                 if order.sl_px is None or new_sl > order.sl_px:
                                     prev_sl = order.sl_px
                                     order.sl_px = new_sl
+                                    order.meta["trailing_stop_active"] = True
                                     logger.debug(
                                         "trailing tightened: stop_loss_px=%.3f (ticks=%d, basis=%.3f, prev_sl=%.3f)",
                                         order.sl_px, buyup_trail_ticks, basis, prev_sl, extra=_log_extra(timestamp)
@@ -3817,6 +3841,8 @@ class PaperBroker(Broker):
                 if order.last_bid is not None and order.last_bid <= order.sl_px:
                     exit_reason = "stop"
                     exit_px = order.last_bid
+                    if order.meta.get("trailing_stop_active"):
+                        order.meta["trailing_stop_hit"] = True
                 elif order.last_bid is not None and order.last_bid >= order.tp_px:
                     exit_reason = "target"
                     exit_px = order.last_bid
@@ -3824,6 +3850,8 @@ class PaperBroker(Broker):
                 if order.last_ask is not None and order.last_ask >= order.sl_px:
                     exit_reason = "stop"
                     exit_px = order.last_ask
+                    if order.meta.get("trailing_stop_active"):
+                        order.meta["trailing_stop_hit"] = True
                 elif order.last_ask is not None and order.last_ask <= order.tp_px:
                     exit_reason = "target"
                     exit_px = order.last_ask

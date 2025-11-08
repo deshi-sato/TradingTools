@@ -3,9 +3,9 @@
 """
 naut_view.py
 
-raw_push テーブルに蓄積された板配信データを可視化する簡易ビューア。
-リフィード DB と銘柄コードを引数に受け取り、各レコードに含まれる OHLC でローソク足を描き、
-下段に出来高バーを表示する。カーソル位置の板サマリはチャート右側へ注記する。
+raw_push テーブルに蓄積された板配信データを可視化するビューア。
+リフィード DB と銘柄コードを引数に受け取り、TradingVolumeTime を基準に 1/3/5 分足へ集計した
+ローソク足と出来高バーを描画する。カーソル位置の板サマリはチャート右側へ注記する。
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ import json
 import math
 import sqlite3
 import sys
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone, tzinfo
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -46,26 +46,32 @@ class Snapshot:
     symbol: str
     t_recv: float
     recv_dt: datetime
-    event_dt: Optional[datetime]
-    bid: Optional[float]
-    ask: Optional[float]
-    last: Optional[float]
-    open_price: Optional[float]
-    high_price: Optional[float]
-    low_price: Optional[float]
-    close_price: Optional[float]
-    volume: Optional[float]
-    buy_levels: Sequence[Tuple[Optional[float], Optional[float]]]
-    sell_levels: Sequence[Tuple[Optional[float], Optional[float]]]
-    over_sell: Optional[float]
-    under_buy: Optional[float]
-    total_bid: Optional[float]
-    total_ask: Optional[float]
-    seq: Optional[int]
-    payload: Dict[str, Any]
+    event_dt: Optional[datetime] = None
+    symbol_name: Optional[str] = None
+    interval_minutes: Optional[int] = None
+    bar_start: Optional[datetime] = None
+    bar_end: Optional[datetime] = None
+    volume_time: Optional[datetime] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    last: Optional[float] = None
+    open_price: Optional[float] = None
+    high_price: Optional[float] = None
+    low_price: Optional[float] = None
+    close_price: Optional[float] = None
+    volume: Optional[float] = None
+    cum_volume: Optional[float] = None
+    buy_levels: Sequence[Tuple[Optional[float], Optional[float]]] = ()
+    sell_levels: Sequence[Tuple[Optional[float], Optional[float]]] = ()
+    over_sell: Optional[float] = None
+    under_buy: Optional[float] = None
+    total_bid: Optional[float] = None
+    total_ask: Optional[float] = None
+    seq: Optional[int] = None
+    payload: Dict[str, Any] = field(default_factory=dict)
 
     def primary_dt(self) -> datetime:
-        base = self.event_dt or self.recv_dt
+        base = self.bar_end or self.volume_time or self.event_dt or self.recv_dt
         if base.tzinfo is None:
             return base.replace(tzinfo=JST)
         return base.astimezone(JST)
@@ -162,6 +168,7 @@ def parse_any_datetime(value: Any) -> Optional[datetime]:
 
 def parse_payload_ts(payload: Dict[str, Any]) -> Optional[datetime]:
     for key in (
+        "TradingVolumeTime",
         "ExecutionDateTime",
         "CurrentPriceTime",
         "BidDateTime",
@@ -243,6 +250,9 @@ def make_snapshot(
     if requested_symbol and symbol and symbol != requested_symbol:
         return None
 
+    symbol_name_raw = payload.get("SymbolName") or payload.get("IssueName")
+    symbol_name = str(symbol_name_raw).strip() if symbol_name_raw else None
+
     open_price = extract_first_float(
         payload,
         (
@@ -285,7 +295,7 @@ def make_snapshot(
         ),
     )
 
-    volume = extract_first_float(
+    cum_volume = extract_first_float(
         payload,
         (
             "TradingVolume",
@@ -322,6 +332,8 @@ def make_snapshot(
     except Exception:
         return None
 
+    volume_time = parse_any_datetime(payload.get("TradingVolumeTime"))
+
     over_sell = safe_float(payload.get("OverSellQty") or payload.get("OverSellVolume"))
     under_buy = safe_float(payload.get("UnderBuyQty") or payload.get("UnderBuyVolume"))
     total_bid = safe_float(payload.get("TotalBidQty") or payload.get("BuyTotalQty"))
@@ -335,6 +347,8 @@ def make_snapshot(
         t_recv=float(t_recv),
         recv_dt=recv_dt,
         event_dt=event_dt,
+        symbol_name=symbol_name,
+        volume_time=volume_time,
         bid=bid,
         ask=ask,
         last=last,
@@ -342,7 +356,7 @@ def make_snapshot(
         high_price=high_price,
         low_price=low_price,
         close_price=close_price,
-        volume=volume,
+        cum_volume=cum_volume,
         buy_levels=buy_levels,
         sell_levels=sell_levels,
         over_sell=over_sell,
@@ -354,7 +368,122 @@ def make_snapshot(
     )
 
 
-def fetch_snapshots(db_path: Path, symbol: str, limit: int) -> List[Snapshot]:
+def _effective_dt(snapshot: Snapshot) -> datetime:
+    base = snapshot.volume_time or snapshot.event_dt or snapshot.recv_dt
+    if base.tzinfo is None:
+        return base.replace(tzinfo=JST)
+    return base.astimezone(JST)
+
+
+def _floor_to_interval(dt: datetime, minutes: int) -> datetime:
+    local = dt.astimezone(JST)
+    minute = (local.minute // minutes) * minutes
+    return local.replace(minute=minute, second=0, microsecond=0)
+
+
+def _price_from_snapshot(snapshot: Snapshot) -> Optional[float]:
+    for value in (
+        snapshot.last,
+        snapshot.close_price,
+        snapshot.open_price,
+        snapshot.bid,
+        snapshot.ask,
+    ):
+        if value is not None:
+            return value
+    return None
+
+
+def _finalize_candle(state: Dict[str, Any], interval_minutes: int) -> Snapshot:
+    last_snap: Snapshot = state["last"]
+    return Snapshot(
+        symbol=last_snap.symbol,
+        t_recv=last_snap.t_recv,
+        recv_dt=last_snap.recv_dt,
+        event_dt=state["end"],
+        symbol_name=last_snap.symbol_name,
+        interval_minutes=interval_minutes,
+        bar_start=state["start"],
+        bar_end=state["end"],
+        volume_time=state["end"],
+        bid=last_snap.bid,
+        ask=last_snap.ask,
+        last=state["close"],
+        open_price=state["open"],
+        high_price=state["high"],
+        low_price=state["low"],
+        close_price=state["close"],
+        volume=float(state["volume"]),
+        cum_volume=last_snap.cum_volume,
+        buy_levels=last_snap.buy_levels,
+        sell_levels=last_snap.sell_levels,
+        over_sell=last_snap.over_sell,
+        under_buy=last_snap.under_buy,
+        total_bid=last_snap.total_bid,
+        total_ask=last_snap.total_ask,
+        seq=last_snap.seq,
+        payload=last_snap.payload,
+    )
+
+
+def aggregate_snapshots(raw_snaps: Sequence[Snapshot], interval_minutes: int) -> List[Snapshot]:
+    if not raw_snaps:
+        return []
+    sorted_snaps = sorted(raw_snaps, key=_effective_dt)
+    candles: List[Snapshot] = []
+    current: Optional[Dict[str, Any]] = None
+    last_cum: Optional[float] = None
+    last_day: Optional[date] = None
+
+    for snap in sorted_snaps:
+        event_dt = _effective_dt(snap)
+        price = _price_from_snapshot(snap)
+        if price is None:
+            continue
+
+        day = event_dt.date()
+        cum = snap.cum_volume
+        if day != last_day:
+            last_cum = None
+        elif last_cum is not None and cum is not None and cum < last_cum - 1e-6:
+            last_cum = None
+
+        delta_volume = 0.0
+        if cum is not None:
+            if last_cum is not None:
+                delta_volume = max(cum - last_cum, 0.0)
+            last_cum = cum
+        last_day = day
+
+        bucket_start = _floor_to_interval(event_dt, interval_minutes)
+        bucket_end = bucket_start + timedelta(minutes=interval_minutes)
+
+        if current is None or bucket_start != current["start"]:
+            if current is not None:
+                candles.append(_finalize_candle(current, interval_minutes))
+            current = {
+                "start": bucket_start,
+                "end": bucket_end,
+                "open": price,
+                "high": price,
+                "low": price,
+                "close": price,
+                "volume": delta_volume,
+                "last": snap,
+            }
+        else:
+            current["high"] = max(current["high"], price)
+            current["low"] = min(current["low"], price)
+            current["close"] = price
+            current["volume"] += delta_volume
+            current["last"] = snap
+
+    if current is not None:
+        candles.append(_finalize_candle(current, interval_minutes))
+    return candles
+
+
+def fetch_snapshots(db_path: Path, symbol: str, limit: int, interval_minutes: int) -> List[Snapshot]:
     snapshots: List[Snapshot] = []
     query_limit = limit if limit > 0 else None
     with sqlite3.connect(str(db_path)) as conn:
@@ -387,7 +516,8 @@ def fetch_snapshots(db_path: Path, symbol: str, limit: int) -> List[Snapshot]:
         snapshots.append(snapshot)
         if query_limit is not None and len(snapshots) >= query_limit:
             break
-    return snapshots
+
+    return aggregate_snapshots(snapshots, interval_minutes)
 
 
 def fmt_price(value: Optional[float]) -> str:
@@ -425,13 +555,27 @@ def fmt_qty(value: Optional[float]) -> str:
 def summarize_snapshot(snapshot: Snapshot) -> str:
     dt_display = snapshot.primary_dt_naive()
     recv_display = snapshot.recv_dt_naive()
+    symbol_label = snapshot.symbol
+    if snapshot.symbol_name and snapshot.symbol_name.lower() != snapshot.symbol.lower():
+        symbol_label = f"{snapshot.symbol} ({snapshot.symbol_name})"
     lines = [
-        f"{snapshot.symbol} {dt_display.strftime('%H:%M:%S.%f')[:-3]} JST",
+        f"{symbol_label} {dt_display.strftime('%H:%M:%S.%f')[:-3]} JST",
     ]
     if snapshot.event_dt is not None:
         delta = snapshot.event_dt - snapshot.recv_dt
         if abs(delta.total_seconds()) > 0.2:
             lines.append(f"recv {recv_display.strftime('%H:%M:%S.%f')[:-3]} JST")
+
+    if snapshot.interval_minutes:
+        lines.append(f"Interval {snapshot.interval_minutes} min")
+    if snapshot.bar_start and snapshot.bar_end:
+        start_local = snapshot.bar_start.astimezone(JST) if snapshot.bar_start.tzinfo else snapshot.bar_start.replace(
+            tzinfo=JST
+        )
+        end_local = snapshot.bar_end.astimezone(JST) if snapshot.bar_end.tzinfo else snapshot.bar_end.replace(tzinfo=JST)
+        lines.append(
+            f"Range {start_local.strftime('%H:%M:%S')} - {end_local.strftime('%H:%M:%S')}"
+        )
 
     if snapshot.has_ohlc():
         lines.append(
@@ -533,10 +677,17 @@ def create_plot(symbol: str, snapshots: Sequence[Snapshot]) -> None:
         2,
         1,
         sharex=True,
-        figsize=(12, 7),
+        figsize=(19.2, 10.8),
+        dpi=100,
         gridspec_kw={"height_ratios": [3, 1]},
     )
     fig.subplots_adjust(right=0.72, hspace=0.05)
+
+    first_snap = cand_snapshots[0]
+    symbol_label = symbol
+    if first_snap.symbol_name and first_snap.symbol_name.lower() != symbol.lower():
+        symbol_label = f"{symbol} ({first_snap.symbol_name})"
+    interval_label = first_snap.interval_minutes or 1
 
     for idx, x_val in enumerate(times_num):
         open_val = open_values[idx]
@@ -578,7 +729,7 @@ def create_plot(symbol: str, snapshots: Sequence[Snapshot]) -> None:
             alpha=0.7,
         )
 
-    ax_price.set_title(f"{symbol} raw_push OHLC view")
+    ax_price.set_title(f"{symbol_label} raw_push {interval_label}-min OHLC")
     ax_price.set_ylabel("Price")
     ax_price.grid(True, linestyle="--", alpha=0.3)
     ax_price.set_xlim(times_num[0] - candle_width, times_num[-1] + candle_width)
@@ -594,7 +745,7 @@ def create_plot(symbol: str, snapshots: Sequence[Snapshot]) -> None:
     fig.autofmt_xdate()
 
     info_box = fig.text(
-        0.74,
+        0.78,
         0.5,
         "",
         ha="left",
@@ -669,7 +820,14 @@ def parse_args() -> argparse.Namespace:
         "--limit",
         type=int,
         default=4000,
-        help="読み込む最大行数。0 を指定すると全件読み込むため時間がかかる場合があります。",
+        help="読み込む raw_push 行数の上限。0 で無制限（時間がかかる場合あり）。",
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        choices=(1, 3, 5),
+        default=1,
+        help="足の長さ（分）。1/3/5 分足を切り替え可能。",
     )
     return parser.parse_args()
 
@@ -682,12 +840,12 @@ def main() -> None:
         sys.exit(2)
 
     symbol = normalize_symbol(args.symbol)
-    snapshots = fetch_snapshots(db_path, symbol, args.limit)
+    snapshots = fetch_snapshots(db_path, symbol, args.limit, args.interval)
     if not snapshots:
         print(f"[ERROR] 対象シンボルの板データが raw_push に存在しません: {symbol}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[INFO] snapshots loaded: {len(snapshots)} rows for {symbol}")
+    print(f"[INFO] aggregated {len(snapshots)} bars ({args.interval}-min) for {symbol}")
     create_plot(symbol, snapshots)
 
 

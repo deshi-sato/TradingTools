@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 common/raw_push_stream.py
 PUSH(raw_push)行から特徴量を逐次生成して返す。
@@ -9,7 +9,45 @@ PUSH(raw_push)行から特徴量を逐次生成して返す。
 - 追加7本は末尾に付与（ランナー側で先頭F本だけをモデル入力にスライス）
 """
 import sqlite3, json, collections
-from typing import Iterator, Tuple, Optional
+from typing import Iterator, Tuple, Optional, Dict
+
+class Rolling3:
+    __slots__ = ("buf", "total")
+    def __init__(self):
+        self.buf = collections.deque(maxlen=3)
+        self.total = 0.0
+    def push(self, x: float | None) -> float:
+        if x is None:
+            x = 0.0
+        if len(self.buf) == 3:
+            self.total -= self.buf[0]
+        self.buf.append(x)
+        self.total += x
+        return self.mean
+    @property
+    def mean(self) -> float:
+        n = len(self.buf)
+        return self.total / n if n else 0.0
+
+rolling_price: Dict[str, Rolling3] = {}
+rolling_vol: Dict[str, Rolling3] = {}
+rolling_imb: Dict[str, Rolling3] = {}
+symbol_state: Dict[str, Dict[str, float]] = collections.defaultdict(dict)
+
+def get_roll(store: Dict[str, Rolling3], symbol: str) -> Rolling3:
+    if symbol not in store:
+        store[symbol] = Rolling3()
+    return store[symbol]
+
+def safe_div(a: float, b: float, eps: float = 1.0) -> float:
+    return a / (b if b > 0 else eps)
+
+def clip(x: float, lo: float, hi: float) -> float:
+    if x < lo:
+        return lo
+    if x > hi:
+        return hi
+    return x
 
 SKIP_SPECIAL_SIGNS = True
 SPECIAL_SIGNS = {"0102", "0108", "0118", "0119", "0120"}  # 特別/連続気配など
@@ -39,13 +77,14 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
         "vol_ratio","vol_accel",
         "near_high_3m","status_onehot"  # onehot(UP/DOWN/NO)を1値にエンコード: +1/-1/0
     ]
-    names = base_names + extra_names
+    rolling_names = ["price_ma3","vol_ma3","imb_ma3","candle_up"]
+    names = base_names + extra_names + rolling_names
 
     prev = {"tv":None,"val":None,"t":None,"bid_q":None,"ask_q":None,"imb":None,"spread":None,"mid":None}
 
     # 5秒/10秒/180秒用バッファ（tは秒単位）
     price_buf = collections.deque()     # (t_sec, price)
-    volrate_buf = collections.deque()   # (t_sec, vol_rate)
+    volspeed_buf = collections.deque()  # (t_sec, vol_speed)
     high_buf = collections.deque()      # (t_sec, price)
 
     def to_sec(ts):
@@ -60,7 +99,7 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
         # 5s/10s参照用に 200秒だけ持てば十分
         cut = now_s - 190.0
         while price_buf and price_buf[0][0] < cut: price_buf.popleft()
-        while volrate_buf and volrate_buf[0][0] < cut: volrate_buf.popleft()
+        while volspeed_buf and volspeed_buf[0][0] < cut: volspeed_buf.popleft()
         # ローリング高値は3分
         cut_h = now_s - 180.0
         while high_buf and high_buf[0][0] < cut_h: high_buf.popleft()
@@ -85,6 +124,8 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
             t_raw = float(r["t_recv"])
             t_s = to_sec(t_raw)
             d = json.loads(r["payload"])
+            symbol_id = str(d.get("Symbol") or symbol)
+            state = symbol_state.setdefault(symbol_id, {})
 
             # 特別気配など除外
             if SKIP_SPECIAL_SIGNS:
@@ -124,7 +165,7 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
             d_ask_qty = d1(ask_q, "ask_q")
             d_tv      = d1(tv, "tv")
             d_val     = d1(val, "val")
-            vol_rate  = max(0.0, d_tv) / max(1.0, dt)
+            vol_speed = max(0.0, d_tv) / max(1.0, dt)
             val_rate  = max(0.0, d_val) / max(1.0, dt)
             is_trade   = 1.0 if d_tv > 0 else 0.0
             trade_size = max(0.0, d_tv)
@@ -138,10 +179,27 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
             st_down = 1.0 if st in ("0058","DOWN","down") else 0.0
             st_no   = 1.0 if (st_up==0.0 and st_down==0.0) else 0.0
 
+            price_now = price
+            vol_now = trade_size
+            imb_now = imb
+            price_prev = float(state.get("price_prev", price_now))
+            vol_prev = float(state.get("vol_prev", max(vol_now - 1.0, 0.0)))
+            vol_rate = clip(safe_div(vol_now, vol_prev), 0.0, 10.0)
+            roll_price = get_roll(rolling_price, symbol_id)
+            roll_vol = get_roll(rolling_vol, symbol_id)
+            roll_imb = get_roll(rolling_imb, symbol_id)
+            price_ma3 = roll_price.push(price_now)
+            vol_ma3 = roll_vol.push(vol_now)
+            imb_ma3 = roll_imb.push(imb_now)
+            is_up = (price_now > price_prev) or (st in ("+", "005", "010", "015", "0057", "UP", "up"))
+            candle_up = 1.0 if is_up else 0.0
+            state["price_prev"] = price_now
+            state["vol_prev"] = vol_now
+
             # ---- 追加7本 ----
             # バッファ更新＆掃除
             price_buf.append((t_s, price))
-            volrate_buf.append((t_s, vol_rate))
+            volspeed_buf.append((t_s, vol_speed))
             high_buf.append((t_s, price))
             prune(t_s)
 
@@ -158,12 +216,12 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
             ret_accel_5s = ret_5s - ret_5_old
 
             # 出来高比（5秒MAで割る）
-            vr_samples = [v for ts_, v in volrate_buf if ts_ >= t_s-5.0]
+            vr_samples = [v for ts_, v in volspeed_buf if ts_ >= t_s-5.0]
             ma5 = sum(vr_samples)/len(vr_samples) if vr_samples else 0.0
-            vol_ratio = (vol_rate / ma5) if ma5>0 else 0.0
+            vol_ratio = (vol_speed / ma5) if ma5>0 else 0.0
             # 出来高加速度（1秒差）
-            vr_1 = lookup_old(volrate_buf, t_s - 1.0)
-            vol_accel = (vol_rate - vr_1) if vr_1 is not None else 0.0
+            vr_1 = lookup_old(volspeed_buf, t_s - 1.0)
+            vol_accel = (vol_speed - vr_1) if vr_1 is not None else 0.0
 
             # 直近3分の高値に対する位置
             hi_3m = max((px for _,px in high_buf), default=0.0)
@@ -179,9 +237,74 @@ def iter_features_from_rawpush(db_path: str, table: str, symbol: str,
                 d_bid_qty, d_ask_qty, is_trade, trade_size, imb_rate, spread_chg, mid_chg
             ]
             extra_feats = [ret_5s, ret_10s, ret_accel_5s, vol_ratio, vol_accel, near_high_3m, status_onehot]
-            feats = base_feats + extra_feats
+            new_feats = [price_ma3, vol_ma3, imb_ma3, candle_up]
+            feats = base_feats + extra_feats + new_feats
 
             yield feats, t_raw
         con.close()
 
     return _iter(), names
+
+def ensure_columns(conn: sqlite3.Connection, table: str, columns: Dict[str, str]) -> None:
+    """
+    ����SQLite���̃e�[�u���ɏo�͑��̂��ꂩ�����邩���`�F�b�N���ăm�点�������f�����B
+    columns: {"col_name": "REAL", ...}
+    """
+    cur = conn.execute(f"PRAGMA table_info({table})")
+    have = {row[1] for row in cur.fetchall()}
+    for name, decl in columns.items():
+        if name not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+    conn.commit()
+
+def export_features_to_table(
+    db_path: str,
+    table_src: str,
+    table_dst: str,
+    symbol: str,
+    batch_size: int = 512,
+) -> None:
+    """
+    PUSH(raw_push)�ϐ��̃e�[�u����iter_features_from_rawpush�Ŏ擾���ăt�B�[�`���X�e�b�v���V�[�����ɏ����߂�.
+    - table_dst �͏����� DROP -> CREATE ���s����
+    - batch_size ����INSERT�����g���ŗ���ݒ�
+    """
+    rows, names = iter_features_from_rawpush(db_path, table_src, symbol)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        cur = conn.cursor()
+        cur.execute(f"DROP TABLE IF EXISTS {table_dst}")
+        col_defs = ", ".join(f"\"{n}\" REAL" for n in names)
+        cur.execute(
+            f"""
+            CREATE TABLE {table_dst} (
+                symbol TEXT NOT NULL,
+                t_exec INTEGER NOT NULL,
+                {col_defs}
+            )
+            """
+        )
+        conn.commit()
+
+        insert_cols = ", ".join(["symbol", "t_exec"] + [f"\"{n}\"" for n in names])
+        placeholders = ", ".join(["?"] * (len(names) + 2))
+        insert_sql = f"INSERT INTO {table_dst} ({insert_cols}) VALUES ({placeholders})"
+
+        buf: list[list] = []
+        total = 0
+        for feats, t_raw in rows:
+            record = [str(symbol), int(float(t_raw))] + [float(x) for x in feats]
+            buf.append(record)
+            if len(buf) >= batch_size:
+                cur.executemany(insert_sql, buf)
+                conn.commit()
+                total += len(buf)
+                buf.clear()
+        if buf:
+            cur.executemany(insert_sql, buf)
+            conn.commit()
+            total += len(buf)
+        print(f"[export_features_to_table] {table_dst} <- {table_src} ({symbol}): {total} rows")
+    finally:
+        conn.close()

@@ -2,6 +2,27 @@
 
 import numpy as np, torch, torch.nn as nn, argparse, math, random
 
+FEATURE_KEYS = [
+    "price","mid","spread","imb","vwap_dev","vol_rate","val_rate",
+    "depth_sell5","depth_buy5","microprice",
+    "st_no","st_up","st_down",
+    "d_bid_qty","d_ask_qty","is_trade","trade_size","imb_rate","spread_chg","mid_chg",
+    "ret_5s","ret_10s","ret_accel_5s",
+    "vol_ratio","vol_accel",
+    "near_high_3m","status_onehot",
+    "price_ma3","vol_ma3","imb_ma3","candle_up",
+]
+INPUT_DIM = len(FEATURE_KEYS)
+MODEL_PATH = "models/lstm_3905_v2.pt"
+
+def row_to_features(row):
+    """dict(row) -> list[float], 欠損は0埋め"""
+    vec = []
+    for key in FEATURE_KEYS:
+        val = row.get(key)
+        vec.append(0.0 if val is None else float(val))
+    return vec
+
 class MiniLSTM(nn.Module):
     def __init__(self, f, h=64, l=2, ncls=2):
         super().__init__()
@@ -21,13 +42,15 @@ def sliding(X, y, T=48, stride=1):
     return np.array(xs, np.float32), np.array(ys, np.int64)
 
 def train_eval(X, y, T=48, epochs=5, bs=256, lr=1e-3):
+    if X.shape[1] != INPUT_DIM:
+        raise ValueError(f"FEATURE_KEYS({INPUT_DIM}) と入力次元({X.shape[1]})が一致しません。")
     Xs, ys = sliding(X, y, T)
     n = len(ys); idx = np.arange(n); np.random.shuffle(idx)
     cut = int(n*0.8)
     tr, va = idx[:cut], idx[cut:]
     Xt, Xv = Xs[tr], Xs[va]; yt, yv = ys[tr], ys[va]
 
-    model = MiniLSTM(f=X.shape[1])
+    model = MiniLSTM(f=INPUT_DIM)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
 
@@ -50,8 +73,8 @@ def train_eval(X, y, T=48, epochs=5, bs=256, lr=1e-3):
         acc_va = loop(Xv, yv, False)
         print(f"epoch {ep}: acc_tr={acc_tr:.3f} acc_va={acc_va:.3f}")
 
-    torch.save({"state_dict": model.state_dict(), "f": X.shape[1], "T": T, "ncls": 2}, "models/lstm_247A.pt")
-    print("saved: models/lstm_247A.pt")
+    torch.save({"state_dict": model.state_dict(), "f": INPUT_DIM, "T": T, "ncls": 2}, MODEL_PATH)
+    print(f"saved: {MODEL_PATH}")
 
 if __name__=="__main__":
     ap=argparse.ArgumentParser()

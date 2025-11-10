@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sentinel Debug Dashboard</title>
+<style>
+body { font-family: Consolas, monospace; background: #0e0e10; color: #dcdcdc; margin: 2em; }
+h2 { color: #00ffcc; text-align: center; }
+table { border-collapse: collapse; width: 90%; margin: 1em auto; }
+th, td { border: 1px solid #555; padding: 4px 8px; text-align: left; }
+tr:nth-child(even){ background:#1e1e20; }
+</style>
+<meta http-equiv="refresh" content="2">
+</head>
+<body>
+<h2>Sentinel Debug Dashboard</h2>
+<p style="text-align:center;">Updated: {{ now }}</p>
+
+<h3>ランナー一覧</h3>
+<table>
+<tr><th>ID</th><th>Symbol</th><th>Mode</th><th>Last Seen</th></tr>
+{% for rid, info in runners.items() %}
+<tr><td>{{ rid }}</td><td>{{ info.symbol }}</td><td>{{ info.mode }}</td><td>{{ info.last_seen }}</td></tr>
+{% endfor %}
+</table>
+
+<h3>口座情報</h3>
+<p style="margin-left:2em;">
+  Cash: {{ funds.cash }} /
+  PnL: {{ funds.pnl_today }} /
+  Updated: {{ funds.updated_at }} /
+  OK: {{ funds.ok }}
+</p>
+
+<h3>RESTキュー</h3>
+<p style="margin-left:2em;">
+  Requests: {{ queue.requests }} /
+  Processed: {{ queue.processed }} /
+  Dropped: {{ queue.dropped }}
+</p>
+
+<h3>PUSH登録状況</h3>
+<p style="margin-left:2em;">
+  登録中: {{ queue.push_registered }}
+</p>
+</body>
+</html>

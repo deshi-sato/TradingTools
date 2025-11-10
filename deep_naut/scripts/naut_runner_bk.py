@@ -36,15 +36,6 @@ from statistics import mean
 from typing import Any, Deque, Dict, Iterable, List, Optional, Set, Tuple
 import importlib.util
 
-from scripts.naut_runner_db import ensure_features_db
-from scripts.naut_runner_args import (
-    build_argparser,
-    finalize_defaults,
-    primary_symbol,
-    default_features_db,
-    default_ops_db,
-    default_log_path,
-)
 from ml_gate import MlBreakoutGate, MlGateConfig
 
 _THIS_FILE = Path(__file__).resolve()
@@ -69,7 +60,7 @@ SIDE_SELL = "SELL"
 ACTION_ENTRY = "entry"
 ACTION_EXIT = "exit"
 
-logger = logging.getLogger("naut_runner")
+logger = logging.getLogger(__name__)
 
 def _fmt_market_ts(ts):
     """data_ts(Unix秒/ミリ秒/None)を 'HH:MM:SS' に。未同期なら '' を返す。"""
@@ -90,85 +81,6 @@ def _log_with_ts(level, msg, data_ts=None):
         logger.log(level, msg)
 
 JST = timezone(timedelta(hours=9))
-
-def to_ms(value: Any) -> int:
-    """
-    秒/ミリ秒の混在値を整数ミリ秒へ正規化する。
-    """
-    try:
-        v = float(value)
-    except (TypeError, ValueError):
-        return 0
-    if v < 10_000_000_000:
-        v *= 1000.0
-    return int(v)
-
-def to_jst_str(epoch_ms: int) -> str:
-    dt = datetime.fromtimestamp(epoch_ms / 1000.0, tz=JST)
-    return dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-
-def acquire_symbol_lock(symbol: str) -> None:
-    lock_dir = Path("locks")
-    lock_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = lock_dir / f"{symbol}.lock"
-    if lock_path.exists():
-        raise SystemExit(f"[LOCKED] runner already active for symbol={symbol}: {lock_path}")
-    lock_path.write_text(str(os.getpid()), encoding="utf-8")
-
-    def _cleanup() -> None:
-        try:
-            lock_path.unlink(missing_ok=True)
-        except Exception:
-            pass
-
-    atexit.register(_cleanup)
-
-
-def _parse_hhmm_range(hhmm: str) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
-    """
-    'HH:MM[-HH:MM]' または 'HH:MM:SS[-HH:MM:SS]' を (h,m,s)x2 に変換する。
-    """
-    if "-" not in hhmm:
-        raise ValueError(f"window requires HH:MM-HH:MM format: {hhmm}")
-
-    def _one(part: str) -> tuple[int, int, int]:
-        fields = part.split(":")
-        if len(fields) == 2:
-            h, m = map(int, fields)
-            return h, m, 0
-        if len(fields) == 3:
-            h, m, s = map(int, fields)
-            return h, m, s
-        raise ValueError(f"bad HH:MM[:SS] part: {part}")
-
-    a, b = hhmm.split("-", 1)
-    return _one(a), _one(b)
-
-
-def _resolve_window_ms(db_path: str, symbol: str, hhmm: str, tzinfo: timezone) -> tuple[int, int]:
-    """
-    features_stream の最初のティック日の暦日を基準に window をエポックmsへ変換。
-    """
-    if not db_path:
-        raise RuntimeError("window resolution requires --features-db or --raw-db")
-    target = Path(db_path)
-    conn = sqlite3.connect(str(target))
-    conn.row_factory = sqlite3.Row
-    try:
-        row = conn.execute(
-            "SELECT MIN(t_exec) AS mn FROM features_stream WHERE symbol=?",
-            (symbol,),
-        ).fetchone()
-        if not row or row["mn"] is None:
-            base_date = datetime.fromtimestamp(time.time(), tz=tzinfo).date()
-        else:
-            base_date = datetime.fromtimestamp(int(row["mn"]) / 1000.0, tz=tzinfo).date()
-        (h0, m0, s0), (h1, m1, s1) = _parse_hhmm_range(hhmm)
-        start_dt = datetime(base_date.year, base_date.month, base_date.day, h0, m0, s0, tzinfo=tzinfo)
-        end_dt = datetime(base_date.year, base_date.month, base_date.day, h1, m1, s1, tzinfo=tzinfo)
-        return int(start_dt.timestamp() * 1000), int(end_dt.timestamp() * 1000)
-    finally:
-        conn.close()
 class DataTimeFormatter(logging.Formatter):
     def formatTime(self, record, datefmt=None):
         ts = getattr(record, "data_ts", 0.0)
@@ -339,19 +251,17 @@ def resolve_path(path_str: str) -> str:
     return str(path)
 
 
-def resolve_threshold_path(symbol: str, cli_path: Optional[str]) -> Optional[Path]:
+def resolve_threshold_path(symbol: str, cli_path: Optional[str]) -> Path:
     if cli_path:
         provided = Path(resolve_path(cli_path))
         if provided.is_file():
             return provided
-        logger.warning("--thr not found: %s; continuing without threshold JSON", cli_path)
-        return None
+        raise SystemExit(f"--thr not found: {cli_path}")
     symbol_norm = normalize_symbol(symbol)
     candidate = REPO_ROOT / f"exports/best_thresholds_{symbol_norm}_latest.json"
     if candidate.is_file():
         return candidate
-    logger.info("threshold json not found (optional): %s", candidate)
-    return None
+    raise SystemExit(f"threshold json not found: {candidate}")
 
 
 def parse_flatten_at(value: Optional[str]) -> Optional[dtime]:
@@ -2551,7 +2461,6 @@ class NautRunner:
         self.loss_limit_engaged = False
         self.session_start_ts: float | None = None
         self.session_end_ts: float | None = None
-        self._window_end_ms: Optional[float] = None
 
     def _should_seek_tail(self) -> bool:
         if self.broker_label == "live":
@@ -2620,17 +2529,6 @@ class NautRunner:
         symbol = self.symbol
         try:
             while not self.stop_requested:
-                if (
-                    self._window_end_ms is not None
-                    and self.last_ts.get(symbol, 0.0) >= self._window_end_ms
-                ):
-                    logger.info(
-                        "window end reached: %.0f >= %.0f, stopping runner",
-                        self.last_ts.get(symbol, 0.0),
-                        self._window_end_ms,
-                    )
-                    self.stop_requested = True
-                    break
                 data_now = self.clock.now()
                 if data_now > 0.0:
                     self._check_flatten(data_now)
@@ -2653,17 +2551,6 @@ class NautRunner:
                         if poll_ts is None:
                             poll_ts = row_exec_ts
                         self.last_ts[symbol] = max(self.last_ts[symbol], poll_ts)
-                        if (
-                            self._window_end_ms is not None
-                            and self.last_ts[symbol] >= self._window_end_ms
-                        ):
-                            logger.info(
-                                "window end reached while processing row: %.0f >= %.0f",
-                                self.last_ts[symbol],
-                                self._window_end_ms,
-                            )
-                            self.stop_requested = True
-                            break
                         self.stats["polled"] += 1
                         self._mark_positions(symbol, row)
                         self._check_flatten(data_ts)
@@ -3498,11 +3385,7 @@ def main() -> None:
         default=1,
         help="Live only: 0=live orders, 1=dry-run",
     )
-    parser.add_argument(
-        "--config",
-        default="config/runner_settings.json",
-        help="Runner config JSON (default: config/runner_settings.json)",
-    )
+    parser.add_argument("--config", required=True, help="Runner config JSON")
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=0)
     parser.add_argument(
         "--feature-source",
@@ -3588,12 +3471,6 @@ def main() -> None:
         help="Path to features DB (overrides config).",
     )
     parser.add_argument(
-        "--raw-db", "--raw_db",
-        dest="raw_db",
-        type=str,
-        help="Alias of --features-db (for raw_push habits)",
-    )
-    parser.add_argument(
         "--ops-db", "--ops_db",
         dest="ops_db",
         type=str, default=None,
@@ -3609,12 +3486,7 @@ def main() -> None:
         type=str, default=None,
         help="Path to log file (overrides config).",
     )
-    parser.add_argument(
-        "--window",
-        type=str,
-        help="JST window HH:MM[-HH:MM] or HH:MM:SS[-HH:MM:SS] for paper replay",
-    )
-    args = finalize_defaults(parser.parse_args())
+    args = parser.parse_args()
     if bool(args.ml_model) ^ bool(args.ml_feat_names):
         parser.error("--ml-model and --ml-feat-names must be provided together")
 
@@ -3625,13 +3497,6 @@ def main() -> None:
         config_path, symbols_override=args.symbols
     )
     active_symbol = runner_config.symbols[0]
-    if not args.features_db:
-        args.features_db = default_features_db(active_symbol)
-    if not args.ops_db:
-        args.ops_db = default_ops_db(active_symbol)
-    if not args.log_path:
-        args.log_path = default_log_path(active_symbol)
-    acquire_symbol_lock(active_symbol)
     threshold_path = resolve_threshold_path(active_symbol, args.thr)
     policy_dict = _load_json_optional(args.policy)
     if policy_dict:
@@ -3691,25 +3556,6 @@ def main() -> None:
     if cli_overrides:
         runner_config = replace(runner_config, **cli_overrides)
     configure_logging(runner_config.log_path, bool(args.verbose))
-    ensure_features_db(runner_config.features_db)
-    logger.info("features DB ready: %s", runner_config.features_db)
-
-    window_t0_ms = None
-    window_t1_ms = None
-    if args.window and args.broker == "paper":
-        db_for_window = args.features_db or runner_config.features_db
-        try:
-            window_t0_ms, window_t1_ms = _resolve_window_ms(
-                db_for_window, active_symbol, args.window, JST
-            )
-            logger.info(
-                "window resolved [%s] -> [%d, %d] ms",
-                args.window,
-                window_t0_ms,
-                window_t1_ms,
-            )
-        except Exception as exc:
-            logger.warning("window parse failed (%s): %s", args.window, exc)
     logger.info(
         "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
         runner_config.feature_source,
@@ -3729,20 +3575,14 @@ def main() -> None:
     if args.mode.upper() == SIDE_SELL:
         logger.warning("SELL execution disabled: runner will only log SELL signals.")
 
-    if threshold_path:
-        threshold_profile = load_threshold_profile(threshold_path)
-        if runner_config.score_thr_abs is not None:
-            threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
-            logger.info(
-                "score_thr_abs override applied from config: %.3f",
-                threshold_profile.score_thr_abs,
-            )
-        logger.info("Threshold loaded for %s: %s", active_symbol, threshold_path)
-    else:
-        threshold_profile = ThresholdProfile()
-        if runner_config.score_thr_abs is not None:
-            threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
-        logger.info("Threshold file not provided; using default profile values.")
+    threshold_profile = load_threshold_profile(threshold_path)
+    if runner_config.score_thr_abs is not None:
+        threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
+        logger.info(
+            "score_thr_abs override applied from config: %.3f",
+            threshold_profile.score_thr_abs,
+        )
+    logger.info("Threshold loaded for %s: %s", active_symbol, threshold_path)
 
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
@@ -3805,9 +3645,6 @@ def main() -> None:
         ml_runtime=ml_runtime,
         ml_gate=ml_gate,
     )
-    if window_t0_ms is not None and window_t1_ms is not None and runner.broker_label == "paper":
-        runner.last_ts[runner.symbol] = float(window_t0_ms - 1)
-        runner._window_end_ms = float(window_t1_ms)
 
     logger.info(
         "Runner bootstrap mode=%s broker=%s dry_run=%s dataset_id=%s schema=%s md5=%s cooldown=%.1f max_hold=%.1f rr_tp_sl=%.2f",

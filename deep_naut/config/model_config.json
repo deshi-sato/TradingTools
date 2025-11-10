@@ -1,0 +1,26 @@
+{
+  "model_name": "lstm_3905_v2",
+  "model_type": "LSTM",
+  "input_size": 12,
+  "hidden_size": 64,
+  "num_layers": 2,
+  "dropout": 0.2,
+  "output_size": 1,
+  "sequence_length": 32,
+  "features": [
+    "price_ma3",
+    "vol_ma3",
+    "imb_ma3",
+    "vol_rate",
+    "v_rate",
+    "body_bp",
+    "tick_rate",
+    "candle_up",
+    "vwap_dev",
+    "spread",
+    "prob_slope",
+    "momentum"
+  ],
+  "scaler": "StandardScaler",
+  "normalization": "zscore"
+}

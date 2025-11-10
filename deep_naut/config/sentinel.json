@@ -1,0 +1,10 @@
+{
+  "api": {
+    "base_url": "http://localhost:18080/kabusapi",
+    "token_path": "./config/kabu_token.json",
+    "timeout_sec": 2.0
+  },
+  "rate_limit": {
+    "global_min_interval_ms": 100
+  }
+}

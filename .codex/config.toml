@@ -1,0 +1,27 @@
+# Codex global configuration file
+# Location: C:\Users\Owner\.codex\config.toml
+
+[core]
+# 利用モデル
+model = "gpt-5-codex"
+reasoning_effort = "high"
+
+# 作業ディレクトリ
+workspace_dir = "C:\\Users\\Owner\\Documents\\desshi_signal_viewer"
+
+# 実行環境設定
+runInWSL = false           # ← 明示的にfalse
+wslDistro = ""             # ← 空文字でOK
+pythonPath = "C:\\Users\\Owner\\Documents\\desshi_signal_viewer\\deep_naut\\.venv\\Scripts\\python.exe"
+
+[approvals]
+mode = "auto"
+allow_edit = true
+allow_run = true
+allow_delete = false
+allow_network = false
+workspace_only = true
+
+[logging]
+level = "info"
+show_diff_on_edit = true

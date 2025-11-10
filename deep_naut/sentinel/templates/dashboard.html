@@ -11,12 +11,36 @@ th, td { border: 1px solid #555; padding: 4px 8px; text-align: left; }
 tr:nth-child(even){ background:#1e1e20; }
 </style>
 <meta http-equiv="refresh" content="2">
+<script>
+async function switchMode(m){
+  const res = await fetch('/api/mode', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({mode:m})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok){
+    alert('\u5207\u66FF\u5931\u6557: ' + (data.error || res.status));
+  }else{
+    location.reload();
+  }
+}
+</script>
 </head>
 <body>
 <h2>Sentinel Debug Dashboard</h2>
+<h3 style="text-align:center;">
+  MODE: <span style="color:#00ffcc">{{ mode.value }}</span>
+  <small>(updated {{ mode.updated }})</small>
+</h3>
+<div style="text-align:center; margin: 0.5em 0 1.5em;">
+  <button onclick="switchMode('LIVE-DRY')">LIVE-DRY</button>
+  <button onclick="switchMode('LIVE')">LIVE</button>
+  <button onclick="switchMode('PAPER')">PAPER</button>
+</div>
 <p style="text-align:center;">Updated: {{ now }}</p>
 
-<h3>ランナー一覧</h3>
+<h3>&#x30E9;&#x30F3;&#x30CA;&#x30FC;&#x4E00;&#x89A7;</h3>
 <table>
 <tr><th>ID</th><th>Symbol</th><th>Mode</th><th>Last Seen</th></tr>
 {% for rid, info in runners.items() %}
@@ -24,7 +48,7 @@ tr:nth-child(even){ background:#1e1e20; }
 {% endfor %}
 </table>
 
-<h3>口座情報</h3>
+<h3>&#x53E3;&#x5EA7;&#x60C5;&#x5831;</h3>
 <p style="margin-left:2em;">
   Cash: {{ funds.cash }} /
   PnL: {{ funds.pnl_today }} /
@@ -32,16 +56,16 @@ tr:nth-child(even){ background:#1e1e20; }
   OK: {{ funds.ok }}
 </p>
 
-<h3>RESTキュー</h3>
+<h3>REST&#x30AD;&#x30E5;&#x30FC;</h3>
 <p style="margin-left:2em;">
   Requests: {{ queue.requests }} /
   Processed: {{ queue.processed }} /
   Dropped: {{ queue.dropped }}
 </p>
 
-<h3>PUSH登録状況</h3>
+<h3>PUSH&#x767B;&#x9332;&#x72B6;&#x6CC1;</h3>
 <p style="margin-left:2em;">
-  登録中: {{ queue.push_registered }}
+  &#x767B;&#x9332;&#x4E2D;: {{ queue.push_registered }}
 </p>
 </body>
 </html>

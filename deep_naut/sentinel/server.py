@@ -24,6 +24,10 @@ queue_stats = {
     "push_registered": 0,
     "funds_ok": False,
 }
+current_mode = {
+    "value": "LIVE-DRY",
+    "updated": datetime.now().strftime("%H:%M:%S"),
+}
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SENTINEL_CONFIG_PATH = os.path.join(BASE_DIR, "config", "sentinel.json")
@@ -40,6 +44,12 @@ funds_mon = FundsMonitor(
     poll_sec=2.0,
     min_cash=300000,
 )
+
+
+def _set_mode(value: str):
+    current_mode["value"] = value
+    current_mode["updated"] = datetime.now().strftime("%H:%M:%S")
+    print(f"[MODE] switched to {value}")
 
 
 # --- kabuステーション REST取得関数 ---
@@ -82,6 +92,29 @@ def _fetch_quote_kabu(symbol: str) -> dict:
 quote_queue.set_fetcher(_fetch_quote_kabu)
 
 
+def _kabu_healthcheck() -> tuple[bool, str]:
+    """Hit board endpoint to verify kabu API availability."""
+    try:
+        cfg_path = os.path.join(os.path.dirname(__file__), "..", "config", "sentinel.json")
+        with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+            cfg = json.load(cfg_file)
+        base = cfg["api"]["base_url"].rstrip("/")
+        token_path = os.path.join(os.path.dirname(cfg_path), "kabu_token.json")
+        with open(token_path, "r", encoding="utf-8") as token_file:
+            token_data = json.load(token_file)
+        token = token_data.get("Token") or token_data.get("token")
+        if not token:
+            return False, "token not found in kabu_token.json"
+        headers = {"X-API-KEY": token}
+        timeout = cfg["api"].get("timeout_sec", 2.0)
+        resp = requests.get(f"{base}/board/6501", headers=headers, timeout=timeout)
+        if resp.status_code == 200:
+            return True, "ok"
+        return False, f"http {resp.status_code}"
+    except Exception as exc:
+        return False, str(exc)
+
+
 # ---- API ----
 @app.route("/api/runner/heartbeat", methods=["POST"])
 def runner_heartbeat():
@@ -105,11 +138,13 @@ def funds_snapshot():
 
 @app.route("/dashboard")
 def dashboard():
+    funds_snapshot = funds_mon.get_snapshot() if "funds_mon" in globals() else funds
     return render_template(
         "dashboard.html",
         runners=runners,
-        funds=funds_mon.get_snapshot(),
+        funds=funds_snapshot,
         queue=queue_stats,
+        mode=current_mode,
         now=datetime.now().strftime("%H:%M:%S"),
     )
 
@@ -165,6 +200,35 @@ def push_register():
     push_reg.ensure_registered(symbol)
     queue_stats["push_registered"] = len(push_reg.symbols)
     return jsonify(res)
+
+
+@app.route("/api/mode", methods=["GET"])
+def get_mode():
+    return jsonify(dict(current_mode))
+
+
+@app.route("/api/mode", methods=["POST"])
+def set_mode():
+    data = request.get_json(force=True)
+    want = (data.get("mode") or "").upper()
+    if want not in ("LIVE", "LIVE-DRY", "PAPER"):
+        return jsonify({"ok": False, "error": "invalid mode"}), 400
+
+    if want == "LIVE":
+        ok, msg = _kabu_healthcheck()
+        if not ok:
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": f"live check failed: {msg}",
+                        "mode": current_mode["value"],
+                    }
+                ),
+                503,
+            )
+    _set_mode(want)
+    return jsonify({"ok": True, "mode": current_mode["value"]})
 
 
 @app.route("/api/test/ping")

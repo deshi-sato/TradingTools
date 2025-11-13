@@ -1,0 +1,39 @@
+{
+  "version": "2025-11-11",
+  "quote_sign": {
+    "allow": [
+      "0101"
+    ],
+    "block": [
+      "0102",
+      "0201",
+      "0202",
+      "0000"
+    ]
+  },
+  "special_quote": {
+    "disable_on_block": true,
+    "cooldown_sec": 900
+  },
+  "market_open_wait_sec": 60,
+  "breakout": {
+    "confirm_bars": 2,
+    "hold_tolerance": 0.004,
+    "new_high_margin_ticks": 1.0,
+    "pullback_ready_required": false
+  },
+  "volume_spike": {
+    "enable": true,
+    "ma": 5,
+    "thr": 1.6,
+    "min_floor": 2000
+  },
+  "stall_exit": {
+    "vrate_thr": 1.3,
+    "f1_thr": 0.0,
+    "n": 2,
+    "max_hold_sec": 20,
+    "tp_bp": 15,
+    "sl_bp": 8
+  }
+}

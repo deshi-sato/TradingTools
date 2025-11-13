@@ -20,11 +20,67 @@ async function switchMode(m){
   });
   const data = await res.json();
   if(!res.ok || !data.ok){
-    alert('\u5207\u66FF\u5931\u6557: ' + (data.error || res.status));
+    alert('�ؑ֎��s: ' + (data.error || res.status));
   }else{
     location.reload();
   }
 }
+</script>
+<script>
+async function loadRefeedOptions(){
+  const select = document.getElementById('refeedSelect');
+  if(!select) return;
+  const toast = document.getElementById('refeedToast');
+  try{
+    const res = await fetch('/api/paper/refeed_list');
+    if(!res.ok){
+      throw new Error('list failed');
+    }
+    const data = await res.json();
+    select.innerHTML = '';
+    (data.db_files || []).forEach(function(fn){
+      const opt = document.createElement('option');
+      opt.value = fn;
+      opt.textContent = fn;
+      select.appendChild(opt);
+    });
+    if(data.current){
+      select.value = data.current;
+    }
+    select.onchange = async function(ev){
+      const filename = ev.target.value;
+      try{
+        const resp = await fetch('/api/paper/set_refeed', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({filename})
+        });
+        const payload = await resp.json();
+        if(!resp.ok || payload.ok === false){
+          throw new Error(payload.error || resp.status);
+        }
+        showToast('Refeed DB updated');
+      }catch(err){
+        showToast('Refeed DB update failed: ' + err, true);
+      }
+    };
+  }catch(err){
+    console.error(err);
+    showToast('Failed to load refeed list: ' + err, true);
+  }
+}
+function showToast(message, isError){
+  const toast = document.getElementById('refeedToast');
+  if(!toast){
+    alert(message);
+    return;
+  }
+  toast.textContent = message;
+  toast.style.display = 'inline';
+  toast.style.color = isError ? '#ff6961' : '#00ffcc';
+  setTimeout(function(){ toast.style.display = 'none'; }, 2500);
+}
+document.addEventListener('DOMContentLoaded', loadRefeedOptions);
 </script>
 </head>
 <body>
@@ -38,9 +94,17 @@ async function switchMode(m){
   <button onclick="switchMode('LIVE')">LIVE</button>
   <button onclick="switchMode('PAPER')">PAPER</button>
 </div>
+{% if mode.value == 'PAPER' %}
+<div style="text-align:center; margin-bottom:1em;">
+  <label for="refeedSelect">Refeed DB:</label>
+  <select id="refeedSelect" style="min-width:260px;"></select>
+  <span id="refeedToast" style="margin-left:1em; color:#00ffcc; display:none;"></span>
+  <div style="font-size:0.9em; margin-top:0.3em;">Current: {{ paper_refeed_current or 'unset' }}</div>
+</div>
+{% endif %}
 <p style="text-align:center;">Updated: {{ now }}</p>
 
-<h3>&#x30E9;&#x30F3;&#x30CA;&#x30FC;&#x4E00;&#x89A7;</h3>
+<h3>ランナー一覧</h3>
 <table>
 <tr><th>ID</th><th>Symbol</th><th>Mode</th><th>Last Seen</th></tr>
 {% for rid, info in runners.items() %}
@@ -48,7 +112,7 @@ async function switchMode(m){
 {% endfor %}
 </table>
 
-<h3>&#x53E3;&#x5EA7;&#x60C5;&#x5831;</h3>
+<h3>口座情報</h3>
 <p style="margin-left:2em;">
   Cash: {{ funds.cash }} /
   PnL: {{ funds.pnl_today }} /
@@ -56,16 +120,29 @@ async function switchMode(m){
   OK: {{ funds.ok }}
 </p>
 
-<h3>REST&#x30AD;&#x30E5;&#x30FC;</h3>
+<h3>RESTキュー</h3>
 <p style="margin-left:2em;">
   Requests: {{ queue.requests }} /
   Processed: {{ queue.processed }} /
   Dropped: {{ queue.dropped }}
 </p>
 
-<h3>PUSH&#x767B;&#x9332;&#x72B6;&#x6CC1;</h3>
+<h3>PUSH登録状況</h3>
 <p style="margin-left:2em;">
-  &#x767B;&#x9332;&#x4E2D;: {{ queue.push_registered }}
+  登録中: {{ queue.push_registered }}
 </p>
+
+<h3>通信履歴</h3>
+<table>
+<tr><th>時刻</th><th>種別</th><th>内容</th><th>OK</th></tr>
+{% for entry in comms %}
+<tr>
+  <td>{{ entry.ts }}</td>
+  <td>{{ entry.kind }}</td>
+  <td>{{ entry.detail }}</td>
+  <td>{{ entry.ok }}</td>
+</tr>
+{% endfor %}
+</table>
 </body>
 </html>

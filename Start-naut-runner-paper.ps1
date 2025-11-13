@@ -1,23 +1,23 @@
 cd C:\Users\Owner\documents\desshi_signal_viewer
 C:/Users/Owner/Documents/desshi_signal_viewer/.venv/Scripts/Activate.ps1
 
-    $ThresholdPath = 'exports\best_thresholds_buy_REF20251022_0901.json'
-    $ConfigPath = 'config\runner_settings.json'
-    $PolicyPath = 'config\policy.default.json'
-    $LogPath = "logs\naut_runner_paper_20251031.log"
-    $FeatureDB = "db\naut_market_20251031_refeed.db"
-    $OpsDB = "db\naut_ops_20251031.db"
+    $FeatureDB = "c:\TradingToolsData\db\naut_market_20251111_refeed.db"
+    $MLModel = ".\models\lstm_3905_v2.pt"
+    $MLFeature = ".\exports\feature_names_3905.txt"
 
     py -m scripts.naut_runner `
-    --symbols 247A 6330 290A `
+    --symbols 3905 `
     --mode BUY `
     --broker paper `
+    --ml-model $MLModel `
+    --ml-feat-names $MLFeature `
     --features_db $FeatureDB `
-    --ops_db $OpsDB `
-    --thr $ThresholdPath `
-    --config $ConfigPath `
-    --policy $PolicyPath `
-    --log_path $LogPath `
+    --prob-up-len 3 `
+    --vol-ma3-thr 700 `
+    --vol-rate-thr 1.30 `
+    --sync-ticks 3 `
+    --cooldown-ms 1500 `
     --verbose 1 `
     --feature-source raw_push `
+    --window 09:00:00-15:30:00 `
     --replay-from-start

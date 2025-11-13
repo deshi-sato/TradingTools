@@ -37,6 +37,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from typing import Any, Deque, Dict, Iterable, List, Optional, Set, Tuple
 
 from scripts.common_config import load_json_utf8
+from deep_naut.common.sentinel_client import SentinelClient
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SIDE_BUY = "BUY"
@@ -235,17 +236,19 @@ def resolve_path(path_str: str) -> str:
     return str(path)
 
 
-def resolve_threshold_path(symbol: str, cli_path: Optional[str]) -> Path:
+def resolve_threshold_path(symbol: str, cli_path: Optional[str]) -> Optional[Path]:
     if cli_path:
         provided = Path(resolve_path(cli_path))
         if provided.is_file():
             return provided
-        raise SystemExit(f"--thr not found: {cli_path}")
+        logger.warning("--thr not found: %s; continuing without threshold JSON", cli_path)
+        return None
     symbol_norm = normalize_symbol(symbol)
     candidate = REPO_ROOT / f"exports/best_thresholds_{symbol_norm}_latest.json"
     if candidate.is_file():
         return candidate
-    raise SystemExit(f"threshold json not found: {candidate}")
+    logger.info("threshold json not found (optional): %s", candidate)
+    return None
 
 
 def parse_flatten_at(value: Optional[str]) -> Optional[dtime]:
@@ -366,7 +369,7 @@ class RunnerConfig:
     momentum_quality_min: float = field(default=6.0, metadata={"overridable": False})
     breakout_confirm_bars: int = field(default=3,   metadata={"overridable": False})
     breakout_hold_tolerance: float = 0.004
-    feature_source: str = "features_stream"
+    feature_source: str = "raw_push"
     fe_window_secs: int = 60
     fe_fast_n: int = 12
     box_max_age_sec: float = 180.0        # 例: 3分で箱をリセット
@@ -671,9 +674,9 @@ def load_runner_config(
     breakout_hold_tolerance = safe_float(payload.get("breakout_hold_tolerance"), 0.004)
     if breakout_hold_tolerance is None or breakout_hold_tolerance < 0.0:
         breakout_hold_tolerance = 0.004
-    feature_source_raw = str(payload.get("feature_source", "features_stream") or "features_stream").strip().lower()
+    feature_source_raw = str(payload.get("feature_source", "raw_push") or "raw_push").strip().lower()
     if feature_source_raw not in {"features_stream", "raw_push"}:
-        feature_source_raw = "features_stream"
+        feature_source_raw = "raw_push"
     fe_window_secs_val = safe_int(payload.get("fe_window_secs"), 60)
     if fe_window_secs_val is None or fe_window_secs_val <= 0:
         fe_window_secs_val = 60
@@ -1090,7 +1093,7 @@ class Policy:
         ref_px = ask_px if ask_px is not None else bid_px
         row_mean_close = self._extract(row, ("mean_close",))
         row_recent_high = self._extract(row, ("recent_high",))
-        raw_mode = str(getattr(self.config, "feature_source", "features_stream")).lower() == "raw_push"
+        raw_mode = str(getattr(self.config, "feature_source", "raw_push")).lower() == "raw_push"
         if raw_mode:
             tick_for_spread = max(float(getattr(self.config, "tick_size", 0.0)), 0.0)
             tick_baseline = tick_for_spread if tick_for_spread > 0.0 else 1.0
@@ -2125,9 +2128,9 @@ class FeaturePoller:
         self.config = config
         self.symbols = list(symbols or [])
 
-        source = str(getattr(config, "feature_source", "features_stream") or "features_stream").lower()
+        source = str(getattr(config, "feature_source", "raw_push") or "raw_push").lower()
         if source not in {"features_stream", "raw_push"}:
-            source = "features_stream"
+            source = "raw_push"
         self.source = source
 
         self.raw_stream: Optional[RawPushFeatures] = None
@@ -2249,6 +2252,7 @@ class NautRunner:
         killswitch_path: Path,
         broker_label: str,
         replay_from_start: bool,
+        sentinel_client: Optional[SentinelClient] = None,
     ):
         self.mode = mode.upper()
         self.config = config
@@ -2257,6 +2261,9 @@ class NautRunner:
         self.ledger = ledger
         self.poller = poller
         self.trade_logger = trade_logger
+        self.sentinel_client = sentinel_client
+        self._sentinel_board_since: Optional[float] = None
+        self._sentinel_board_logged = False
         self.broker_label = broker_label.lower()
         self.replay_from_start = replay_from_start
         self.symbol = config.symbols[0]
@@ -2441,6 +2448,7 @@ class NautRunner:
                                 continue
                             else:
                                 self.disabled_symbols.discard(symbol)
+                        self._apply_sentinel_board(symbol, row, data_ts)
                         fills = self.broker.process_tick(row, data_ts)
                         if fills:
                             self._handle_fills(fills)
@@ -2631,6 +2639,82 @@ class NautRunner:
         if bid is not None and ask is not None:
             return 0.5 * (bid + ask)
         return ask if ask is not None else bid
+
+    def _apply_sentinel_board(self, symbol: str, row: Dict[str, Any], data_ts: float) -> None:
+        if not self.sentinel_client:
+            return
+        try:
+            payload = self.sentinel_client.get_board(
+                symbol, since=self._sentinel_board_since, limit=1
+            )
+        except Exception as exc:
+            logger.warning(
+                "Sentinel board fetch failed symbol=%s: %s",
+                symbol,
+                exc,
+                extra=_log_extra(data_ts),
+            )
+            return
+        if isinstance(payload, list):
+            board = payload[0] if payload else None
+        elif isinstance(payload, dict):
+            board = payload
+        else:
+            board = None
+        if not board:
+            return
+        board_ts = safe_float(board.get("t"))
+        if board_ts is not None:
+            self._sentinel_board_since = float(board_ts)
+        else:
+            board_ts = data_ts
+        bid = safe_float(board.get("bid"))
+        ask = safe_float(board.get("ask"))
+        last = safe_float(board.get("last"))
+        volume = safe_float(board.get("volume"))
+
+        def _assign(value: Optional[float], keys: Tuple[str, ...]) -> None:
+            if value is None:
+                return
+            for key in keys:
+                row[key] = value
+
+        _assign(bid, ("bid", "bid1", "best_bid", "bid_px"))
+        _assign(ask, ("ask", "ask1", "best_ask", "ask_px"))
+        _assign(last, ("last", "price", "close"))
+        if volume is not None:
+            row["volume"] = volume
+            row["turnover"] = volume
+        if "bids" in board:
+            row["bids"] = board["bids"]
+        if "asks" in board:
+            row["asks"] = board["asks"]
+        row["board_ts"] = board_ts
+
+        def _fmt(value: Optional[float]) -> str:
+            return f"{value:.3f}" if value is not None else "-"
+
+        if not self._sentinel_board_logged:
+            logger.info(
+                "board %s t=%.3f bid=%s ask=%s last=%s",
+                symbol,
+                board_ts,
+                _fmt(bid),
+                _fmt(ask),
+                _fmt(last),
+                extra=_log_extra(data_ts),
+            )
+            self._sentinel_board_logged = True
+        else:
+            logger.debug(
+                "board %s t=%.3f bid=%s ask=%s last=%s",
+                symbol,
+                board_ts,
+                _fmt(bid),
+                _fmt(ask),
+                _fmt(last),
+                extra=_log_extra(data_ts),
+            )
 
     def _mark_positions(self, symbol: str, row: Dict[str, Any]) -> None:
         bid = safe_float(
@@ -3159,13 +3243,23 @@ def main() -> None:
     )
     parser.add_argument("--broker", choices=["paper", "live"], default="paper")
     parser.add_argument(
+        "--sentinel",
+        type=str,
+        default=None,
+        help="センチネルのURL (例: http://127.0.0.1:58900)",
+    )
+    parser.add_argument(
         "--dry-run",
         type=int,
         choices=[0, 1],
         default=1,
         help="Live only: 0=live orders, 1=dry-run",
     )
-    parser.add_argument("--config", required=True, help="Runner config JSON")
+    parser.add_argument(
+        "--config",
+        default="deep_naut/config/runner_settings.json",
+        help="Runner config JSON (default: deep_naut/config/runner_settings.json)",
+    )
     parser.add_argument("--verbose", type=int, choices=[0, 1], default=0)
     parser.add_argument(
         "--feature-source",
@@ -3241,18 +3335,76 @@ def main() -> None:
         help="Symbols to run (e.g., 1960 6330 290A)"
     )
     parser.add_argument(
+        "--symbol",
+        metavar="CODE",
+        help="Single symbol alias for --symbols CODE"
+    )
+    parser.add_argument(
         "--log-path", "--log_path",
         dest="log_path",
         type=str, default=None,
         help="Path to log file (overrides config).",
     )
     args = parser.parse_args()
+    if getattr(args, "symbol", None):
+        if not args.symbols:
+            args.symbols = [args.symbol]
+        else:
+            if args.symbol not in args.symbols:
+                args.symbols = [args.symbol] + [sym for sym in args.symbols if sym != args.symbol]
+
+    def _cli_primary_symbol(cli_args) -> Optional[str]:
+        if getattr(cli_args, "symbol", None):
+            return str(cli_args.symbol).strip() or None
+        symbols_raw = getattr(cli_args, "symbols", None)
+        if isinstance(symbols_raw, (list, tuple)):
+            for item in symbols_raw:
+                token = str(item).strip()
+                if token:
+                    return token
+            return None
+        if isinstance(symbols_raw, str):
+            tokens = [tok.strip() for tok in symbols_raw.replace(",", " ").split() if tok.strip()]
+            return tokens[0] if tokens else None
+        return None
+
+    sentinel_client: Optional[SentinelClient] = None
+    sentinel_log_msg: Optional[str] = None
+    sentinel_url = (getattr(args, "sentinel", "") or "").strip()
+    symbol_probe = _cli_primary_symbol(args)
+    if sentinel_url:
+        try:
+            sentinel_client = SentinelClient(sentinel_url)
+            sentinel_log_msg = (
+                f"PAPER feed via sentinel {sentinel_client.base_url}"
+                if args.broker == "paper"
+                else f"Sentinel bridge via {sentinel_client.base_url}"
+            )
+            if symbol_probe:
+                board = sentinel_client.get_board(symbol_probe, since=None, limit=1)
+                print(f"[INFO] BOARD via sentinel: {board}")
+            else:
+                print("[INFO] BOARD via sentinel: symbol not provided, skipping initial fetch")
+        except Exception as exc:
+            print(f"[WARN] Sentinel probe failed: {exc}")
+    else:
+        print("[INFO] Sentinel URL not specified, fallback to local mode")
 
     mode_label = (args.mode or "AUTO").lower()
     singleton_guard(f"naut_runner_{mode_label}_{args.broker}")
     config_path = Path(resolve_path(args.config))
+    def _normalize_symbol_args(raw):
+        if not raw:
+            return None
+        if isinstance(raw, (list, tuple)):
+            return [str(item).strip() for item in raw if str(item).strip()]
+        text = str(raw)
+        tokens = [tok.strip() for tok in text.replace(",", " ").split() if tok.strip()]
+        return tokens or None
+
+    symbols_override = _normalize_symbol_args(getattr(args, "symbols", None))
     runner_config = load_runner_config(
-        config_path, symbols_override=args.symbols
+        config_path, symbols_override=symbols_override
     )
     active_symbol = runner_config.symbols[0]
     threshold_path = resolve_threshold_path(active_symbol, args.thr)
@@ -3314,6 +3466,8 @@ def main() -> None:
     if cli_overrides:
         runner_config = replace(runner_config, **cli_overrides)
     configure_logging(runner_config.log_path, bool(args.verbose))
+    if sentinel_log_msg:
+        logger.info(sentinel_log_msg)
     logger.info(
         "feature_source=%s fe_window_secs=%d fe_fast_n=%d",
         runner_config.feature_source,
@@ -3333,14 +3487,20 @@ def main() -> None:
     if args.mode.upper() == SIDE_SELL:
         logger.warning("SELL execution disabled: runner will only log SELL signals.")
 
-    threshold_profile = load_threshold_profile(threshold_path)
-    if runner_config.score_thr_abs is not None:
-        threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
-        logger.info(
-            "score_thr_abs override applied from config: %.3f",
-            threshold_profile.score_thr_abs,
-        )
-    logger.info("Threshold loaded for %s: %s", active_symbol, threshold_path)
+    if threshold_path:
+        threshold_profile = load_threshold_profile(threshold_path)
+        if runner_config.score_thr_abs is not None:
+            threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
+            logger.info(
+                "score_thr_abs override applied from config: %.3f",
+                threshold_profile.score_thr_abs,
+            )
+        logger.info("Threshold loaded for %s: %s", active_symbol, threshold_path)
+    else:
+        threshold_profile = ThresholdProfile()
+        if runner_config.score_thr_abs is not None:
+            threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
+        logger.info("Threshold file not provided; using default profile values.")
 
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
@@ -3362,9 +3522,13 @@ def main() -> None:
 
     broker: Broker
     if args.broker == "paper":
-        broker = PaperBroker(runner_config)
+        broker = PaperBroker(runner_config, sentinel_client=sentinel_client)
     else:
-        broker = LiveBroker(runner_config, dry_run=bool(args.dry_run))
+        broker = LiveBroker(
+            runner_config,
+            dry_run=bool(args.dry_run),
+            sentinel_client=sentinel_client,
+        )
 
     runner = NautRunner(
         mode=args.mode,
@@ -3378,6 +3542,7 @@ def main() -> None:
         killswitch_path=killswitch_path,
         broker_label=args.broker,
         replay_from_start=bool(args.replay_from_start),
+        sentinel_client=sentinel_client,
     )
 
     logger.info(
@@ -3682,10 +3847,60 @@ class Broker:
 
 
 class PaperBroker(Broker):
-    def __init__(self, config: RunnerConfig):
+    def __init__(
+        self,
+        config: RunnerConfig,
+        sentinel_client: Optional[SentinelClient] = None,
+    ):
         self.config = config
         self._orders: Dict[str, PaperOrder] = {}
         self._sequence = 0
+        self._sentinel_client = sentinel_client
+
+    def _dispatch_sentinel_order(
+        self,
+        symbol: str,
+        side: str,
+        qty: float,
+        entry_px: float,
+        opened_at: float,
+    ) -> Optional[str]:
+        if not self._sentinel_client:
+            return None
+        tif = str(getattr(self.config, "paper_tif", "IOC") or "IOC").upper()
+        order_type = "LIMIT"
+        try:
+            response = self._sentinel_client.paper_order(
+                symbol=symbol,
+                side=side,
+                qty=qty,
+                order_type=order_type,
+                price=entry_px,
+                tif=tif,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Sentinel paper_order failed symbol=%s side=%s qty=%.0f: %s",
+                symbol,
+                side,
+                qty,
+                exc,
+                extra=_log_extra(opened_at),
+            )
+            return None
+        paper_id = response.get("paper_order_id")
+        logger.info(
+            "paper_order ok id=%s symbol=%s side=%s qty=%.0f type=%s px=%.3f tif=%s",
+            paper_id or "-",
+            symbol,
+            side,
+            qty,
+            order_type,
+            entry_px,
+            tif,
+            extra=_log_extra(opened_at),
+        )
+        return paper_id
 
     def place_ifdoco(
         self,
@@ -3700,6 +3915,12 @@ class PaperBroker(Broker):
     ) -> str:
         self._sequence += 1
         order_id = f"PB-{self._sequence:06d}"
+        sentinel_order_id = self._dispatch_sentinel_order(
+            symbol, side, qty, entry_px, opened_at
+        )
+        meta_payload = dict(meta)
+        if sentinel_order_id:
+            meta_payload["sentinel_order_id"] = sentinel_order_id
         self._orders[order_id] = PaperOrder(
             order_id=order_id,
             symbol=symbol,
@@ -3709,7 +3930,7 @@ class PaperBroker(Broker):
             sl_px=sl_px,
             tp_px=tp_px,
             opened_at=opened_at,
-            meta=dict(meta),
+            meta=meta_payload,
         )
         logger.debug(
             "Paper IFDOCO placed order_id=%s symbol=%s side=%s qty=%.0f entry=%.3f sl=%.3f tp=%.3f",
@@ -3910,11 +4131,18 @@ class PaperBroker(Broker):
 
 
 class LiveBroker(Broker):
-    def __init__(self, config: RunnerConfig, dry_run: bool):
+    def __init__(
+        self,
+        config: RunnerConfig,
+        dry_run: bool,
+        sentinel_client: Optional[SentinelClient] = None,
+    ):
         self.config = config
         self.dry_run = dry_run
         self._sequence = 0
-        self._paper_delegate = PaperBroker(config) if dry_run else None
+        self._paper_delegate = (
+            PaperBroker(config, sentinel_client=sentinel_client) if dry_run else None
+        )
 
     def place_ifdoco(
         self,

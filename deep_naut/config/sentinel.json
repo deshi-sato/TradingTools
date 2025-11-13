@@ -2,9 +2,23 @@
   "api": {
     "base_url": "http://localhost:18080/kabusapi",
     "token_path": "./config/kabu_token.json",
-    "timeout_sec": 2.0
+    "timeout_sec": 3.0,
+    "password": "x8LB1Awk"
   },
   "rate_limit": {
     "global_min_interval_ms": 100
+  },
+  "mode": "PAPER",
+  "paper": {
+    "refeed_db": "C:\\Users\\Owner\\Documents\\TradingTools\\db\\naut_market_20251111_refeed.db",
+    "refeed_db_dir": "C:\\Users\\Owner\\Documents\\TradingTools\\db",
+    "feed_tables": [
+      "refeed_ticks",
+      "features_stream",
+      "raw_push"
+    ],
+    "symbol_col": "symbol",
+    "time_col": "t_exec",
+    "payload_col": "payload"
   }
 }

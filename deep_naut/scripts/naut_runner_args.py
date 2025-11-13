@@ -35,14 +35,15 @@ def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         prog="naut_runner", description="Deep Naut runner bootstrap CLI"
     )
-    ap.add_argument("--symbols", required=True, help="Symbol list (comma separated)")
+    ap.add_argument("--symbols", help="Symbol list (comma separated)")
+    ap.add_argument("--symbol", help="Single symbol alias for --symbols")
     ap.add_argument(
         "--mode", choices=["AUTO", "BUY", "SELL"], default="AUTO", help="Execution mode"
     )
     ap.add_argument("--thr", dest="thr", help="Threshold JSON (best_thresholds)")
     ap.add_argument("--broker", choices=["paper", "live"], default="paper")
     ap.add_argument("--dry-run", type=int, choices=[0, 1], default=1)
-    ap.add_argument("--config", default="config/runner_settings.json")
+    ap.add_argument("--config", default="deep_naut/config/runner_settings.json")
     ap.add_argument("--policy", default="")
     ap.add_argument("--feature-source", choices=["features_stream", "raw_push"])
     ap.add_argument("--features-db", dest="features_db")
@@ -65,6 +66,8 @@ def build_argparser() -> argparse.ArgumentParser:
 
 
 def finalize_defaults(args):
+    if getattr(args, "symbol", None) and not getattr(args, "symbols", None):
+        args.symbols = str(args.symbol)
     sym = primary_symbol(getattr(args, "symbols", ""))
     if getattr(args, "raw_db", None) and not getattr(args, "features_db", None):
         args.features_db = args.raw_db

@@ -72,7 +72,7 @@ def _normalize_sym(s: str) -> str:
 def singleton_guard(tag: str):
     """単一タスクを保証するローカルミューテックス。"""
     global _singleton_handle, _pidfile_path
-    name = f"Global\{tag}"
+    name = f"Global\\{tag}"
     _singleton_handle = ctypes.windll.kernel32.CreateMutexW(None, False, name)
     if ctypes.GetLastError() == 183:
         print(f"[ERROR] {tag} already running", file=sys.stderr)

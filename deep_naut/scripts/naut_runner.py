@@ -36,8 +36,11 @@ from statistics import mean
 from typing import Any, Deque, Dict, Iterable, List, Optional, Set, Tuple
 import importlib.util
 
-from common.sentinel_client import SentinelClient
+_THIS_FILE = Path(__file__).resolve()
+if str(_THIS_FILE.parent) not in sys.path:
+    sys.path.append(str(_THIS_FILE.parent))
 
+from scripts.sentinel_client import SentinelClient
 from scripts.naut_runner_db import ensure_features_db
 from scripts.naut_runner_args import (
     build_argparser,
@@ -48,8 +51,6 @@ from scripts.naut_runner_args import (
     default_log_path,
 )
 from ml_gate import MlBreakoutGate, MlGateConfig
-
-_THIS_FILE = Path(__file__).resolve()
 
 def _load_common_config():
     for parent in _THIS_FILE.parents:
@@ -65,13 +66,14 @@ def _load_common_config():
 common_config = _load_common_config()
 load_json_utf8 = common_config.load_json_utf8
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SIDE_BUY = "BUY"
 SIDE_SELL = "SELL"
 ACTION_ENTRY = "entry"
 ACTION_EXIT = "exit"
 
 logger = logging.getLogger("naut_runner")
+logger.log_path = None  # type: ignore[attr-defined]
 
 def _fmt_market_ts(ts):
     """data_ts(Unix秒/ミリ秒/None)を 'HH:MM:SS' に。未同期なら '' を返す。"""
@@ -109,12 +111,36 @@ def to_jst_str(epoch_ms: int) -> str:
     dt = datetime.fromtimestamp(epoch_ms / 1000.0, tz=JST)
     return dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-def acquire_symbol_lock(symbol: str) -> None:
+def yyyymmdd_from_ts(ts: Any) -> str:
+    """
+    Unix timestamp(秒/ミリ秒)からJSTのYYYYMMDD文字列を生成する。
+    """
+    try:
+        value = float(ts)
+    except (TypeError, ValueError):
+        value = 0.0
+    if value <= 0.0:
+        value = time.time()
+    if value > 1e11:
+        value = value / 1000.0
+    return datetime.fromtimestamp(value, tz=JST).strftime("%Y%m%d")
+
+def acquire_symbol_lock(symbol: str, strict: bool = True) -> None:
     lock_dir = Path("locks")
     lock_dir.mkdir(parents=True, exist_ok=True)
     lock_path = lock_dir / f"{symbol}.lock"
     if lock_path.exists():
-        raise SystemExit(f"[LOCKED] runner already active for symbol={symbol}: {lock_path}")
+        if strict:
+            raise SystemExit(
+                f"[LOCKED] runner already active for symbol={symbol}: {lock_path}"
+            )
+        else:
+            try:
+                lock_path.unlink(missing_ok=True)
+            except Exception:
+                raise SystemExit(
+                    f"[LOCKED] failed to remove stale lock for symbol={symbol}: {lock_path}"
+                )
     lock_path.write_text(str(os.getpid()), encoding="utf-8")
 
     def _cleanup() -> None:
@@ -482,6 +508,21 @@ class RunnerConfig:
     pb_reset_ticks: float = 0.0           # tickベースのリセット(0で無効)
     reopen_check_mode: str = "STRICT"         # or "ANY", "MISSING_OK"
     reopen_persist_ticks: int = 2             # 0で無効（即時判定）
+
+def apply_cli_overrides(
+    runner_config: RunnerConfig, cli_overrides: Dict[str, Any]
+) -> RunnerConfig:
+    """
+    RunnerConfig に存在するフィールドだけを上書きする安全な override ヘルパー。
+    不明なキーは無視する。
+    """
+    if not cli_overrides:
+        return runner_config
+    allowed = {f.name for f in fields(RunnerConfig)}
+    safe_overrides = {k: v for k, v in cli_overrides.items() if k in allowed}
+    if not safe_overrides:
+        return runner_config
+    return replace(runner_config, **safe_overrides)
 
 
 def _is_special(sign: Any, cfg: RunnerConfig) -> bool:
@@ -1892,53 +1933,6 @@ class Policy:
 
         score_thr = max(self.profile.score_thr_abs, 0.0)
 
-        # --- BUY entry gate (OR-of-ANDs) ---
-        buy_fail: Optional[str] = None
-        if ask_px is None:
-            buy_fail = "no_quote"
-
-        if buy_fail is None:
-            spread_max = float(self.profile.spread_max)
-            if spread_val > spread_max:
-                buy_fail = "spread"
-
-        buy_via_fastlane = False
-        if buy_fail is None and fastpath_spike:
-            buy_via_fastlane = True
-
-        buy_via_normal = False
-        if buy_fail is None and not buy_via_fastlane:
-            mom_ok_buy = mom_ok
-            score_ok_buy = score is not None and score >= score_thr
-            if mom_ok_buy and score_ok_buy:
-                buy_via_normal = True
-            else:
-                buy_fail = "momentum_score"
-
-        if buy_via_fastlane or buy_via_normal:
-            sl_px = ask_px * (1.0 - stop_pct)
-            tp_px = ask_px * (1.0 + take_pct)
-            route = "fastlane" if buy_via_fastlane else "normal"
-            buy_context = dict(context)
-            buy_context.update(
-                {
-                    "entry_px": ask_px,
-                    "sl_px": sl_px,
-                    "tp_px": tp_px,
-                    "side": SIDE_BUY,
-                    "route": route,
-                }
-            )
-            return PolicyDecision(
-                True,
-                side=SIDE_BUY,
-                entry_px=ask_px,
-                sl_px=sl_px,
-                tp_px=tp_px,
-                reason="signal",
-                context=buy_context,
-            )
-
         # --- SELL entry gate (OR-of-ANDs) ---
         sell_fail: Optional[str] = None
         if bid_px is None:
@@ -1987,8 +1981,6 @@ class Policy:
             )
 
         reasons: List[str] = []
-        if buy_fail:
-            reasons.append(f"BUY={buy_fail}")
         if sell_fail:
             reasons.append(f"SELL={sell_fail}")
         if not reasons:
@@ -2490,6 +2482,7 @@ class NautRunner:
             self.display_symbols = [self.config.symbols_original[0]]
         else:
             self.display_symbols = [self.symbol]
+        self.trading_yyyymmdd: Optional[str] = None
         self.flatten_at = flatten_at
         self.flatten_triggered = False
         self.killswitch_path = killswitch_path
@@ -2650,6 +2643,18 @@ class NautRunner:
                 if rows:
                     for row in rows:
                         data_ts = self.clock.update_from_row(row)
+                        if (
+                            self.trading_yyyymmdd is None
+                            and data_ts is not None
+                            and data_ts > 0.0
+                        ):
+                            self.trading_yyyymmdd = yyyymmdd_from_ts(data_ts)
+                            logger.info(
+                                "Trading date resolved symbol=%s yyyymmdd=%s",
+                                symbol,
+                                self.trading_yyyymmdd,
+                                extra=_log_extra(data_ts),
+                            )
                         latest_data_ts = data_ts
                         processed_row = True
                         row_exec_ts = safe_float(row.get("t_exec"))
@@ -3558,6 +3563,31 @@ def configure_logging(log_path: str, verbose: bool) -> None:
     sh.setFormatter(formatter)
 
     logging.basicConfig(level=level, handlers=[fh, sh], force=True)
+    logger.log_path = log_path
+
+def _finalize_log_with_trading_day(symbol: str, trading_day: Optional[str]) -> None:
+    day = (trading_day or "").strip()
+    if not day:
+        return
+    log_path = getattr(logger, "log_path", None)
+    if not log_path:
+        return
+    src = Path(log_path)
+    if not src.exists():
+        return
+    stem = src.stem
+    if len(stem) > 9 and stem[-9] == "_" and stem[-8:].isdigit():
+        stem = stem[:-9]
+    symbol = (symbol or "").strip()
+    if symbol and symbol not in stem:
+        stem = f"{stem}_{symbol}"
+    dst = src.with_name(f"{stem}_{day}{src.suffix}")
+    if dst == src or dst.exists():
+        return
+    try:
+        src.rename(dst)
+    except Exception:
+        pass
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Naut Runner IFDOCO executor")
@@ -3642,7 +3672,7 @@ def main() -> None:
         help="Feature name list used by the ML model",
     )
     parser.add_argument("--prob-up-len", type=int, default=3, help="ML gate: required consecutive prob up count")
-    parser.add_argument("--vol-ma3-thr", type=float, default=700.0, help="ML gate: vol_ma3 threshold")
+    parser.add_argument("--vol-ma3-thr", "--vol-ma-thr", type=float, default=700.0, help="ML gate: vol_ma3 threshold")
     parser.add_argument("--vol-rate-thr", type=float, default=1.30, help="ML gate: vol_rate threshold")
     parser.add_argument("--vol-gate", choices=["OR", "AND"], default="OR", help="ML gate volume combination logic")
     parser.add_argument("--sync-ticks", type=int, default=3, help="ML gate: allowed tick lag for prob sync")
@@ -3669,6 +3699,30 @@ def main() -> None:
         type=str,
         default="",
         help="Optional policy.json path to override sizing/risk",
+    )
+    parser.add_argument(
+        "--spread-ticks",
+        type=float,
+        default=None,
+        help="Override allowed spread (ticks) before entry",
+    )
+    parser.add_argument(
+        "--cooldown-sec",
+        type=float,
+        default=None,
+        help="Override cooldown after STOP (seconds)",
+    )
+    parser.add_argument(
+        "--threshold-buy",
+        type=float,
+        default=None,
+        help="Manual BUY threshold override (score)",
+    )
+    parser.add_argument(
+        "--threshold-sell",
+        type=float,
+        default=None,
+        help="Manual SELL threshold override (score)",
     )
     parser.add_argument(
         "--features-db", "--features_db",
@@ -3751,7 +3805,7 @@ def main() -> None:
         args.ops_db = default_ops_db(active_symbol)
     if not args.log_path:
         args.log_path = default_log_path(active_symbol)
-    acquire_symbol_lock(active_symbol)
+    acquire_symbol_lock(active_symbol, strict=(args.broker == "live"))
     threshold_path = resolve_threshold_path(active_symbol, args.thr)
     policy_dict = _load_json_optional(args.policy)
     if policy_dict:
@@ -3786,6 +3840,8 @@ def main() -> None:
         cli_overrides["volume_spike_thr"] = max(0.0, float(args.volume_spike_thr))
     if args.volume_min_floor is not None:
         cli_overrides["volume_min_floor"] = max(0.0, float(args.volume_min_floor))
+    if args.cooldown_sec is not None:
+        cli_overrides["cooldown_after_stop_sec"] = max(0.0, float(args.cooldown_sec))
     # momentum family
     if args.momentum_rule is not None:
         cli_overrides["momentum_rule"] = args.momentum_rule
@@ -3809,7 +3865,7 @@ def main() -> None:
         cli_overrides["log_path"] = str(Path(args.log_path))
 
     if cli_overrides:
-        runner_config = replace(runner_config, **cli_overrides)
+        runner_config = apply_cli_overrides(runner_config, cli_overrides)
     configure_logging(runner_config.log_path, bool(args.verbose))
     ensure_features_db(runner_config.features_db)
     logger.info("features DB ready: %s", runner_config.features_db)
@@ -3863,6 +3919,17 @@ def main() -> None:
         if runner_config.score_thr_abs is not None:
             threshold_profile.score_thr_abs = float(runner_config.score_thr_abs)
         logger.info("Threshold file not provided; using default profile values.")
+
+    manual_thr: Optional[float] = None
+    mode_upper = args.mode.upper()
+    if args.threshold_buy is not None and mode_upper in (SIDE_BUY, "AUTO"):
+        manual_thr = float(args.threshold_buy)
+        logger.info("threshold-buy override applied: %.3f", manual_thr)
+    if args.threshold_sell is not None and mode_upper == SIDE_SELL:
+        manual_thr = float(args.threshold_sell)
+        logger.info("threshold-sell override applied: %.3f", manual_thr)
+    if manual_thr is not None:
+        threshold_profile.score_thr_abs = manual_thr
 
     flatten_at = parse_flatten_at(args.flatten_at)
     killswitch_path = Path(resolve_path(args.killswitch))
@@ -3957,6 +4024,10 @@ def main() -> None:
             runner.session_end_ts = time.time()
         runner.show_summary(start_ts=runner.session_start_ts, end_ts=runner.session_end_ts)
         runner.shutdown()
+        log_symbol = getattr(runner, "symbol", "")
+        trading_day = getattr(runner, "trading_yyyymmdd", None)
+        logging.shutdown()
+        _finalize_log_with_trading_day(log_symbol, trading_day)
 
 
 @dataclass

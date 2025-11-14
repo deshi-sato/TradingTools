@@ -67,7 +67,7 @@ def build_argparser() -> argparse.ArgumentParser:
 
 def finalize_defaults(args):
     if getattr(args, "symbol", None) and not getattr(args, "symbols", None):
-        args.symbols = str(args.symbol)
+        args.symbols = [str(args.symbol)]
     sym = primary_symbol(getattr(args, "symbols", ""))
     if getattr(args, "raw_db", None) and not getattr(args, "features_db", None):
         args.features_db = args.raw_db

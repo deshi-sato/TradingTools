@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Run naut_runner",
+      "type": "python",
+      "request": "launch",
+      "module": "scripts.naut_runner",
+      "cwd": "${workspaceFolder}/deep_naut",
+
+      "args": [
+        "--symbols", "3905",
+        "--mode", "BUY",
+        "--sentinel", "http://127.0.0.1:58900",
+        "--prob-up-len", "3",
+        "--vol-ma-thr", "700",
+        "--vol-rate-thr", "1.30",
+        "--spread-ticks", "2",
+        "--cooldown-sec", "5",
+        "--threshold-buy", "0.8",
+        "--threshold-sell", "0.3"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
